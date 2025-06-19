@@ -145,14 +145,14 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
 
     const stream = createDataStream({
-      execute: (dataStream) => {
-        const result = streamText({
+      execute: async (dataStream) => {
+        const result = await streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages,
           maxSteps: 5,
           experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
+            selectedChatModel.includes('reasoning')
               ? []
               : [
                   'getWeather',
@@ -202,41 +202,30 @@ export async function POST(request: Request) {
                     },
                   ],
                 });
-              } catch (_) {
-                console.error('Failed to save chat');
+              } catch (error) {
+                console.error('Failed to save assistant message:', error);
               }
             }
-          },
-          experimental_telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: 'stream-text',
           },
         });
 
         result.consumeStream();
-
-        result.mergeIntoDataStream(dataStream, {
-          sendReasoning: true,
-        });
-      },
-      onError: () => {
-        return 'Oops, an error occurred!';
+        result.mergeIntoDataStream(dataStream);
       },
     });
 
     const streamContext = getStreamContext();
-
     if (streamContext) {
-      return new Response(
-        await streamContext.resumableStream(streamId, () => stream),
-      );
-    } else {
-      return new Response(stream);
+      return new Response(await streamContext.resumableStream(streamId, () => stream));
     }
+
+    return new Response(stream);
   } catch (error) {
+    console.error('Chat API error:', error);
     if (error instanceof ChatSDKError) {
       return error.toResponse();
     }
+    return new ChatSDKError('bad_request:api').toResponse();
   }
 }
 
