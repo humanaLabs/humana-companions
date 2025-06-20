@@ -60,3 +60,27 @@ pnpm dev
 ```
 
 Your app template should now be running on [localhost:3000](http://localhost:3000).
+
+## 📚 Documentation
+
+### 🚀 **Quick Start - Development Guide**
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** ⭐ - **Ações prioritárias e passo a passo**
+- **[docs/README.md](./docs/README.md)** - Central de documentação completa
+
+### 🎯 **Ready for Implementation**
+- **🤖 [Agentes Companions](./docs/analise_mudancas/agentes-companions/)** - ROI 712% em 12 meses
+- **🎨 [UI Chat Generativo](./docs/analise_mudancas/ui-chat-generativo-react/)** - Framework ReAct
+
+### 🏗️ **Architecture & Development**
+- **[docs/arquitetura_geral/](./docs/arquitetura_geral/)** - Padrões e boas práticas
+- **[docs/analise_mudancas/](./docs/analise_mudancas/)** - Sistema de análise arquitetural
+- **[docs/diagramas/](./docs/diagramas/)** - Diagramas C4 e visualizações
+
+### 🤖 **Integrations**
+- **[docs/dify/](./docs/dify/)** - Dify agents integration
+- **[docs/telas/](./docs/telas/)** - UI/UX documentation
+
+### 📋 **Essential Checklists**
+- [Integration Checklist](./docs/arquitetura_geral/CHECKLIST_INTEGRACAO.md) ⭐
+- [Code Best Practices](./docs/arquitetura_geral/BOAS_PRATICAS_CODIGO.md) ⭐
+- [Integration Patterns](./docs/arquitetura_geral/PADRAO_INTEGRACAO.md) ⭐

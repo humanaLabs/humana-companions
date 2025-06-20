@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, selectedChatModel, selectedVisibilityType } =
+    const { id, message, selectedChatModel, selectedVisibilityType, selectedDifyAgent } =
       requestBody;
 
     const session = await auth();
@@ -146,6 +146,145 @@ export async function POST(request: Request) {
 
     const stream = createDataStream({
       execute: async (dataStream) => {
+        // Se um agente Dify foi selecionado, usar ele ao invés do modelo padrão
+        if (selectedDifyAgent && selectedDifyAgent !== 'none') {
+          try {
+            const difyApiKey = process.env.DIFY_API_KEY;
+            const difyBaseUrl = process.env.DIFY_BASE_URL;
+
+            if (!difyApiKey || !difyBaseUrl) {
+              throw new Error('Configuração do Dify não encontrada');
+            }
+
+            const lastMessage = messages[messages.length - 1];
+            const userMessage = lastMessage.content;
+
+            const difyResponse = await fetch(`${difyBaseUrl}/v1/chat-messages`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${difyApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                inputs: {},
+                query: userMessage,
+                response_mode: 'streaming',
+                conversation_id: id,
+                user: session.user.id,
+              }),
+            });
+
+            if (!difyResponse.ok) {
+              const errorText = await difyResponse.text();
+              console.error('Erro do Dify:', difyResponse.status, errorText);
+              throw new Error(`Erro do Dify: ${difyResponse.status} - ${difyResponse.statusText}`);
+            }
+
+            // Processar stream do Dify
+            const reader = difyResponse.body?.getReader();
+            if (!reader) {
+              throw new Error('Não foi possível ler a resposta do Dify');
+            }
+
+            let assistantResponse = '';
+            const assistantId = generateUUID();
+            const decoder = new TextDecoder();
+
+            // Adicionar mensagem inicial para indicar que o agente está respondendo
+            dataStream.writeData({
+              type: 'append-message',
+              message: JSON.stringify({
+                id: assistantId,
+                role: 'assistant',
+                content: '',
+                parts: [],
+                createdAt: new Date().toISOString(),
+              }),
+            });
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(line => line.trim());
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const dataStr = line.slice(6).trim();
+                      if (dataStr === '[DONE]') {
+                        break;
+                      }
+
+                      const data = JSON.parse(dataStr);
+                      console.log('Dify response data:', data);
+                      
+                      // Diferentes tipos de eventos do Dify
+                      if (data.event === 'message' || data.event === 'agent_message') {
+                        const content = data.answer || data.content || '';
+                        if (content) {
+                          assistantResponse += content;
+                          dataStream.writeData({
+                            type: 'text-delta',
+                            textDelta: content,
+                          });
+                        }
+                      } else if (data.event === 'message_end') {
+                        // Fim da mensagem
+                        break;
+                      } else if (data.event === 'error') {
+                        console.error('Erro do Dify:', data);
+                        throw new Error(`Erro do agente Dify: ${data.message || 'Erro desconhecido'}`);
+                      }
+                    } catch (parseError) {
+                      console.error('Erro ao parsear resposta do Dify:', parseError, 'Line:', line);
+                      // Continuar processamento mesmo com erro de parse
+                    }
+                  }
+                }
+              }
+            } finally {
+              reader.releaseLock();
+            }
+
+            // Salvar mensagem do assistente
+            if (assistantResponse && session.user?.id) {
+              try {
+                await saveMessages({
+                  messages: [
+                    {
+                      id: assistantId,
+                      chatId: id,
+                      role: 'assistant',
+                      parts: [{ type: 'text', text: assistantResponse }],
+                      attachments: [],
+                      createdAt: new Date(),
+                    },
+                  ],
+                });
+                console.log('Mensagem do agente Dify salva com sucesso');
+              } catch (saveError) {
+                console.error('Erro ao salvar mensagem do Dify:', saveError);
+              }
+            }
+
+            return;
+          } catch (error) {
+            console.error('Erro ao executar agente Dify:', error);
+            
+            // Enviar mensagem de erro para o usuário
+            dataStream.writeData({
+              type: 'text-delta',
+              textDelta: `\n\n❌ Erro ao executar agente Dify: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nUsando modelo padrão...\n\n`,
+            });
+            
+            // Em caso de erro, continuar com o modelo padrão
+          }
+        }
+
+        // Lógica padrão para modelos normais
         const result = await streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
