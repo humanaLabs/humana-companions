@@ -8,9 +8,28 @@ const components: Partial<Components> = {
   // @ts-expect-error
   code: CodeBlock,
   pre: ({ children }) => <>{children}</>,
+  // Personalizar parágrafos para evitar aninhamento incorreto
+  p: ({ node, children, ...props }) => {
+    // Verificar se o parágrafo contém elementos de bloco
+    const hasBlockElements = React.Children.toArray(children).some((child) => {
+      if (React.isValidElement(child)) {
+        const type = child.type;
+        // Verificar se é um elemento de bloco
+        return typeof type === 'string' && ['pre', 'div', 'blockquote', 'ul', 'ol', 'li'].includes(type);
+      }
+      return false;
+    });
+
+    // Se contém elementos de bloco, renderizar sem <p>
+    if (hasBlockElements) {
+      return <div className="my-2">{children}</div>;
+    }
+
+    return <p className="my-2" {...props}>{children}</p>;
+  },
   ol: ({ node, children, ...props }) => {
     return (
-      <ol className="list-decimal list-outside ml-4" {...props}>
+      <ol className="list-decimal list-outside ml-4 my-2" {...props}>
         {children}
       </ol>
     );
@@ -24,7 +43,7 @@ const components: Partial<Components> = {
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="list-decimal list-outside ml-4" {...props}>
+      <ul className="list-disc list-outside ml-4 my-2" {...props}>
         {children}
       </ul>
     );
@@ -91,15 +110,24 @@ const components: Partial<Components> = {
       </h6>
     );
   },
+  blockquote: ({ node, children, ...props }) => {
+    return (
+      <blockquote className="border-l-4 border-zinc-300 dark:border-zinc-600 pl-4 my-4 italic" {...props}>
+        {children}
+      </blockquote>
+    );
+  },
 };
 
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   return (
-    <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
-      {children}
-    </ReactMarkdown>
+    <div className="markdown-content">
+      <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+        {children}
+      </ReactMarkdown>
+    </div>
   );
 };
 
