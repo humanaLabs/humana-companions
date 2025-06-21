@@ -4,20 +4,18 @@ export interface ChatModel {
   id: string;
   name: string;
   description: string;
-  provider: 'openai';
+  provider: 'azure';
+  features?: string[];
+  isDefault?: boolean;
 }
 
-export const chatModels: Array<ChatModel> = [
+export const models: Array<ChatModel> = [
   {
     id: 'chat-model',
-    name: 'GPT-4 Turbo',
-    description: 'OpenAI model for all-purpose chat',
-    provider: 'openai'
-  },
-  {
-    id: 'chat-model-reasoning',
-    name: 'GPT-4 Reasoning',
-    description: 'OpenAI model with advanced reasoning',
-    provider: 'openai'
+    provider: 'azure',
+    name: 'GPT-4o (Azure)',
+    description: 'Azure OpenAI GPT-4 Omni - Modelo multimodal avançado',
+    features: ['text', 'image', 'code', 'reasoning'],
+    isDefault: true,
   },
 ];

@@ -30,7 +30,6 @@ export const postRequestBodySchema = z.object({
     'artifact-model'
   ]),
   selectedVisibilityType: z.enum(['public', 'private']),
-  selectedDifyAgent: z.string().optional(),
 });
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;

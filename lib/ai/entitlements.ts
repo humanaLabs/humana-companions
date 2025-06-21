@@ -6,30 +6,34 @@ interface Entitlements {
   availableChatModelIds: Array<ChatModel['id']>;
 }
 
-export const entitlementsByUserType: Record<UserType, Entitlements> = {
+export const entitlementsByUserType: Record<
+  UserType,
+  {
+    maxMessagesPerDay: number;
+    allowedModels: string[];
+  }
+> = {
   /*
-   * For users without an account
+   * Para usuários sem conta (guests)
    */
   guest: {
-    maxMessagesPerDay: 20,
-    availableChatModelIds: [
+    maxMessagesPerDay: 25,
+    allowedModels: [
       'chat-model',
-      'chat-model-reasoning'
     ],
   },
 
   /*
-   * For users with an account
+   * Para usuários com conta
    */
   regular: {
     maxMessagesPerDay: 100,
-    availableChatModelIds: [
+    allowedModels: [
       'chat-model',
-      'chat-model-reasoning'
     ],
   },
 
   /*
-   * TODO: For users with an account and a paid membership
+   * TODO: Para usuários com conta e assinatura paga
    */
 };

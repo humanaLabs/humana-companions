@@ -26,8 +26,9 @@
 
 ### 🤖 **Integrações Especializadas**
 13. [🤖 Agentes Dify](#-agentes-dify)
-14. [🎨 Sistema de Artifacts](#-sistema-de-artifacts)
-15. [📱 Design e UX](#-design-e-ux)
+14. [🌐 Azure OpenAI](#-azure-openai)
+15. [🎨 Sistema de Artifacts](#-sistema-de-artifacts)
+16. [📱 Design e UX](#-design-e-ux)
 
 ### 📊 **Análises e Planejamento**
 16. [📊 Sistema de Análise de Mudanças](#-sistema-de-análise-de-mudanças)
@@ -306,6 +307,27 @@ tests/
 2. Obtenha os IDs dos agentes
 3. Configure os workflows
 4. Teste a integração
+
+---
+
+## 🌐 Azure OpenAI
+
+### 📖 **Guia Completo de Configuração**
+**[`azure-openai-setup.md`](./azure-openai-setup.md)** - Guia completo
+
+### 🚀 **Quick Start Azure**
+1. **Configure variáveis**: `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_RESOURCE_NAME`
+2. **Deploy modelos** no Azure Portal
+3. **Use nos componentes**: `azure-gpt-4-turbo`, `azure-gpt-35-turbo`
+
+### 🎯 **Modelos Disponíveis**
+- **`azure-gpt-4-turbo`** - Chat principal
+- **`azure-gpt-35-turbo`** - Títulos e resumos
+- **`azure-gpt-4o`** - Análises avançadas
+- **`azure-dalle-3`** - Geração de imagens
+
+### 💡 **Fallback Automático**
+Se Azure não estiver configurado, o sistema usa OpenAI automaticamente
 
 ---
 

@@ -19,7 +19,6 @@ import type { Session } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
-import { useDifyAgent } from '@/hooks/use-dify-agent';
 import { ChatSDKError } from '@/lib/errors';
 
 export function Chat({
@@ -46,8 +45,6 @@ export function Chat({
     initialVisibilityType,
   });
 
-  const { selectedAgentId } = useDifyAgent();
-
   const {
     messages,
     setMessages,
@@ -72,7 +69,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
-      selectedDifyAgent: selectedAgentId,
+      selectedDifyAgent: undefined, // Removido suporte ao Dify
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
