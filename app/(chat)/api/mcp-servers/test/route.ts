@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/app/(auth)/auth';
-import { getMcpServerById } from '@/lib/db/queries';
+import { getMcpServerById, updateMcpServerConnectionStatus } from '@/lib/db/queries';
 import { testMcpServerConnection } from '@/lib/ai/mcp-client';
 import { z } from 'zod';
 
@@ -40,11 +40,19 @@ export async function POST(request: NextRequest) {
 
     const testResult = await testMcpServerConnection(mcpServer);
 
+    // Atualizar status de conexão no banco
+    await updateMcpServerConnectionStatus({
+      id: serverId,
+      isConnected: testResult.success && testResult.isAuthenticated === true,
+      connectionError: testResult.error || null,
+    });
+
     return NextResponse.json({
       success: testResult.success,
+      isAuthenticated: testResult.isAuthenticated,
       message: testResult.success 
         ? 'Conexão bem-sucedida' 
-        : 'Falha na conexão',
+        : testResult.error || 'Falha na conexão',
       tools: testResult.tools || [],
     });
   } catch (error) {

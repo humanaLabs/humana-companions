@@ -21,26 +21,54 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
 
   // Função para buscar ferramentas de um servidor
   const fetchServerTools = async (server: McpServer) => {
+    console.log(`🔧 Iniciando busca de ferramentas para servidor: ${server.name} (ID: ${server.id})`);
+    
     try {
-      const response = await fetch('/api/mcp-servers/test', {
-        method: 'POST',
+      const url = `/api/mcp-servers/${server.id}/tools`;
+      console.log(`📡 Fazendo requisição para: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ serverId: server.id }),
       });
+
+      console.log(`📡 Status da resposta: ${response.status}`);
 
       if (response.ok) {
         const result = await response.json();
+        console.log(`📦 Resposta recebida:`, result);
+        
         if (result.success && result.tools) {
+          console.log(`✅ ${result.tools.length} ferramentas carregadas para ${server.name}`);
           setServerTools(prev => ({
             ...prev,
             [server.id]: result.tools
           }));
+        } else {
+          console.log(`⚠️ Resposta sem sucesso para ${server.name}:`, result.message || 'Sem ferramentas');
+          // Se não conseguiu carregar, marca como vazio
+          setServerTools(prev => ({
+            ...prev,
+            [server.id]: []
+          }));
         }
+      } else {
+        console.log(`❌ Erro HTTP ${response.status} para ${server.name}`);
+        // Se houve erro, marca como vazio
+        setServerTools(prev => ({
+          ...prev,
+          [server.id]: []
+        }));
       }
     } catch (error) {
-      console.error('Erro ao buscar ferramentas:', error);
+      console.error(`❌ Erro ao buscar ferramentas de ${server.name}:`, error);
+      // Se houve erro, marca como vazio
+      setServerTools(prev => ({
+        ...prev,
+        [server.id]: []
+      }));
     }
   };
 
@@ -70,7 +98,7 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
         if (result.success) {
           toast.success(`✅ Conexão com ${server.name} bem-sucedida!`);
         } else {
-          toast.error(`❌ Falha na conexão com ${server.name}`);
+          toast.error(`❌ ${result.message || 'Falha na conexão'} com ${server.name}`);
         }
       } else {
         toast.error(`❌ Erro ao testar conexão com ${server.name}`);
@@ -118,14 +146,48 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-xl font-semibold">{server.name}</h3>
+                    
+                    {/* Status do sistema (ativo/inativo) */}
                     {server.isActive ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        ✓ Connected
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                        ⚡ Ativo
                       </Badge>
                     ) : (
                       <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                        ✗ Disconnected
+                        ⏸️ Inativo
                       </Badge>
+                    )}
+                    
+                    {/* Status de conectividade (online/offline) - só mostra se estiver ativo */}
+                    {server.isActive && (
+                      serverTools[server.id] !== undefined ? (
+                        serverTools[server.id].length > 0 ? (
+                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                            🌐 Online
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">
+                            ⚠️ Offline
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                          ⏳ Carregando...
+                        </Badge>
+                      )
+                    )}
+                    
+                    {/* Status de autenticação (conectado/desconectado) - só mostra se estiver ativo e online */}
+                    {server.isActive && serverTools[server.id] && serverTools[server.id].length > 0 && (
+                      server.isConnected ? (
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
+                          ✓ Conectado
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
+                          🔐 Não testado
+                        </Badge>
+                      )
                     )}
                   </div>
                   
@@ -142,6 +204,10 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
                             {tool.name.replace(/^.*_/, '')}
                           </Badge>
                         ))
+                      ) : serverTools[server.id] !== undefined ? (
+                        <Badge variant="outline" className="text-xs text-red-600">
+                          Nenhuma ferramenta
+                        </Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs text-muted-foreground">
                           Carregando...
@@ -229,26 +295,26 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[60vh]">
-                             <div className="grid grid-cols-1 gap-3">
-                 {selectedServerTools.map((tool, index) => (
-                   <div
-                     key={index}
-                     className="p-4 border rounded-lg"
-                   >
-                     <div className="font-medium text-sm mb-1">
-                       {tool.name.replace(/^.*_/, '')}
-                     </div>
-                     <div className="text-xs text-muted-foreground mb-2">
-                       {tool.name}
-                     </div>
-                     {tool.description && (
-                       <div className="text-sm text-muted-foreground">
-                         {tool.description}
-                       </div>
-                     )}
-                   </div>
-                 ))}
-               </div>
+              <div className="grid grid-cols-1 gap-3">
+                {selectedServerTools.map((tool, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border rounded-lg"
+                  >
+                    <div className="font-medium text-sm mb-1">
+                      {tool.name.replace(/^.*_/, '')}
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      {tool.name}
+                    </div>
+                    {tool.description && (
+                      <div className="text-sm text-muted-foreground">
+                        {tool.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
               
               {selectedServerTools.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">

@@ -24,6 +24,11 @@ export function McpServerForm({ server, onSuccess, onCancel }: McpServerFormProp
     transport: server?.transport || 'sse' as const,
     description: server?.description || '',
     isActive: server?.isActive ?? true,
+    authType: server?.authType || 'none' as const,
+    authToken: server?.authToken || '',
+    authUsername: server?.authUsername || '',
+    authPassword: server?.authPassword || '',
+    authHeaderName: server?.authHeaderName || '',
   });
 
   const isEditing = !!server;
@@ -125,6 +130,90 @@ export function McpServerForm({ server, onSuccess, onCancel }: McpServerFormProp
               placeholder="Descrição opcional do servidor MCP"
               rows={3}
             />
+          </div>
+
+          {/* Seção de Autenticação */}
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="text-lg font-medium">Autenticação</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="authType">Tipo de Autenticação</Label>
+              <Select
+                value={formData.authType}
+                onValueChange={(value) => handleInputChange('authType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  <SelectItem value="bearer">Bearer Token</SelectItem>
+                  <SelectItem value="basic">Basic Auth</SelectItem>
+                  <SelectItem value="apikey">API Key</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.authType === 'bearer' && (
+              <div className="space-y-2">
+                <Label htmlFor="authToken">Bearer Token</Label>
+                <Input
+                  id="authToken"
+                  type="password"
+                  value={formData.authToken}
+                  onChange={(e) => handleInputChange('authToken', e.target.value)}
+                  placeholder="seu-bearer-token-aqui"
+                />
+              </div>
+            )}
+
+            {formData.authType === 'basic' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="authUsername">Usuário</Label>
+                  <Input
+                    id="authUsername"
+                    value={formData.authUsername}
+                    onChange={(e) => handleInputChange('authUsername', e.target.value)}
+                    placeholder="seu-usuario"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="authPassword">Senha</Label>
+                  <Input
+                    id="authPassword"
+                    type="password"
+                    value={formData.authPassword}
+                    onChange={(e) => handleInputChange('authPassword', e.target.value)}
+                    placeholder="sua-senha"
+                  />
+                </div>
+              </div>
+            )}
+
+            {formData.authType === 'apikey' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="authHeaderName">Nome do Header</Label>
+                  <Input
+                    id="authHeaderName"
+                    value={formData.authHeaderName}
+                    onChange={(e) => handleInputChange('authHeaderName', e.target.value)}
+                    placeholder="X-API-Key"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="authToken">API Key</Label>
+                  <Input
+                    id="authToken"
+                    type="password"
+                    value={formData.authToken}
+                    onChange={(e) => handleInputChange('authToken', e.target.value)}
+                    placeholder="sua-api-key-aqui"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {isEditing && (

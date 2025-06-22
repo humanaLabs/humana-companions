@@ -681,12 +681,22 @@ export async function createMcpServer({
   url,
   transport,
   description,
+  authType,
+  authToken,
+  authUsername,
+  authPassword,
+  authHeaderName,
   userId,
 }: {
   name: string;
   url: string;
   transport: 'sse' | 'stdio';
   description?: string;
+  authType?: 'none' | 'bearer' | 'basic' | 'apikey';
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaderName?: string;
   userId: string;
 }) {
   try {
@@ -695,6 +705,11 @@ export async function createMcpServer({
       url,
       transport,
       description,
+      authType: authType || 'none',
+      authToken,
+      authUsername,
+      authPassword,
+      authHeaderName,
       userId,
     }).returning();
   } catch (error) {
@@ -759,6 +774,11 @@ export async function updateMcpServer({
   transport,
   description,
   isActive,
+  authType,
+  authToken,
+  authUsername,
+  authPassword,
+  authHeaderName,
   userId,
 }: {
   id: string;
@@ -767,6 +787,11 @@ export async function updateMcpServer({
   transport: 'sse' | 'stdio';
   description?: string;
   isActive: boolean;
+  authType?: 'none' | 'bearer' | 'basic' | 'apikey';
+  authToken?: string;
+  authUsername?: string;
+  authPassword?: string;
+  authHeaderName?: string;
   userId: string;
 }) {
   try {
@@ -778,6 +803,11 @@ export async function updateMcpServer({
         transport,
         description,
         isActive,
+        authType,
+        authToken,
+        authUsername,
+        authPassword,
+        authHeaderName,
         updatedAt: new Date(),
       })
       .where(and(eq(mcpServer.id, id), eq(mcpServer.userId, userId)))
@@ -806,6 +836,34 @@ export async function deleteMcpServer({
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to delete MCP server',
+    );
+  }
+}
+
+export async function updateMcpServerConnectionStatus({
+  id,
+  isConnected,
+  connectionError,
+}: {
+  id: string;
+  isConnected: boolean;
+  connectionError?: string | null;
+}) {
+  try {
+    return await db
+      .update(mcpServer)
+      .set({
+        isConnected,
+        lastConnectionTest: new Date(),
+        connectionError,
+        updatedAt: new Date(),
+      })
+      .where(eq(mcpServer.id, id))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update MCP server connection status',
     );
   }
 }

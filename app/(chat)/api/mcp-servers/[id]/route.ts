@@ -13,6 +13,11 @@ const updateMcpServerSchema = z.object({
   transport: z.enum(['sse', 'stdio']),
   description: z.string().optional(),
   isActive: z.boolean(),
+  authType: z.enum(['none', 'bearer', 'basic', 'apikey']),
+  authToken: z.string().optional(),
+  authUsername: z.string().optional(),
+  authPassword: z.string().optional(),
+  authHeaderName: z.string().optional(),
 });
 
 export async function GET(

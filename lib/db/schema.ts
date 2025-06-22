@@ -189,6 +189,16 @@ export const mcpServer = pgTable('McpServer', {
   transport: varchar('transport', { enum: ['sse', 'stdio'] }).notNull().default('sse'),
   description: text('description'),
   isActive: boolean('isActive').notNull().default(true),
+  // Campos de autenticação
+  authType: varchar('authType', { enum: ['none', 'bearer', 'basic', 'apikey'] }).notNull().default('none'),
+  authToken: text('authToken'), // Para Bearer Token ou API Key
+  authUsername: varchar('authUsername', { length: 100 }), // Para Basic Auth
+  authPassword: varchar('authPassword', { length: 100 }), // Para Basic Auth
+  authHeaderName: varchar('authHeaderName', { length: 50 }), // Para API Key (nome do header)
+  // Status de conexão real
+  isConnected: boolean('isConnected').notNull().default(false),
+  lastConnectionTest: timestamp('lastConnectionTest'),
+  connectionError: text('connectionError'),
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),

@@ -16,12 +16,12 @@ interface McpClient {
   tools: McpTool[];
 }
 
-// Cache para clientes MCP conectados
+// Cache para clientes MCP online
 const mcpClients = new Map<string, McpClient>();
 
 export async function connectToMcpServer(server: McpServer): Promise<McpClient | null> {
   try {
-    // Verificar se já existe cliente conectado
+    // Verificar se já existe cliente online
     if (mcpClients.has(server.id)) {
       return mcpClients.get(server.id)!;
     }
@@ -63,7 +63,7 @@ export async function connectToMcpServer(server: McpServer): Promise<McpClient |
 
     mcpClients.set(server.id, mcpClient);
     
-    console.log(`✅ Conectado ao servidor MCP: ${server.name} com ${tools.length} ferramentas`);
+    console.log(`✅ Servidor MCP online: ${server.name} com ${tools.length} ferramentas`);
     
     return mcpClient;
   } catch (error) {
@@ -78,7 +78,7 @@ export async function disconnectFromMcpServer(serverId: string): Promise<void> {
     try {
       await mcpClient.client.close();
       mcpClients.delete(serverId);
-      console.log(`🔌 Desconectado do servidor MCP: ${serverId}`);
+      console.log(`🔌 Servidor MCP offline: ${serverId}`);
     } catch (error) {
       console.error(`❌ Erro ao desconectar do servidor MCP ${serverId}:`, error);
     }
@@ -169,13 +169,65 @@ export async function getMcpToolsFromServers(servers: McpServer[]): Promise<Reco
 
 export async function testMcpServerConnection(server: McpServer): Promise<{ 
   success: boolean; 
-  tools?: Array<{ name: string; description?: string }> 
+  tools?: Array<{ name: string; description?: string }>;
+  error?: string;
+  isAuthenticated?: boolean;
 }> {
   try {
+    // Primeiro, fazer um teste básico de conectividade
+    if (server.transport !== 'sse') {
+      return { success: false, error: 'Apenas transporte SSE é suportado' };
+    }
+
+    // Preparar headers com autenticação
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Adicionar autenticação baseada no tipo
+    if (server.authType === 'bearer' && server.authToken) {
+      headers['Authorization'] = `Bearer ${server.authToken}`;
+    } else if (server.authType === 'basic' && server.authUsername && server.authPassword) {
+      const credentials = btoa(`${server.authUsername}:${server.authPassword}`);
+      headers['Authorization'] = `Basic ${credentials}`;
+    } else if (server.authType === 'apikey' && server.authHeaderName && server.authToken) {
+      headers[server.authHeaderName] = server.authToken;
+    }
+
+    // Teste básico com fetch primeiro
+    const testResponse = await fetch(server.url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/list',
+        params: {}
+      })
+    });
+
+    if (!testResponse.ok) {
+      let errorMessage = `HTTP ${testResponse.status}`;
+      let isAuthenticated = true;
+      
+      if (testResponse.status === 401) {
+        errorMessage = 'Credenciais inválidas';
+        isAuthenticated = false;
+      } else if (testResponse.status === 403) {
+        errorMessage = 'Acesso negado';
+        isAuthenticated = false;
+      } else if (testResponse.status === 404) {
+        errorMessage = 'Servidor não encontrado';
+      }
+      
+      return { success: false, error: errorMessage, isAuthenticated };
+    }
+
+    // Se chegou até aqui, tentar conectar via MCP SDK
     const mcpClient = await connectToMcpServer(server);
     
     if (!mcpClient) {
-      return { success: false };
+      return { success: false, error: 'Falha na conexão MCP', isAuthenticated: true };
     }
 
     // Testar listagem de ferramentas
@@ -190,11 +242,16 @@ export async function testMcpServerConnection(server: McpServer): Promise<{
     
     return { 
       success: true, 
-      tools 
+      tools,
+      isAuthenticated: true
     };
   } catch (error) {
     console.error(`❌ Teste de conexão falhou para ${server.name}:`, error);
-    return { success: false };
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Erro de conexão',
+      isAuthenticated: false
+    };
   }
 }
 

@@ -11,6 +11,11 @@ const createMcpServerSchema = z.object({
   url: z.string().url('URL inválida'),
   transport: z.enum(['sse', 'stdio']).default('sse'),
   description: z.string().optional(),
+  authType: z.enum(['none', 'bearer', 'basic', 'apikey']).default('none'),
+  authToken: z.string().optional(),
+  authUsername: z.string().optional(),
+  authPassword: z.string().optional(),
+  authHeaderName: z.string().optional(),
 });
 
 export async function GET() {
