@@ -228,6 +228,11 @@ const PurePreviewMessage = ({
                 message={message}
                 vote={vote}
                 isLoading={isLoading}
+                onMessageDeleted={() => {
+                  setMessages((currentMessages) =>
+                    currentMessages.filter((msg) => msg.id !== message.id)
+                  );
+                }}
               />
             )}
           </div>

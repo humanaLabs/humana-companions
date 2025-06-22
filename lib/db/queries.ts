@@ -452,6 +452,35 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   }
 }
 
+export async function deleteMessageById({
+  messageId,
+  chatId,
+}: {
+  messageId: string;
+  chatId: string;
+}) {
+  try {
+    // Primeiro, exclui os votos relacionados à mensagem
+    await db
+      .delete(vote)
+      .where(
+        and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)),
+      );
+
+    // Depois, exclui a mensagem
+    return await db
+      .delete(message)
+      .where(
+        and(eq(message.id, messageId), eq(message.chatId, chatId)),
+      );
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete message by id',
+    );
+  }
+}
+
 export async function updateChatVisiblityById({
   chatId,
   visibility,

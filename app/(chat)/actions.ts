@@ -4,6 +4,7 @@ import { generateText, type UIMessage } from 'ai';
 import { cookies } from 'next/headers';
 import {
   deleteMessagesByChatIdAfterTimestamp,
+  deleteMessageById,
   getMessageById,
   updateChatVisiblityById,
 } from '@/lib/db/queries';
@@ -50,4 +51,14 @@ export async function updateChatVisibility({
   visibility: VisibilityType;
 }) {
   await updateChatVisiblityById({ chatId, visibility });
+}
+
+export async function deleteMessage({
+  messageId,
+  chatId,
+}: {
+  messageId: string;
+  chatId: string;
+}) {
+  await deleteMessageById({ messageId, chatId });
 }

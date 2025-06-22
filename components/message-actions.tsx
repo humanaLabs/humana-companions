@@ -4,7 +4,7 @@ import { useCopyToClipboard } from 'usehooks-ts';
 
 import type { Vote } from '@/lib/db/schema';
 
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
+import { CopyIcon, ThumbDownIcon, ThumbUpIcon, TrashIcon } from './icons';
 import { Button } from './ui/button';
 import {
   Tooltip,
@@ -21,11 +21,13 @@ export function PureMessageActions({
   message,
   vote,
   isLoading,
+  onMessageDeleted,
 }: {
   chatId: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
+  onMessageDeleted?: () => void;
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
@@ -167,6 +169,37 @@ export function PureMessageActions({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Downvote Response</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              data-testid="message-delete"
+              className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto hover:text-red-500"
+              variant="outline"
+              onClick={async () => {
+                const deleteConfirm = window.confirm('Tem certeza que deseja excluir esta mensagem?');
+                
+                if (!deleteConfirm) return;
+
+                const deletion = fetch(`/api/message?messageId=${message.id}&chatId=${chatId}`, {
+                  method: 'DELETE',
+                });
+
+                toast.promise(deletion, {
+                  loading: 'Excluindo mensagem...',
+                  success: () => {
+                    onMessageDeleted?.();
+                    return 'Mensagem excluída!';
+                  },
+                  error: 'Falha ao excluir mensagem.',
+                });
+              }}
+            >
+              <TrashIcon />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Excluir Mensagem</TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>
