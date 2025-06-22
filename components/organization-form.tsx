@@ -14,11 +14,12 @@ import type { OrganizationStructure } from '@/lib/types';
 
 interface OrganizationFormProps {
   organization?: OrganizationStructure | null;
+  templateData?: { template: any; metadata: any } | null;
   onClose: () => void;
   onSave: (organization: OrganizationStructure) => void;
 }
 
-export function OrganizationForm({ organization, onClose, onSave }: OrganizationFormProps) {
+export function OrganizationForm({ organization, templateData, onClose, onSave }: OrganizationFormProps) {
   const [formData, setFormData] = useState<OrganizationStructure>({
     name: '',
     description: '',
@@ -45,8 +46,32 @@ export function OrganizationForm({ organization, onClose, onSave }: Organization
   useEffect(() => {
     if (organization) {
       setFormData(organization);
+    } else if (templateData) {
+      // Aplicar dados do template
+      const { template, metadata } = templateData;
+      setFormData({
+        name: metadata.name,
+        description: metadata.description,
+        tenantConfig: template.tenantConfig || {
+          timezone: 'America/Sao_Paulo',
+          language: 'pt-BR',
+          llm_provider: 'azure-openai',
+          default_model: 'gpt-4o',
+        },
+        values: template.values || [{ name: '', description: '', expected_behaviors: [''] }],
+        teams: template.teams || [{ id: '', name: '', description: '', members: [] }],
+        positions: template.positions || [{ 
+          id: '', 
+          title: '', 
+          description: '', 
+          reports_to: null, 
+          r_and_r: [''],
+          companions: []
+        }],
+        orgUsers: template.orgUsers || [],
+      });
     }
-  }, [organization]);
+  }, [organization, templateData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

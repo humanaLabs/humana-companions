@@ -28,9 +28,10 @@ interface OrganizationsListProps {
   organizations: OrganizationStructure[];
   onEdit: (organization: OrganizationStructure) => void;
   onDelete: (organizationId: string) => void;
+  isMasterAdmin?: boolean;
 }
 
-export function OrganizationsList({ organizations, onEdit, onDelete }: OrganizationsListProps) {
+export function OrganizationsList({ organizations, onEdit, onDelete, isMasterAdmin = false }: OrganizationsListProps) {
   const router = useRouter();
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -193,7 +194,7 @@ export function OrganizationsList({ organizations, onEdit, onDelete }: Organizat
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja deletar a organização "{deleteConfirm?.name}"? 
+              Tem certeza que deseja deletar a organização &quot;{deleteConfirm?.name}&quot;? 
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

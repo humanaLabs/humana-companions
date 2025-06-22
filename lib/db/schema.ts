@@ -239,3 +239,100 @@ export const organization = pgTable('Organization', {
 });
 
 export type Organization = InferSelectModel<typeof organization>;
+
+// Tabela para feedback dos companions
+export const companionFeedback = pgTable('CompanionFeedback', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  companionId: uuid('companionId')
+    .notNull()
+    .references(() => companion.id),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  type: varchar('type', { enum: ['positive', 'negative', 'suggestion'] }).notNull(),
+  category: varchar('category', { 
+    enum: ['accuracy', 'helpfulness', 'relevance', 'tone', 'completeness'] 
+  }).notNull(),
+  rating: varchar('rating', { length: 1 }).notNull(), // 1-5
+  comment: text('comment').notNull(),
+  interactionId: uuid('interactionId'), // Referência à interação específica (opcional)
+  metadata: json('metadata'), // Dados adicionais sobre o contexto
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type CompanionFeedback = InferSelectModel<typeof companionFeedback>;
+
+// Tabela para interações dos companions (para análise de performance)
+export const companionInteraction = pgTable('CompanionInteraction', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  companionId: uuid('companionId')
+    .notNull()
+    .references(() => companion.id),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  chatId: uuid('chatId').references(() => chat.id),
+  messageId: uuid('messageId').references(() => message.id),
+  type: varchar('type', { 
+    enum: ['question', 'task', 'consultation', 'feedback_request'] 
+  }).notNull(),
+  context: json('context'), // Contexto da interação
+  response: json('response'), // Resposta do companion
+  duration: varchar('duration', { length: 10 }), // Duração da interação em ms
+  tokens_used: varchar('tokens_used', { length: 10 }), // Tokens utilizados
+  success: boolean('success').default(true), // Se a interação foi bem-sucedida
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type CompanionInteraction = InferSelectModel<typeof companionInteraction>;
+
+// Tabela para relatórios do ciclo MCP
+export const mcpCycleReport = pgTable('McpCycleReport', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  companionId: uuid('companionId')
+    .notNull()
+    .references(() => companion.id),
+  cycleDate: timestamp('cycleDate').notNull().defaultNow(),
+  metrics: json('metrics').notNull(), // Métricas quantitativas
+  analysis: json('analysis').notNull(), // Análise qualitativa da IA
+  recommendations: json('recommendations').notNull(), // Recomendações de melhoria
+  nextSteps: json('nextSteps').notNull(), // Próximos passos
+  improvementSuggestions: json('improvementSuggestions'), // Sugestões de melhoria específicas
+  status: varchar('status', { 
+    enum: ['pending', 'in_progress', 'completed', 'failed'] 
+  }).notNull().default('pending'),
+  executedBy: uuid('executedBy').references(() => user.id), // Quem executou o ciclo
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type McpCycleReport = InferSelectModel<typeof mcpCycleReport>;
+
+// Tabela para performance dos companions (métricas agregadas)
+export const companionPerformance = pgTable('CompanionPerformance', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  companionId: uuid('companionId')
+    .notNull()
+    .references(() => companion.id),
+  // Métricas de feedback
+  averageRating: varchar('averageRating', { length: 3 }), // Ex: "4.2"
+  totalFeedback: varchar('totalFeedback', { length: 10 }).default('0'),
+  positiveFeedbackRate: varchar('positiveFeedbackRate', { length: 5 }), // Ex: "85.5"
+  lastFeedbackAt: timestamp('lastFeedbackAt'),
+  // Métricas de interação
+  totalInteractions: varchar('totalInteractions', { length: 10 }).default('0'),
+  averageResponseTime: varchar('averageResponseTime', { length: 10 }), // Em ms
+  successRate: varchar('successRate', { length: 5 }), // Ex: "92.3"
+  lastInteractionAt: timestamp('lastInteractionAt'),
+  // Métricas de MCP
+  lastMcpCycleAt: timestamp('lastMcpCycleAt'),
+  mcpScore: varchar('mcpScore', { length: 4 }), // Score de 1-10
+  improvementTrend: varchar('improvementTrend', { 
+    enum: ['improving', 'stable', 'declining', 'unknown'] 
+  }).default('unknown'),
+  // Timestamps
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type CompanionPerformance = InferSelectModel<typeof companionPerformance>;

@@ -17,6 +17,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip auto-org creation for API routes to avoid infinite loops
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
@@ -35,6 +40,46 @@ export async function middleware(request: NextRequest) {
 
   if (token && !isGuest && ['/login', '/register'].includes(pathname)) {
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // Auto-create organization for first-time users (except guests)
+  if (token && !isGuest && token.id) {
+    try {
+      // Check if user needs an organization
+      const checkResponse = await fetch(new URL('/api/organizations/check-auto-create', request.url), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.id}`,
+        },
+        body: JSON.stringify({ 
+          userId: token.id, 
+          userEmail: token.email 
+        }),
+      });
+
+      if (checkResponse.ok) {
+        const { needsOrganization } = await checkResponse.json();
+        
+        if (needsOrganization) {
+          // Create default organization
+          await fetch(new URL('/api/organizations/auto-create', request.url), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token.id}`,
+            },
+            body: JSON.stringify({ 
+              userId: token.id, 
+              userEmail: token.email 
+            }),
+          });
+        }
+      }
+    } catch (error) {
+      // Fail silently to avoid breaking the user experience
+      console.error('Error in auto-organization creation:', error);
+    }
   }
 
   return NextResponse.next();

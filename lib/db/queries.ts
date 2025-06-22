@@ -33,6 +33,10 @@ import {
   type McpServer,
   organization,
   type Organization,
+  companionFeedback,
+  companionInteraction,
+  companionPerformance,
+  mcpCycleReport,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -1040,11 +1044,478 @@ export async function updateOrganization(
 
 export async function deleteOrganization(id: string, userId: string): Promise<void> {
   try {
-    await db
+    // Primeiro, deletar todos os companions vinculados a esta organização
+    await db.delete(companion).where(eq(companion.organizationId, id));
+    
+    // Depois, deletar a organização
+    const result = await db
       .delete(organization)
-      .where(and(eq(organization.id, id), eq(organization.userId, userId)));
+      .where(and(eq(organization.id, id), eq(organization.userId, userId)))
+      .returning();
+
+    if (result.length === 0) {
+      throw new ChatSDKError(
+        'not_found:database',
+        'Organization not found or access denied',
+      );
+    }
   } catch (error) {
-    console.error('Failed to delete organization:', error);
-    throw new ChatSDKError('bad_request:database');
+    if (error instanceof ChatSDKError) {
+      throw error;
+    }
+    console.error('Error deleting organization:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete organization',
+    );
+  }
+}
+
+// Novas funções para lógica de primeiro login e master admin
+
+export async function getUserById(id: string): Promise<User | null> {
+  try {
+    const [foundUser] = await db.select().from(user).where(eq(user.id, id));
+    return foundUser || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get user by id',
+    );
+  }
+}
+
+export async function checkUserHasOrganization(userId: string): Promise<boolean> {
+  try {
+    const [result] = await db
+      .select({ count: count() })
+      .from(organization)
+      .where(eq(organization.userId, userId));
+    
+    return result.count > 0;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to check user organizations',
+    );
+  }
+}
+
+export async function createDefaultOrganization(userId: string, userEmail: string): Promise<Organization> {
+  try {
+    const orgName = `org_${userEmail}`;
+    const defaultTenantConfig = {
+      timezone: 'America/Sao_Paulo',
+      language: 'pt-BR',
+      llm_provider: 'azure-openai',
+      default_model: 'gpt-4o',
+    };
+
+    const [newOrganization] = await db
+      .insert(organization)
+      .values({
+        name: orgName,
+        description: 'Organização criada automaticamente. Você pode editar o nome e descrição.',
+        tenantConfig: defaultTenantConfig,
+        values: [],
+        teams: [],
+        positions: [],
+        orgUsers: [{
+          user_id: userId,
+          position_id: 'admin',
+          role: 'admin',
+          permissions: ['read_org', 'write_org', 'manage_companions', 'manage_users'],
+        }],
+        userId,
+      })
+      .returning();
+
+    return newOrganization;
+  } catch (error) {
+    console.error('Error creating default organization:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create default organization',
+    );
+  }
+}
+
+export async function getOrganizationsForUser(userId: string, isMasterAdmin: boolean): Promise<Organization[]> {
+  try {
+    if (isMasterAdmin) {
+      // Master admin vê todas as organizações
+      return await db.select().from(organization).orderBy(desc(organization.createdAt));
+    } else {
+      // Usuário normal vê apenas suas organizações
+      return await db
+        .select()
+        .from(organization)
+        .where(eq(organization.userId, userId))
+        .orderBy(desc(organization.createdAt));
+    }
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get organizations for user',
+    );
+  }
+}
+
+export async function checkCanCreateOrganization(userId: string): Promise<boolean> {
+  try {
+    const [foundUser] = await db
+      .select({ isMasterAdmin: user.isMasterAdmin })
+      .from(user)
+      .where(eq(user.id, userId));
+    
+    return foundUser?.isMasterAdmin || false;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to check user permissions',
+    );
+  }
+}
+
+// ==================== COMPANION FEEDBACK FUNCTIONS ====================
+
+export async function createCompanionFeedback({
+  companionId,
+  userId,
+  type,
+  category,
+  rating,
+  comment,
+  interactionId,
+  metadata,
+}: {
+  companionId: string;
+  userId: string;
+  type: 'positive' | 'negative' | 'suggestion';
+  category: 'accuracy' | 'helpfulness' | 'relevance' | 'tone' | 'completeness';
+  rating: number;
+  comment: string;
+  interactionId?: string;
+  metadata?: any;
+}) {
+  try {
+    const [feedback] = await db
+      .insert(companionFeedback)
+      .values({
+        companionId,
+        userId,
+        type,
+        category,
+        rating: rating.toString(),
+        comment,
+        interactionId,
+        metadata,
+      })
+      .returning();
+
+    return feedback;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create companion feedback',
+    );
+  }
+}
+
+export async function getCompanionFeedback(companionId: string) {
+  try {
+    return await db
+      .select()
+      .from(companionFeedback)
+      .where(eq(companionFeedback.companionId, companionId))
+      .orderBy(desc(companionFeedback.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companion feedback',
+    );
+  }
+}
+
+// ==================== COMPANION INTERACTION FUNCTIONS ====================
+
+export async function createCompanionInteraction({
+  companionId,
+  userId,
+  chatId,
+  messageId,
+  type,
+  context,
+  response,
+  duration,
+  tokensUsed,
+  success = true,
+}: {
+  companionId: string;
+  userId: string;
+  chatId?: string;
+  messageId?: string;
+  type: 'question' | 'task' | 'consultation' | 'feedback_request';
+  context?: any;
+  response?: any;
+  duration?: string;
+  tokensUsed?: string;
+  success?: boolean;
+}) {
+  try {
+    const [interaction] = await db
+      .insert(companionInteraction)
+      .values({
+        companionId,
+        userId,
+        chatId,
+        messageId,
+        type,
+        context,
+        response,
+        duration,
+        tokens_used: tokensUsed,
+        success,
+      })
+      .returning();
+
+    return interaction;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create companion interaction',
+    );
+  }
+}
+
+export async function getCompanionInteractions(companionId: string) {
+  try {
+    return await db
+      .select()
+      .from(companionInteraction)
+      .where(eq(companionInteraction.companionId, companionId))
+      .orderBy(desc(companionInteraction.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companion interactions',
+    );
+  }
+}
+
+// ==================== COMPANION PERFORMANCE FUNCTIONS ====================
+
+export async function updateCompanionPerformance(
+  companionId: string,
+  updates: {
+    averageRating?: number;
+    totalFeedback?: number;
+    positiveFeedbackRate?: number;
+    lastFeedbackAt?: Date;
+    totalInteractions?: number;
+    averageResponseTime?: number;
+    successRate?: number;
+    lastInteractionAt?: Date;
+    lastMcpCycleAt?: Date;
+    mcpScore?: number;
+    improvementTrend?: 'improving' | 'stable' | 'declining' | 'unknown';
+  }
+) {
+  try {
+    // Verificar se já existe registro de performance
+    const [existingPerformance] = await db
+      .select()
+      .from(companionPerformance)
+      .where(eq(companionPerformance.companionId, companionId));
+
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (updates.averageRating !== undefined) {
+      updateData.averageRating = updates.averageRating.toString();
+    }
+    if (updates.totalFeedback !== undefined) {
+      updateData.totalFeedback = updates.totalFeedback.toString();
+    }
+    if (updates.positiveFeedbackRate !== undefined) {
+      updateData.positiveFeedbackRate = updates.positiveFeedbackRate.toString();
+    }
+    if (updates.lastFeedbackAt) {
+      updateData.lastFeedbackAt = updates.lastFeedbackAt;
+    }
+    if (updates.totalInteractions !== undefined) {
+      updateData.totalInteractions = updates.totalInteractions.toString();
+    }
+    if (updates.averageResponseTime !== undefined) {
+      updateData.averageResponseTime = updates.averageResponseTime.toString();
+    }
+    if (updates.successRate !== undefined) {
+      updateData.successRate = updates.successRate.toString();
+    }
+    if (updates.lastInteractionAt) {
+      updateData.lastInteractionAt = updates.lastInteractionAt;
+    }
+    if (updates.lastMcpCycleAt) {
+      updateData.lastMcpCycleAt = updates.lastMcpCycleAt;
+    }
+    if (updates.mcpScore !== undefined) {
+      updateData.mcpScore = updates.mcpScore.toString();
+    }
+    if (updates.improvementTrend) {
+      updateData.improvementTrend = updates.improvementTrend;
+    }
+
+    if (existingPerformance) {
+      // Atualizar registro existente
+      const [updated] = await db
+        .update(companionPerformance)
+        .set(updateData)
+        .where(eq(companionPerformance.companionId, companionId))
+        .returning();
+
+      return updated;
+    } else {
+      // Criar novo registro
+      const [created] = await db
+        .insert(companionPerformance)
+        .values({
+          companionId,
+          ...updateData,
+        })
+        .returning();
+
+      return created;
+    }
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update companion performance',
+    );
+  }
+}
+
+export async function getCompanionPerformance(companionId: string) {
+  try {
+    const [performance] = await db
+      .select()
+      .from(companionPerformance)
+      .where(eq(companionPerformance.companionId, companionId));
+
+    return performance;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companion performance',
+    );
+  }
+}
+
+// ==================== MCP CYCLE FUNCTIONS ====================
+
+export async function createMCPCycleReport(reportData: {
+  companionId: string;
+  cycleDate: Date;
+  metrics: any;
+  analysis: any;
+  recommendations: any[];
+  nextSteps: any[];
+  improvementSuggestions?: any;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  executedBy?: string;
+}) {
+  try {
+    const [report] = await db
+      .insert(mcpCycleReport)
+      .values(reportData)
+      .returning();
+
+    return report;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create MCP cycle report',
+    );
+  }
+}
+
+export async function getMCPCycleReports(companionId: string) {
+  try {
+    return await db
+      .select()
+      .from(mcpCycleReport)
+      .where(eq(mcpCycleReport.companionId, companionId))
+      .orderBy(desc(mcpCycleReport.cycleDate));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get MCP cycle reports',
+    );
+  }
+}
+
+export async function getLatestMCPCycleReport(companionId: string) {
+  try {
+    const [report] = await db
+      .select()
+      .from(mcpCycleReport)
+      .where(eq(mcpCycleReport.companionId, companionId))
+      .orderBy(desc(mcpCycleReport.cycleDate))
+      .limit(1);
+
+    return report;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get latest MCP cycle report',
+    );
+  }
+}
+
+// ==================== ANALYTICS FUNCTIONS ====================
+
+export async function getCompanionAnalytics(companionId: string) {
+  try {
+    // Buscar dados de performance
+    const performance = await getCompanionPerformance(companionId);
+    
+    // Buscar feedback recente
+    const recentFeedback = await db
+      .select()
+      .from(companionFeedback)
+      .where(eq(companionFeedback.companionId, companionId))
+      .orderBy(desc(companionFeedback.createdAt))
+      .limit(10);
+
+    // Buscar interações recentes
+    const recentInteractions = await db
+      .select()
+      .from(companionInteraction)
+      .where(eq(companionInteraction.companionId, companionId))
+      .orderBy(desc(companionInteraction.createdAt))
+      .limit(20);
+
+    // Buscar último relatório MCP
+    const latestMcpReport = await getLatestMCPCycleReport(companionId);
+
+    return {
+      performance,
+      recentFeedback,
+      recentInteractions,
+      latestMcpReport,
+      summary: {
+        totalFeedback: recentFeedback.length,
+        averageRating: recentFeedback.length > 0 
+          ? recentFeedback.reduce((sum, f) => sum + parseInt(f.rating), 0) / recentFeedback.length 
+          : 0,
+        totalInteractions: recentInteractions.length,
+        lastActivity: recentInteractions[0]?.createdAt || null,
+      },
+    };
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companion analytics',
+    );
   }
 }
