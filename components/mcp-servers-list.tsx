@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Globe, Server, CheckCircle, XCircle, TestTube, Eye, X } from 'lucide-react';
+import { Edit, Trash2, Globe, Server, CheckCircle, XCircle, TestTube, Eye, X, Link, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { McpServer } from '@/lib/db/schema';
 import { toast } from 'sonner';
 
@@ -16,8 +19,17 @@ interface McpServersListProps {
 
 export function McpServersList({ servers, onEdit, onDelete }: McpServersListProps) {
   const [testingServers, setTestingServers] = useState<Set<string>>(new Set());
+  const [connectingServers, setConnectingServers] = useState<Set<string>>(new Set());
   const [serverTools, setServerTools] = useState<Record<string, Array<{ name: string; description?: string }>>>({});
   const [showToolsModal, setShowToolsModal] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<string | null>(null);
+  const [authData, setAuthData] = useState({
+    authType: 'none' as 'none' | 'bearer' | 'basic' | 'apikey',
+    authToken: '',
+    authUsername: '',
+    authPassword: '',
+    authHeaderName: 'X-API-Key',
+  });
 
   // Função para buscar ferramentas de um servidor
   const fetchServerTools = async (server: McpServer) => {
@@ -115,6 +127,61 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
     }
   };
 
+  const handleConnect = async (server: McpServer) => {
+    // Abrir modal de autenticação
+    setAuthData({
+      authType: server.authType || 'none',
+      authToken: server.authToken || '',
+      authUsername: server.authUsername || '',
+      authPassword: server.authPassword || '',
+      authHeaderName: server.authHeaderName || 'X-API-Key',
+    });
+    setShowAuthModal(server.id);
+  };
+
+  const handleConfirmConnect = async () => {
+    const server = servers.find(s => s.id === showAuthModal);
+    if (!server) return;
+
+    setConnectingServers(prev => new Set(prev).add(server.id));
+
+    try {
+      const response = await fetch('/api/mcp-servers/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          serverId: server.id,
+          ...authData
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast.success(`🔗 Conectado com sucesso ao ${server.name}!`);
+          setShowAuthModal(null);
+          // Recarregar ferramentas após conexão bem-sucedida
+          fetchServerTools(server);
+        } else {
+          toast.error(`❌ ${result.message || 'Falha na conexão'}`);
+        }
+      } else {
+        toast.error(`❌ Erro ao conectar ao ${server.name}`);
+      }
+    } catch (error) {
+      console.error('Erro ao conectar:', error);
+      toast.error(`❌ Erro ao conectar ao ${server.name}`);
+    } finally {
+      setConnectingServers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(server.id);
+        return newSet;
+      });
+    }
+  };
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -135,6 +202,7 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
 
   const selectedServer = servers.find(s => s.id === showToolsModal);
   const selectedServerTools = showToolsModal ? serverTools[showToolsModal] || [] : [];
+  const authModalServer = servers.find(s => s.id === showAuthModal);
 
   return (
     <>
@@ -228,6 +296,23 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Botão Conectar - só aparece se estiver online mas não conectado */}
+                  {server.isActive && 
+                   serverTools[server.id] && 
+                   serverTools[server.id].length > 0 && 
+                   !server.isConnected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleConnect(server)}
+                      disabled={connectingServers.has(server.id)}
+                      className="flex items-center gap-1"
+                    >
+                      <Link size={14} />
+                      {connectingServers.has(server.id) ? 'Conectando...' : 'Conectar'}
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -321,6 +406,137 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
                   Nenhuma ferramenta encontrada
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Autenticação */}
+      {showAuthModal && authModalServer && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowAuthModal(null)}
+        >
+          <div 
+            className="bg-background rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto border"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-2">
+                <Shield size={20} className="text-blue-600" />
+                <h3 className="text-lg font-semibold">
+                  Conectar ao Servidor
+                </h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAuthModal(null)}
+                className="flex items-center gap-1"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="font-medium text-blue-900">{authModalServer.name}</div>
+                <div className="text-sm text-blue-700">{authModalServer.url}</div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de Autenticação</Label>
+                <Select
+                  value={authData.authType}
+                  onValueChange={(value) => setAuthData(prev => ({ 
+                    ...prev, 
+                    authType: value as 'none' | 'bearer' | 'basic' | 'apikey'
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    <SelectItem value="bearer">Bearer Token</SelectItem>
+                    <SelectItem value="basic">Basic Auth</SelectItem>
+                    <SelectItem value="apikey">API Key</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {authData.authType === 'bearer' && (
+                <div className="space-y-2">
+                  <Label>Bearer Token</Label>
+                  <Input
+                    type="password"
+                    value={authData.authToken}
+                    onChange={(e) => setAuthData(prev => ({ ...prev, authToken: e.target.value }))}
+                    placeholder="seu-bearer-token-aqui"
+                  />
+                </div>
+              )}
+
+              {authData.authType === 'basic' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Usuário</Label>
+                    <Input
+                      value={authData.authUsername}
+                      onChange={(e) => setAuthData(prev => ({ ...prev, authUsername: e.target.value }))}
+                      placeholder="seu-usuario"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Senha</Label>
+                    <Input
+                      type="password"
+                      value={authData.authPassword}
+                      onChange={(e) => setAuthData(prev => ({ ...prev, authPassword: e.target.value }))}
+                      placeholder="sua-senha"
+                    />
+                  </div>
+                </>
+              )}
+
+              {authData.authType === 'apikey' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Nome do Header</Label>
+                    <Input
+                      value={authData.authHeaderName}
+                      onChange={(e) => setAuthData(prev => ({ ...prev, authHeaderName: e.target.value }))}
+                      placeholder="X-API-Key"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <Input
+                      type="password"
+                      value={authData.authToken}
+                      onChange={(e) => setAuthData(prev => ({ ...prev, authToken: e.target.value }))}
+                      placeholder="sua-api-key-aqui"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAuthModal(null)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmConnect}
+                  disabled={connectingServers.has(authModalServer.id)}
+                  className="flex-1"
+                >
+                  {connectingServers.has(authModalServer.id) ? 'Conectando...' : 'Conectar'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
