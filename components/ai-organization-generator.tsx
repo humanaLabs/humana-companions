@@ -49,12 +49,15 @@ export function AIOrganizationGenerator({ onClose, onOrganizationCreated }: AIOr
         throw new Error(error.error || 'Erro ao gerar organização');
       }
 
-      const newOrganization = await response.json();
-      onOrganizationCreated(newOrganization);
+      const result = await response.json();
+      onOrganizationCreated(result.organization || result);
       
+      const companionsCount = result.companionsCreated || 0;
       toast({
         type: 'success',
-        description: 'Organização gerada com sucesso!',
+        description: companionsCount > 0 
+          ? `Organização gerada com sucesso! ${companionsCount} Companions criados automaticamente.`
+          : 'Organização gerada com sucesso!',
       });
     } catch (error: any) {
       console.error('Error generating organization:', error);

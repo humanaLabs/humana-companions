@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Users, Briefcase, Target, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Building2, Users, Briefcase, Target, Edit, Trash2, MoreVertical, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -135,15 +135,15 @@ export function OrganizationsList({ organizations, onEdit, onDelete }: Organizat
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-orange-500" />
+                <Bot className="h-4 w-4 text-cyan-500" />
                 <span className="text-sm">
-                  {organization.values?.length || 0} valores
+                  {organization.positions?.reduce((total, pos) => total + (pos.companions?.length || 0), 0) || 0} companions
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" />
+                <Target className="h-4 w-4 text-orange-500" />
                 <span className="text-sm">
-                  {organization.orgUsers?.length || 0} usuários
+                  {organization.values?.length || 0} valores
                 </span>
               </div>
             </div>

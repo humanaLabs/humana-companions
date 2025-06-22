@@ -50,7 +50,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             ) : (
               <SidebarMenuButton
                 data-testid="user-nav-button"
-                className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10"
+                className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-auto py-2"
               >
                 <Image
                   src={`https://avatar.vercel.sh/${user.email}`}
@@ -59,9 +59,16 @@ export function SidebarUserNav({ user }: { user: User }) {
                   height={24}
                   className="rounded-full"
                 />
-                <span data-testid="user-email" className="truncate">
-                  {isGuest ? 'Guest' : user?.email}
-                </span>
+                <div className="flex flex-col items-start flex-1 min-w-0">
+                  <span data-testid="user-email" className="truncate text-sm">
+                    {isGuest ? 'Guest' : user?.email}
+                  </span>
+                  {isGuest && (
+                    <span className="text-[10px] text-muted-foreground/50 truncate w-full font-mono leading-tight">
+                      {user.id}
+                    </span>
+                  )}
+                </div>
                 <ChevronUp className="ml-auto" />
               </SidebarMenuButton>
             )}

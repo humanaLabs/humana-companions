@@ -583,6 +583,9 @@ export async function createCompanion({
   contentPolicy,
   skills,
   fallbacks,
+  organizationId,
+  positionId,
+  linkedTeamId,
   userId,
 }: {
   name: string;
@@ -594,6 +597,9 @@ export async function createCompanion({
   contentPolicy: {allowed: string[]; disallowed: string[]};
   skills?: Array<any>;
   fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
+  organizationId?: string;
+  positionId?: string;
+  linkedTeamId?: string;
   userId: string;
 }) {
   try {
@@ -607,6 +613,9 @@ export async function createCompanion({
       contentPolicy,
       skills,
       fallbacks,
+      organizationId,
+      positionId,
+      linkedTeamId,
       userId,
     }).returning();
   } catch (error) {
@@ -628,6 +637,24 @@ export async function getCompanionsByUserId({ userId }: { userId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get companions by user id',
+    );
+  }
+}
+
+export async function getCompanionsByOrganizationId({ organizationId, userId }: { organizationId: string; userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(companion)
+      .where(and(
+        eq(companion.organizationId, organizationId),
+        eq(companion.userId, userId)
+      ))
+      .orderBy(desc(companion.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companions by organization id',
     );
   }
 }
@@ -660,6 +687,9 @@ export async function updateCompanion({
   contentPolicy,
   skills,
   fallbacks,
+  organizationId,
+  positionId,
+  linkedTeamId,
   userId,
 }: {
   id: string;
@@ -672,6 +702,9 @@ export async function updateCompanion({
   contentPolicy: {allowed: string[]; disallowed: string[]};
   skills?: Array<any>;
   fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
+  organizationId?: string;
+  positionId?: string;
+  linkedTeamId?: string;
   userId: string;
 }) {
   try {
@@ -687,6 +720,9 @@ export async function updateCompanion({
         contentPolicy,
         skills,
         fallbacks,
+        organizationId,
+        positionId,
+        linkedTeamId,
         updatedAt: new Date(),
       })
       .where(and(eq(companion.id, id), eq(companion.userId, userId)))

@@ -180,6 +180,10 @@ export const companion = pgTable('Companion', {
   contentPolicy: json('contentPolicy').notNull(), // Objeto {allowed, disallowed}
   skills: json('skills'), // Array de objetos com skills avançadas (opcional)
   fallbacks: json('fallbacks'), // Objeto com respostas padrão (opcional)
+  // Campos de vinculação organizacional
+  organizationId: uuid('organizationId').references(() => organization.id),
+  positionId: text('positionId'), // ID da posição na estrutura JSON da organização
+  linkedTeamId: text('linkedTeamId'), // ID da equipe na estrutura JSON da organização
   // Campos legados para compatibilidade
   instruction: text('instruction'), // Deprecated, será removido após migração
   userId: uuid('userId')
