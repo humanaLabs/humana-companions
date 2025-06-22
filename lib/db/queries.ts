@@ -31,6 +31,8 @@ import {
   type Companion,
   mcpServer,
   type McpServer,
+  organization,
+  type Organization,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -907,5 +909,106 @@ export async function updateMcpServerConnectionStatus({
       'bad_request:database',
       'Failed to update MCP server connection status',
     );
+  }
+}
+
+// Organization queries
+export async function createOrganization(
+  name: string,
+  description: string,
+  tenantConfig: any,
+  values: any[],
+  teams: any[],
+  positions: any[],
+  orgUsers: any[],
+  userId: string,
+): Promise<Organization> {
+  try {
+    const [newOrganization] = await db
+      .insert(organization)
+      .values({
+        name,
+        description,
+        tenantConfig,
+        values,
+        teams,
+        positions,
+        orgUsers,
+        userId,
+      })
+      .returning();
+
+    return newOrganization;
+  } catch (error) {
+    console.error('Failed to create organization:', error);
+    throw new ChatSDKError('bad_request:database');
+  }
+}
+
+export async function getOrganizationsByUserId(userId: string): Promise<Organization[]> {
+  try {
+    return await db
+      .select()
+      .from(organization)
+      .where(eq(organization.userId, userId))
+      .orderBy(desc(organization.createdAt));
+  } catch (error) {
+    console.error('Failed to get organizations by user ID:', error);
+    throw new ChatSDKError('bad_request:database');
+  }
+}
+
+export async function getOrganizationById(id: string, userId: string): Promise<Organization | null> {
+  try {
+    const [org] = await db
+      .select()
+      .from(organization)
+      .where(and(eq(organization.id, id), eq(organization.userId, userId)));
+
+    return org || null;
+  } catch (error) {
+    console.error('Failed to get organization by ID:', error);
+    throw new ChatSDKError('bad_request:database');
+  }
+}
+
+export async function updateOrganization(
+  id: string,
+  userId: string,
+  updates: {
+    name?: string;
+    description?: string;
+    tenantConfig?: any;
+    values?: any[];
+    teams?: any[];
+    positions?: any[];
+    orgUsers?: any[];
+  },
+): Promise<Organization | null> {
+  try {
+    const [updatedOrganization] = await db
+      .update(organization)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(organization.id, id), eq(organization.userId, userId)))
+      .returning();
+
+    return updatedOrganization || null;
+  } catch (error) {
+    console.error('Failed to update organization:', error);
+    throw new ChatSDKError('bad_request:database');
+  }
+}
+
+export async function deleteOrganization(id: string, userId: string): Promise<void> {
+  try {
+    await db
+      .delete(organization)
+      .where(and(eq(organization.id, id), eq(organization.userId, userId)));
+  } catch (error) {
+    console.error('Failed to delete organization:', error);
+    throw new ChatSDKError('bad_request:database');
   }
 }

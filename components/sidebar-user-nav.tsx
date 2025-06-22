@@ -76,7 +76,14 @@ export function SidebarUserNav({ user }: { user: User }) {
               className="cursor-pointer"
               onSelect={() => router.push('/companions')}
             >
-              Companions
+              Companions Designer
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-organizations"
+              className="cursor-pointer"
+              onSelect={() => router.push('/organizations')}
+            >
+              Organization Designer
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="user-nav-item-mcp-servers"

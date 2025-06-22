@@ -216,3 +216,21 @@ export const mcpServer = pgTable('McpServer', {
 });
 
 export type McpServer = InferSelectModel<typeof mcpServer>;
+
+export const organization = pgTable('Organization', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description').notNull(),
+  tenantConfig: json('tenantConfig').notNull(), // Configurações do tenant
+  values: json('values').notNull(), // Array de valores organizacionais
+  teams: json('teams').notNull(), // Array de equipes
+  positions: json('positions').notNull(), // Array de posições/cargos
+  orgUsers: json('orgUsers').notNull(), // Array de usuários da organização
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type Organization = InferSelectModel<typeof organization>;

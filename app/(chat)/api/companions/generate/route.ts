@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       .filter(r => r.length > 0);
 
     // Prompt para gerar o Companion completo
-    const prompt = `Você é um especialista em design de agentes cognitivos, os Companions da plataforma Humana IA. Quero que você crie um novo Companion a partir de três entradas:
+    const prompt = `Você é um especialista em design de Companions da plataforma Humana IA. Quero que você crie um novo Companion a partir de três entradas:
 
 1. Nome do Companion: ${name}
 2. Descrição do papel que ele exerce: ${role}  

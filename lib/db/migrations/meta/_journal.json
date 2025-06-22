@@ -78,6 +78,13 @@
       "when": 1750611616074,
       "tag": "0010_brave_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1750615674903,
+      "tag": "0011_familiar_magus",
+      "breakpoints": true
     }
   ]
 }
