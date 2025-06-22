@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CompanionsList } from '@/components/companions-list';
 import { CompanionForm } from '@/components/companion-form';
+import { AICompanionGenerator } from '@/components/ai-companion-generator';
 import type { Companion } from '@/lib/db/schema';
 
 interface CompanionsPageClientProps {
@@ -25,6 +26,10 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
 
   const handleUpdateSuccess = () => {
     setEditingCompanion(null);
+    router.refresh();
+  };
+
+  const handleAIGenerateSuccess = () => {
     router.refresh();
   };
 
@@ -55,13 +60,24 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
               Configure e gerencie seus assistentes personalizados
             </p>
           </div>
-          <Button 
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus size={16} />
-            Novo Companion
-          </Button>
+          <div className="flex items-center gap-2">
+            <AICompanionGenerator 
+              onSuccess={handleAIGenerateSuccess}
+              trigger={
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Sparkles size={16} />
+                  Gerar com IA
+                </Button>
+              }
+            />
+            <Button 
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Novo Companion
+            </Button>
+          </div>
         </div>
       </div>
 
