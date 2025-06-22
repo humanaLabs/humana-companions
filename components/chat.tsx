@@ -40,11 +40,7 @@ export function Chat({
 }) {
   const { mutate } = useSWRConfig();
   const [selectedCompanionId, setSelectedCompanionId] = useState<string | undefined>();
-  
-  // Debug log para acompanhar mudanças do companion
-  useEffect(() => {
-    console.log('Companion selecionado mudou para:', selectedCompanionId);
-  }, [selectedCompanionId]);
+  const [selectedMcpServerIds, setSelectedMcpServerIds] = useState<string[]>([]);
 
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -76,6 +72,7 @@ export function Chat({
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
       selectedCompanionId: selectedCompanionId,
+      selectedMcpServerIds: selectedMcpServerIds,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -131,6 +128,8 @@ export function Chat({
           selectedModelId={initialChatModel}
           selectedCompanionId={selectedCompanionId}
           onCompanionChange={setSelectedCompanionId}
+          selectedMcpServerIds={selectedMcpServerIds}
+          onMcpServersChange={setSelectedMcpServerIds}
           isReadonly={isReadonly}
           session={session}
         />

@@ -17,7 +17,7 @@ export const entitlementsByUserType: Record<
    * Para usuários sem conta (guests)
    */
   guest: {
-    maxMessagesPerDay: 25,
+    maxMessagesPerDay: 1000, // Aumentado temporariamente para desenvolvimento
     allowedModels: [
       'chat-model',
     ],

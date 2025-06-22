@@ -28,6 +28,7 @@ export const postRequestBodySchema = z.object({
   ]),
   selectedVisibilityType: z.enum(['public', 'private']),
   selectedCompanionId: z.string().uuid().optional(),
+  selectedMcpServerIds: z.array(z.string().uuid()).optional().default([]),
 });
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;

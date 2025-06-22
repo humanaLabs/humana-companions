@@ -181,3 +181,19 @@ export const companion = pgTable('Companion', {
 });
 
 export type Companion = InferSelectModel<typeof companion>;
+
+export const mcpServer = pgTable('McpServer', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull(),
+  url: text('url').notNull(),
+  transport: varchar('transport', { enum: ['sse', 'stdio'] }).notNull().default('sse'),
+  description: text('description'),
+  isActive: boolean('isActive').notNull().default(true),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type McpServer = InferSelectModel<typeof mcpServer>;

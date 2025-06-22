@@ -29,6 +29,8 @@ import {
   stream,
   companion,
   type Companion,
+  mcpServer,
+  type McpServer,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -669,6 +671,141 @@ export async function deleteCompanion({
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to delete companion',
+    );
+  }
+}
+
+// MCP Servers CRUD operations
+export async function createMcpServer({
+  name,
+  url,
+  transport,
+  description,
+  userId,
+}: {
+  name: string;
+  url: string;
+  transport: 'sse' | 'stdio';
+  description?: string;
+  userId: string;
+}) {
+  try {
+    return await db.insert(mcpServer).values({
+      name,
+      url,
+      transport,
+      description,
+      userId,
+    }).returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create MCP server',
+    );
+  }
+}
+
+export async function getMcpServersByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(mcpServer)
+      .where(eq(mcpServer.userId, userId))
+      .orderBy(desc(mcpServer.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get MCP servers by user id',
+    );
+  }
+}
+
+export async function getActiveMcpServersByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(mcpServer)
+      .where(and(eq(mcpServer.userId, userId), eq(mcpServer.isActive, true)))
+      .orderBy(desc(mcpServer.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get active MCP servers by user id',
+    );
+  }
+}
+
+export async function getMcpServerById({ id }: { id: string }) {
+  try {
+    const [mcpServerResult] = await db
+      .select()
+      .from(mcpServer)
+      .where(eq(mcpServer.id, id))
+      .limit(1);
+    
+    return mcpServerResult;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get MCP server by id',
+    );
+  }
+}
+
+export async function updateMcpServer({
+  id,
+  name,
+  url,
+  transport,
+  description,
+  isActive,
+  userId,
+}: {
+  id: string;
+  name: string;
+  url: string;
+  transport: 'sse' | 'stdio';
+  description?: string;
+  isActive: boolean;
+  userId: string;
+}) {
+  try {
+    return await db
+      .update(mcpServer)
+      .set({
+        name,
+        url,
+        transport,
+        description,
+        isActive,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(mcpServer.id, id), eq(mcpServer.userId, userId)))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update MCP server',
+    );
+  }
+}
+
+export async function deleteMcpServer({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .delete(mcpServer)
+      .where(and(eq(mcpServer.id, id), eq(mcpServer.userId, userId)))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete MCP server',
     );
   }
 }

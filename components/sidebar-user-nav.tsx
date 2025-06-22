@@ -78,6 +78,13 @@ export function SidebarUserNav({ user }: { user: User }) {
             >
               Companions
             </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-mcp-servers"
+              className="cursor-pointer"
+              onSelect={() => router.push('/mcp-servers')}
+            >
+              Servidores MCP
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               data-testid="user-nav-item-theme"

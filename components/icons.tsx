@@ -1172,3 +1172,41 @@ export const WarningIcon = ({ size = 16 }: { size?: number }) => {
     </svg>
   );
 };
+
+export const ServerIcon = ({ size = 16 }: { size?: number }) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M2 2.75C2 2.33579 2.33579 2 2.75 2H13.25C13.6642 2 14 2.33579 14 2.75V5.25C14 5.66421 13.6642 6 13.25 6H2.75C2.33579 6 2 5.66421 2 5.25V2.75ZM3.5 3.5V4.5H4.5V3.5H3.5ZM6 3.5V4.5H7V3.5H6ZM2 8.75C2 8.33579 2.33579 8 2.75 8H13.25C13.6642 8 14 8.33579 14 8.75V11.25C14 11.6642 13.6642 12 13.25 12H2.75C2.33579 12 2 11.6642 2 11.25V8.75ZM3.5 9.5V10.5H4.5V9.5H3.5ZM6 9.5V10.5H7V9.5H6Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
+export const CheckIcon = ({ size = 16 }: { size?: number }) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M13.7803 4.21967C14.0732 4.51256 14.0732 4.98744 13.7803 5.28033L7.28033 11.7803C6.98744 12.0732 6.51256 12.0732 6.21967 11.7803L2.21967 7.78033C1.92678 7.48744 1.92678 7.01256 2.21967 6.71967C2.51256 6.42678 2.98744 6.42678 3.28033 6.71967L6.75 10.1893L12.7197 4.21967C13.0126 3.92678 13.4874 3.92678 13.7803 4.21967Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};

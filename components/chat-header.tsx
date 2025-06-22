@@ -6,6 +6,7 @@ import { useWindowSize } from 'usehooks-ts';
 
 import { ModelSelector } from '@/components/model-selector';
 import { CompanionSelector } from '@/components/companion-selector';
+import { McpSelector } from '@/components/mcp-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, VercelIcon } from './icons';
@@ -19,6 +20,8 @@ function PureChatHeader({
   selectedModelId,
   selectedCompanionId,
   onCompanionChange,
+  selectedMcpServerIds,
+  onMcpServersChange,
   isReadonly,
   session,
 }: {
@@ -26,6 +29,8 @@ function PureChatHeader({
   selectedModelId: string;
   selectedCompanionId?: string;
   onCompanionChange: (companionId: string | undefined) => void;
+  selectedMcpServerIds: string[];
+  onMcpServersChange: (serverIds: string[]) => void;
   isReadonly: boolean;
   session: Session;
 }) {
@@ -69,6 +74,11 @@ function PureChatHeader({
             onCompanionChange={onCompanionChange}
             className="order-2 md:order-3"
           />
+          <McpSelector
+            selectedMcpServerIds={selectedMcpServerIds}
+            onMcpServersChange={onMcpServersChange}
+            className="order-3 md:order-4"
+          />
         </>
       )}
 
@@ -90,5 +100,6 @@ function PureChatHeader({
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return prevProps.selectedModelId === nextProps.selectedModelId &&
-         prevProps.selectedCompanionId === nextProps.selectedCompanionId;
+         prevProps.selectedCompanionId === nextProps.selectedCompanionId &&
+         JSON.stringify(prevProps.selectedMcpServerIds) === JSON.stringify(nextProps.selectedMcpServerIds);
 });

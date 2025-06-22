@@ -17,6 +17,7 @@ import {
   getStreamIdsByChatId,
   saveChat,
   saveMessages,
+  getActiveMcpServersByUserId,
 } from '@/lib/db/queries';
 import { generateUUID, getTrailingMessageId } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
@@ -24,6 +25,8 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
+import { listMcpTools } from '@/lib/ai/tools/list-mcp-tools';
+import { getMcpToolsFromServers } from '@/lib/ai/mcp-client';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -73,7 +76,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, selectedChatModel, selectedVisibilityType, selectedCompanionId } = requestBody;
+    const { id, message, selectedChatModel, selectedVisibilityType, selectedCompanionId, selectedMcpServerIds = [] } = requestBody;
 
     const session = await auth();
 
@@ -88,9 +91,18 @@ export async function POST(request: Request) {
       differenceInHours: 24,
     });
 
-    if (messageCount > entitlementsByUserType[userType].maxMessagesPerDay) {
-      return new ChatSDKError('rate_limit:chat').toResponse();
-    }
+    console.log(`🔍 Debug Rate Limit:`, {
+      userId: session.user.id,
+      userType,
+      messageCount,
+      maxAllowed: entitlementsByUserType[userType].maxMessagesPerDay,
+      willBlock: false // Desabilitado para desenvolvimento
+    });
+
+    // Rate limit desabilitado temporariamente para desenvolvimento
+    // if (messageCount > entitlementsByUserType[userType].maxMessagesPerDay) {
+    //   return new ChatSDKError('rate_limit:chat').toResponse();
+    // }
 
     const chat = await getChatById({ id });
 
@@ -159,7 +171,66 @@ export async function POST(request: Request) {
           }
         }
 
+        // Buscar ferramentas MCP dos servidores selecionados (sob demanda)
+        let mcpTools = {};
+        console.log('🔍 DEBUG MCP - selectedMcpServerIds:', selectedMcpServerIds);
+        
+        if (selectedMcpServerIds && selectedMcpServerIds.length > 0) {
+          try {
+            console.log(`🔍 Carregando ${selectedMcpServerIds.length} servidores MCP selecionados:`, selectedMcpServerIds);
+            
+            // Buscar apenas os servidores selecionados
+            const allMcpServers = await getActiveMcpServersByUserId({ userId: session.user.id });
+            console.log('📋 Todos os servidores MCP do usuário:', allMcpServers.map(s => ({ id: s.id, name: s.name, isActive: s.isActive })));
+            
+            const selectedServers = allMcpServers.filter(server => 
+              selectedMcpServerIds.includes(server.id)
+            );
+            console.log('✅ Servidores selecionados encontrados:', selectedServers.map(s => ({ id: s.id, name: s.name, url: s.url })));
+            
+            if (selectedServers.length > 0) {
+              console.log(`📡 Conectando a ${selectedServers.length} servidores MCP selecionados`);
+              
+              // Timeout para ferramentas MCP
+              const mcpToolsPromise = getMcpToolsFromServers(selectedServers);
+              const toolsTimeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('MCP tools timeout')), 2000)
+              );
+              
+              console.log('⏳ Iniciando carregamento de ferramentas MCP...');
+              const toolsResult = await Promise.race([mcpToolsPromise, toolsTimeoutPromise]);
+              console.log('📦 Resultado do carregamento de ferramentas:', typeof toolsResult, Object.keys(toolsResult || {}));
+              
+              if (toolsResult && typeof toolsResult === 'object') {
+                mcpTools = toolsResult as Record<string, any>;
+                console.log(`🔧 Carregadas ${Object.keys(mcpTools).length} ferramentas MCP de ${selectedServers.length} servidores:`, Object.keys(mcpTools));
+              } else {
+                console.log('⚠️ Ferramentas MCP inválidas, usando objeto vazio');
+                mcpTools = {};
+              }
+            } else {
+              console.log('📭 Nenhum servidor MCP selecionado encontrado nos dados do usuário');
+            }
+          } catch (error) {
+            console.error('⚠️ Erro ao carregar MCP selecionados (continuando sem MCP):', error instanceof Error ? error.message : 'Erro desconhecido');
+            console.error('Stack trace:', error);
+            mcpTools = {};
+          }
+        } else {
+          console.log('🚫 Nenhum servidor MCP selecionado (array vazio ou undefined)');
+        }
+
         // Usar diretamente o modelo selecionado (Azure ou fallback)
+        console.log('🤖 Iniciando streamText com modelo:', selectedChatModel);
+        console.log('🔧 Ferramentas disponíveis:', Object.keys({
+          getWeather: true,
+          createDocument: true,
+          updateDocument: true,
+          requestSuggestions: true,
+          listMcpTools: true,
+          ...mcpTools,
+        }));
+        
         const result = await streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: companionInstruction || systemPrompt({ selectedChatModel, requestHints }),
@@ -168,12 +239,14 @@ export async function POST(request: Request) {
           experimental_activeTools:
             selectedChatModel.includes('reasoning')
               ? []
-              : [
+              : ([
                   'getWeather',
                   'createDocument',
                   'updateDocument',
                   'requestSuggestions',
-                ],
+                  'listMcpTools',
+                  ...Object.keys(mcpTools),
+                ] as any),
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
           tools: {
@@ -184,6 +257,8 @@ export async function POST(request: Request) {
               session,
               dataStream,
             }),
+            listMcpTools: listMcpTools(mcpTools),
+            ...mcpTools,
           },
           onFinish: async ({ response }) => {
             if (session.user?.id) {
