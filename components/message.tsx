@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { ToolResult } from './tool-result';
 import type { UseChatHelpers } from '@ai-sdk/react';
 
 const PurePreviewMessage = ({
@@ -183,6 +184,14 @@ const PurePreviewMessage = ({
                           args={args}
                           isReadonly={isReadonly}
                         />
+                      ) : toolName === 'listMcpTools' ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="text-sm text-muted-foreground">Carregando ferramentas MCP...</div>
+                        </div>
+                      ) : toolName === 'testMcpTool' ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="text-sm text-muted-foreground">Executando teste MCP...</div>
+                        </div>
                       ) : null}
                     </div>
                   );
@@ -212,8 +221,23 @@ const PurePreviewMessage = ({
                           result={result}
                           isReadonly={isReadonly}
                         />
+                      ) : toolName === 'listMcpTools' ? (
+                        <ToolResult
+                          toolName={toolName}
+                          result={result}
+                          displayName="Ferramentas MCP Disponíveis"
+                        />
+                      ) : toolName === 'testMcpTool' ? (
+                        <ToolResult
+                          toolName={toolName}
+                          result={result}
+                          displayName="Teste MCP"
+                        />
                       ) : (
-                        <pre>{JSON.stringify(result, null, 2)}</pre>
+                        <ToolResult
+                          toolName={toolName}
+                          result={result}
+                        />
                       )}
                     </div>
                   );

@@ -25,7 +25,7 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
-import { listMcpTools } from '@/lib/ai/tools/list-mcp-tools';
+import { listMcpTools, testMcpTool, setMcpToolsContext } from '@/lib/ai/tools/list-mcp-tools';
 import { getMcpToolsFromServers } from '@/lib/ai/mcp-client';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
@@ -171,13 +171,37 @@ export async function POST(request: Request) {
           }
         }
 
+        // Função para verificar se a mensagem pode precisar de ferramentas MCP
+        const messageNeedsMcpTools = (message: string): boolean => {
+          const mcpKeywords = [
+            'mcp', 'ferramenta', 'tool', 'api', 'openai', 'gpt', 'claude',
+            'criar', 'create', 'gerar', 'generate', 'buscar', 'search',
+            'analisar', 'analyze', 'processar', 'process', 'traduzir', 'translate',
+            'resumir', 'summarize', 'imagem', 'image', 'arquivo', 'file',
+            'upload', 'download', 'lista', 'list', 'deletar', 'delete',
+            'modificar', 'modify', 'assistente', 'assistant', 'batch',
+            'transcricao', 'transcription', 'moderacao', 'moderation',
+            'embedding', 'fine-tuning', 'vector', 'thread', 'run'
+          ];
+          
+          const lowerMessage = message.toLowerCase();
+          return mcpKeywords.some(keyword => lowerMessage.includes(keyword));
+        };
+
         // Buscar ferramentas MCP dos servidores selecionados (sob demanda)
         let mcpTools = {};
         console.log('🔍 DEBUG MCP - selectedMcpServerIds:', selectedMcpServerIds);
         
-        if (selectedMcpServerIds && selectedMcpServerIds.length > 0) {
+        // Verificar se há servidores selecionados E se a mensagem pode precisar de MCP
+        const userMessage = message.content || '';
+        const forceMcp = userMessage.startsWith('/mcp') || userMessage.includes('listMcpTools') || userMessage.includes('testMcpTool');
+        const shouldLoadMcpTools = selectedMcpServerIds && selectedMcpServerIds.length > 0 && 
+          (forceMcp || messageNeedsMcpTools(userMessage));
+        
+        if (shouldLoadMcpTools) {
           try {
-            console.log(`🔍 Carregando ${selectedMcpServerIds.length} servidores MCP selecionados:`, selectedMcpServerIds);
+            const reason = forceMcp ? 'comando forçado (/mcp ou ferramenta específica)' : 'palavras-chave detectadas';
+            console.log(`🔍 Carregando ferramentas MCP (${reason}). ${selectedMcpServerIds.length} servidores selecionados:`, selectedMcpServerIds);
             
             // Buscar apenas os servidores selecionados
             const allMcpServers = await getActiveMcpServersByUserId({ userId: session.user.id });
@@ -217,19 +241,31 @@ export async function POST(request: Request) {
             mcpTools = {};
           }
         } else {
-          console.log('🚫 Nenhum servidor MCP selecionado (array vazio ou undefined)');
+          if (selectedMcpServerIds && selectedMcpServerIds.length > 0) {
+            console.log('🚫 Servidores MCP selecionados, mas mensagem não parece precisar de MCP. Pulando carregamento.');
+          } else {
+            console.log('🚫 Nenhum servidor MCP selecionado (array vazio ou undefined)');
+          }
         }
 
-        // Usar diretamente o modelo selecionado (Azure ou fallback)
-        console.log('🤖 Iniciando streamText com modelo:', selectedChatModel);
-        console.log('🔧 Ferramentas disponíveis:', Object.keys({
-          getWeather: true,
-          createDocument: true,
-          updateDocument: true,
-          requestSuggestions: true,
-          listMcpTools: true,
+        // Definir contexto das ferramentas MCP para a ferramenta listMcpTools
+        setMcpToolsContext(mcpTools);
+        
+        const allTools: any = {
+          getWeather,
+          createDocument: createDocument({ session, dataStream }),
+          updateDocument: updateDocument({ session, dataStream }),
+          requestSuggestions: requestSuggestions({
+            session,
+            dataStream,
+          }),
+          listMcpTools,
+          testMcpTool,
           ...mcpTools,
-        }));
+        };
+        
+        console.log('🎯 Total de ferramentas sendo passadas para o modelo:', Object.keys(allTools).length);
+        console.log('🎯 Nomes das ferramentas:', Object.keys(allTools));
         
         const result = await streamText({
           model: myProvider.languageModel(selectedChatModel),
@@ -245,22 +281,29 @@ export async function POST(request: Request) {
                   'updateDocument',
                   'requestSuggestions',
                   'listMcpTools',
+                  'testMcpTool',
                   ...Object.keys(mcpTools),
                 ] as any),
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-            listMcpTools: listMcpTools(mcpTools),
-            ...mcpTools,
+          tools: allTools,
+          onStepFinish: async ({ stepType, toolCalls, toolResults }) => {
+            console.log('🔧 STEP FINISHED:', stepType);
+            if (toolCalls && toolCalls.length > 0) {
+              console.log('🔧 FERRAMENTAS CHAMADAS:', toolCalls.map(tc => tc.toolName));
+            }
+            if (toolResults && toolResults.length > 0) {
+              console.log('✅ RESULTADOS DAS FERRAMENTAS:', toolResults.map(tr => ({ tool: tr.toolName, result: tr.result })));
+            }
+            if (stepType === 'tool-result') {
+              console.log('🔧 Ferramenta chamada:', toolCalls?.map(tc => tc.toolName));
+              console.log('🔧 Resultados:', toolResults?.map(tr => tr.result));
+            }
           },
           onFinish: async ({ response }) => {
+            console.log('🏁 Stream finalizado. Mensagens:', response.messages.length);
+            console.log('🏁 Última mensagem:', response.messages[response.messages.length - 1]);
+            
             if (session.user?.id) {
               try {
                 const assistantId = getTrailingMessageId({
@@ -277,6 +320,8 @@ export async function POST(request: Request) {
                   messages: [message],
                   responseMessages: response.messages,
                 });
+
+                console.log('💾 Salvando mensagem do assistente:', assistantMessage.parts);
 
                 await saveMessages({
                   messages: [
