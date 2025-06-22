@@ -1,6 +1,7 @@
 import { auth } from '@/app/(auth)/auth';
 import { createCompanion, getCompanionsByUserId } from '@/lib/db/queries';
 import { NextRequest, NextResponse } from 'next/server';
+import { createCompanionSchema } from './schema';
 
 export async function GET() {
   const session = await auth();
@@ -32,24 +33,26 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, instruction } = await request.json();
-
-    if (!name || !instruction) {
-      return NextResponse.json(
-        { error: 'Nome e instrução são obrigatórios' },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validatedData = createCompanionSchema.parse(body);
 
     const [companion] = await createCompanion({
-      name: name.trim(),
-      instruction: instruction.trim(),
+      ...validatedData,
       userId: session.user.id!,
     });
 
     return NextResponse.json({ companion }, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar companion:', error);
+    
+    if (error instanceof Error && 'issues' in error) {
+      // Erro de validação Zod
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: error.issues },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Falha ao criar companion' },
       { status: 500 }

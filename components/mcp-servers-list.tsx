@@ -253,7 +253,7 @@ export function McpServersList({ servers, onEdit, onDelete }: McpServersListProp
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
-                          🔐 Não testado
+                          🔐 Não conectado
                         </Badge>
                       )
                     )}

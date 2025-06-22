@@ -71,6 +71,13 @@
       "when": 1750604567363,
       "tag": "0009_illegal_lord_tyger",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1750611616074,
+      "tag": "0010_brave_loa",
+      "breakpoints": true
     }
   ]
 }

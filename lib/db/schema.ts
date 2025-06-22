@@ -172,7 +172,16 @@ export type Stream = InferSelectModel<typeof stream>;
 export const companion = pgTable('Companion', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
-  instruction: text('instruction').notNull(),
+  role: text('role').notNull(),
+  responsibilities: json('responsibilities').notNull(), // Array de strings
+  expertises: json('expertises').notNull(), // Array de objetos {area, topics}
+  sources: json('sources').notNull(), // Array de objetos {type, description}
+  rules: json('rules').notNull(), // Array de objetos {type, description}
+  contentPolicy: json('contentPolicy').notNull(), // Objeto {allowed, disallowed}
+  skills: json('skills'), // Array de objetos com skills avançadas (opcional)
+  fallbacks: json('fallbacks'), // Objeto com respostas padrão (opcional)
+  // Campos legados para compatibilidade
+  instruction: text('instruction'), // Deprecated, será removido após migração
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),

@@ -573,17 +573,38 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
 // Companions CRUD operations
 export async function createCompanion({
   name,
-  instruction,
+  role,
+  responsibilities,
+  expertises,
+  sources,
+  rules,
+  contentPolicy,
+  skills,
+  fallbacks,
   userId,
 }: {
   name: string;
-  instruction: string;
+  role: string;
+  responsibilities: string[];
+  expertises: Array<{area: string; topics: string[]}>;
+  sources: Array<{type: string; description: string}>;
+  rules: Array<{type: string; description: string}>;
+  contentPolicy: {allowed: string[]; disallowed: string[]};
+  skills?: Array<any>;
+  fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
   userId: string;
 }) {
   try {
     return await db.insert(companion).values({
       name,
-      instruction,
+      role,
+      responsibilities,
+      expertises,
+      sources,
+      rules,
+      contentPolicy,
+      skills,
+      fallbacks,
       userId,
     }).returning();
   } catch (error) {
@@ -629,12 +650,26 @@ export async function getCompanionById({ id }: { id: string }) {
 export async function updateCompanion({
   id,
   name,
-  instruction,
+  role,
+  responsibilities,
+  expertises,
+  sources,
+  rules,
+  contentPolicy,
+  skills,
+  fallbacks,
   userId,
 }: {
   id: string;
   name: string;
-  instruction: string;
+  role: string;
+  responsibilities: string[];
+  expertises: Array<{area: string; topics: string[]}>;
+  sources: Array<{type: string; description: string}>;
+  rules: Array<{type: string; description: string}>;
+  contentPolicy: {allowed: string[]; disallowed: string[]};
+  skills?: Array<any>;
+  fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
   userId: string;
 }) {
   try {
@@ -642,7 +677,14 @@ export async function updateCompanion({
       .update(companion)
       .set({
         name,
-        instruction,
+        role,
+        responsibilities,
+        expertises,
+        sources,
+        rules,
+        contentPolicy,
+        skills,
+        fallbacks,
         updatedAt: new Date(),
       })
       .where(and(eq(companion.id, id), eq(companion.userId, userId)))

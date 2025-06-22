@@ -1,6 +1,7 @@
 import { auth } from '@/app/(auth)/auth';
 import { getCompanionById, updateCompanion, deleteCompanion } from '@/lib/db/queries';
 import { NextRequest, NextResponse } from 'next/server';
+import { updateCompanionSchema } from '../schema';
 
 export async function GET(
   request: NextRequest,
@@ -49,20 +50,13 @@ export async function PUT(
   }
 
   try {
-    const { name, instruction } = await request.json();
-
-    if (!name || !instruction) {
-      return NextResponse.json(
-        { error: 'Nome e instrução são obrigatórios' },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validatedData = updateCompanionSchema.parse(body);
 
     const resolvedParams = await params;
     const [companion] = await updateCompanion({
       id: resolvedParams.id,
-      name: name.trim(),
-      instruction: instruction.trim(),
+      ...validatedData,
       userId: session.user.id!,
     });
 
@@ -76,6 +70,15 @@ export async function PUT(
     return NextResponse.json({ companion });
   } catch (error) {
     console.error('Erro ao atualizar companion:', error);
+    
+    if (error instanceof Error && 'issues' in error) {
+      // Erro de validação Zod
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: error.issues },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Falha ao atualizar companion' },
       { status: 500 }

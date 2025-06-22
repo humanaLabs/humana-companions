@@ -93,8 +93,8 @@ export function CompanionSelector({
             <div className="flex flex-col">
               <span className="font-medium">{companion.name}</span>
               <span className="text-xs text-muted-foreground line-clamp-2">
-                {companion.instruction.slice(0, 60)}
-                {companion.instruction.length > 60 && '...'}
+                {companion.role || companion.instruction?.slice(0, 60) || 'Companion personalizado'}
+                {companion.instruction && companion.instruction.length > 60 && '...'}
               </span>
             </div>
           </DropdownMenuItem>

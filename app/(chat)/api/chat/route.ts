@@ -40,6 +40,7 @@ import { after } from 'next/server';
 import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
+import { companionToSystemPrompt } from '@/lib/ai/companion-prompt';
 
 export const maxDuration = 60;
 
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
           try {
             const companion = await getCompanionById({ id: selectedCompanionId });
             if (companion && companion.userId === session.user.id) {
-              companionInstruction = companion.instruction;
+              companionInstruction = companionToSystemPrompt(companion);
             }
           } catch (error) {
             console.error('Erro ao buscar companion:', error);

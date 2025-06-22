@@ -94,8 +94,20 @@ export function CompanionsList({
                     </div>
                     
                     <div className="text-sm text-muted-foreground mb-3">
-                      Instruções: {companion.instruction.substring(0, 100)}
-                      {companion.instruction.length > 100 && '...'}
+                      <div>
+                        <strong>Papel:</strong> {(companion.role as string) || 'Companion Personalizado'}
+                      </div>
+                      {companion.instruction && (
+                        <div className="mt-1 text-xs">
+                          <strong>Legado:</strong> {companion.instruction.substring(0, 80)}
+                          {companion.instruction.length > 80 && '...'}
+                        </div>
+                      )}
+                      {!companion.instruction && companion.responsibilities && (
+                        <div className="mt-1 text-xs">
+                          <strong>Responsabilidade:</strong> Responsabilidades definidas
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
