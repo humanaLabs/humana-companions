@@ -92,6 +92,13 @@
       "when": 1750619089693,
       "tag": "0012_green_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1750622138230,
+      "tag": "0013_previous_sentry",
+      "breakpoints": true
     }
   ]
 }
