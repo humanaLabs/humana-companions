@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 
 import { ModelSelector } from '@/components/model-selector';
+import { CompanionSelector } from '@/components/companion-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, VercelIcon } from './icons';
@@ -16,11 +17,15 @@ import type { Session } from 'next-auth';
 function PureChatHeader({
   chatId,
   selectedModelId,
+  selectedCompanionId,
+  onCompanionChange,
   isReadonly,
   session,
 }: {
   chatId: string;
   selectedModelId: string;
+  selectedCompanionId?: string;
+  onCompanionChange: (companionId: string | undefined) => void;
   isReadonly: boolean;
   session: Session;
 }) {
@@ -53,11 +58,18 @@ function PureChatHeader({
       )}
 
       {!isReadonly && (
-        <ModelSelector
-          session={session}
-          selectedModelId={selectedModelId}
-          className="order-1 md:order-2"
-        />
+        <>
+          <ModelSelector
+            session={session}
+            selectedModelId={selectedModelId}
+            className="order-1 md:order-2"
+          />
+          <CompanionSelector
+            selectedCompanionId={selectedCompanionId}
+            onCompanionChange={onCompanionChange}
+            className="order-2 md:order-3"
+          />
+        </>
       )}
 
       {/* <Button
@@ -77,5 +89,6 @@ function PureChatHeader({
 }
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
-  return prevProps.selectedModelId === nextProps.selectedModelId;
+  return prevProps.selectedModelId === nextProps.selectedModelId &&
+         prevProps.selectedCompanionId === nextProps.selectedCompanionId;
 });

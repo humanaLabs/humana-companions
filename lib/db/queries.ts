@@ -27,6 +27,8 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  companion,
+  type Companion,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -562,6 +564,111 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+// Companions CRUD operations
+export async function createCompanion({
+  name,
+  instruction,
+  userId,
+}: {
+  name: string;
+  instruction: string;
+  userId: string;
+}) {
+  try {
+    return await db.insert(companion).values({
+      name,
+      instruction,
+      userId,
+    }).returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to create companion',
+    );
+  }
+}
+
+export async function getCompanionsByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(companion)
+      .where(eq(companion.userId, userId))
+      .orderBy(desc(companion.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companions by user id',
+    );
+  }
+}
+
+export async function getCompanionById({ id }: { id: string }) {
+  try {
+    const [companionResult] = await db
+      .select()
+      .from(companion)
+      .where(eq(companion.id, id))
+      .limit(1);
+    
+    return companionResult;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get companion by id',
+    );
+  }
+}
+
+export async function updateCompanion({
+  id,
+  name,
+  instruction,
+  userId,
+}: {
+  id: string;
+  name: string;
+  instruction: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .update(companion)
+      .set({
+        name,
+        instruction,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(companion.id, id), eq(companion.userId, userId)))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update companion',
+    );
+  }
+}
+
+export async function deleteCompanion({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .delete(companion)
+      .where(and(eq(companion.id, id), eq(companion.userId, userId)))
+      .returning();
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete companion',
     );
   }
 }

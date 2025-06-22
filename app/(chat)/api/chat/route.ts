@@ -11,6 +11,7 @@ import {
   createStreamId,
   deleteChatById,
   getChatById,
+  getCompanionById,
   getMessageCountByUserId,
   getMessagesByChatId,
   getStreamIdsByChatId,
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, selectedChatModel, selectedVisibilityType } = requestBody;
+    const { id, message, selectedChatModel, selectedVisibilityType, selectedCompanionId } = requestBody;
 
     const session = await auth();
 
@@ -145,10 +146,23 @@ export async function POST(request: Request) {
 
     const stream = createDataStream({
       execute: async (dataStream) => {
+        // Buscar companion se selecionado
+        let companionInstruction: string | undefined;
+        if (selectedCompanionId) {
+          try {
+            const companion = await getCompanionById({ id: selectedCompanionId });
+            if (companion && companion.userId === session.user.id) {
+              companionInstruction = companion.instruction;
+            }
+          } catch (error) {
+            console.error('Erro ao buscar companion:', error);
+          }
+        }
+
         // Usar diretamente o modelo selecionado (Azure ou fallback)
         const result = await streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: companionInstruction || systemPrompt({ selectedChatModel, requestHints }),
           messages,
           maxSteps: 5,
           experimental_activeTools:

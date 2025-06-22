@@ -39,6 +39,12 @@ export function Chat({
   autoResume: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  const [selectedCompanionId, setSelectedCompanionId] = useState<string | undefined>();
+  
+  // Debug log para acompanhar mudanças do companion
+  useEffect(() => {
+    console.log('Companion selecionado mudou para:', selectedCompanionId);
+  }, [selectedCompanionId]);
 
   const { visibilityType } = useChatVisibility({
     chatId: id,
@@ -69,7 +75,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
-      selectedDifyAgent: undefined, // Removido suporte ao Dify
+      selectedCompanionId: selectedCompanionId,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -123,6 +129,8 @@ export function Chat({
         <ChatHeader
           chatId={id}
           selectedModelId={initialChatModel}
+          selectedCompanionId={selectedCompanionId}
+          onCompanionChange={setSelectedCompanionId}
           isReadonly={isReadonly}
           session={session}
         />
