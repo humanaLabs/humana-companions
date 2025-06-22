@@ -100,11 +100,11 @@ export default function McpServersPage() {
   return (
     <div className="flex flex-col h-screen">
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center justify-between px-6">
+        <div className="flex h-20 items-center justify-between px-6">
           <div>
-            <h1 className="text-lg font-semibold">Servidores MCP</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie seus servidores Model Context Protocol
+            <h1 className="text-2xl font-bold">Gerenciador MCP</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Configure e gerencie servidores Model Context Protocol
             </p>
           </div>
           <Button 
@@ -119,41 +119,41 @@ export default function McpServersPage() {
 
       <div className="flex-1 overflow-auto p-6">
         {showForm && (
-          <div className="mb-6">
-            <McpServerForm 
-              onSuccess={handleCreateSuccess}
-              onCancel={handleCancelCreate}
-            />
-          </div>
+          <McpServerForm 
+            onSuccess={handleCreateSuccess}
+            onCancel={handleCancelCreate}
+          />
         )}
 
         {editingServer && (
-          <div className="mb-6">
-            <McpServerForm 
-              server={editingServer}
-              onSuccess={handleUpdateSuccess}
-              onCancel={handleCancelEdit}
-            />
-          </div>
+          <McpServerForm 
+            server={editingServer}
+            onSuccess={handleUpdateSuccess}
+            onCancel={handleCancelEdit}
+          />
         )}
 
-        {mcpServers.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-4">🔌</div>
-            <h3 className="text-lg font-medium mb-2">Nenhum servidor MCP configurado</h3>
-            <p className="text-muted-foreground mb-4">
-              Adicione servidores MCP para estender as capacidades do chat com ferramentas externas.
-            </p>
-            <Button onClick={() => setShowForm(true)}>
-              Adicionar Primeiro Servidor
-            </Button>
-          </div>
-        ) : (
-          <McpServersList 
-            servers={mcpServers}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+        {!showForm && !editingServer && (
+          <>
+            {mcpServers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">🔌</div>
+                <h3 className="text-lg font-medium mb-2">Nenhum servidor MCP configurado</h3>
+                <p className="text-muted-foreground mb-4">
+                  Adicione servidores MCP para estender as capacidades do chat com ferramentas externas.
+                </p>
+                <Button onClick={() => setShowForm(true)}>
+                  Adicionar Primeiro Servidor
+                </Button>
+              </div>
+            ) : (
+              <McpServersList 
+                servers={mcpServers}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

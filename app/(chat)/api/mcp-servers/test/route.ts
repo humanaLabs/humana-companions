@@ -38,13 +38,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isConnectionSuccessful = await testMcpServerConnection(mcpServer);
+    const testResult = await testMcpServerConnection(mcpServer);
 
     return NextResponse.json({
-      success: isConnectionSuccessful,
-      message: isConnectionSuccessful 
+      success: testResult.success,
+      message: testResult.success 
         ? 'Conexão bem-sucedida' 
         : 'Falha na conexão',
+      tools: testResult.tools || [],
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

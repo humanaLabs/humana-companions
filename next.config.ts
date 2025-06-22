@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   experimental: {
     ppr: true,
   },
+  devIndicators: {
+    buildActivity: true,
+    buildActivityPosition: 'bottom-right',
+  },
   images: {
     remotePatterns: [
       {

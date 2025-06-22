@@ -69,7 +69,7 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
         <CardTitle>
           {isEditing ? 'Editar Companion' : 'Novo Companion'}
@@ -78,7 +78,7 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
+            <Label htmlFor="name">Nome *</Label>
             <Input
               id="name"
               type="text"
@@ -91,14 +91,14 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="instruction">Instrução</Label>
+            <Label htmlFor="instruction">Instrução *</Label>
             <Textarea
               id="instruction"
               placeholder="Descreva como este companion deve se comportar e responder..."
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               disabled={isLoading}
-              rows={6}
+              rows={8}
               required
             />
             <p className="text-xs text-muted-foreground">
@@ -106,7 +106,14 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
             </p>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 pt-4">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1"
+            >
+              {isLoading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Criar'}
+            </Button>
             <Button
               type="button"
               variant="outline"
@@ -114,9 +121,6 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
               disabled={isLoading}
             >
               Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : isEditing ? 'Atualizar' : 'Criar'}
             </Button>
           </div>
         </form>

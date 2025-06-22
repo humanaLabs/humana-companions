@@ -167,24 +167,34 @@ export async function getMcpToolsFromServers(servers: McpServer[]): Promise<Reco
   return tools;
 }
 
-export async function testMcpServerConnection(server: McpServer): Promise<boolean> {
+export async function testMcpServerConnection(server: McpServer): Promise<{ 
+  success: boolean; 
+  tools?: Array<{ name: string; description?: string }> 
+}> {
   try {
     const mcpClient = await connectToMcpServer(server);
     
     if (!mcpClient) {
-      return false;
+      return { success: false };
     }
 
     // Testar listagem de ferramentas
     const toolsResponse = await mcpClient.client.listTools();
+    const tools = toolsResponse.tools?.map(tool => ({
+      name: tool.name,
+      description: tool.description
+    })) || [];
     
     // Desconectar após teste
     await disconnectFromMcpServer(server.id);
     
-    return true;
+    return { 
+      success: true, 
+      tools 
+    };
   } catch (error) {
     console.error(`❌ Teste de conexão falhou para ${server.name}:`, error);
-    return false;
+    return { success: false };
   }
 }
 
