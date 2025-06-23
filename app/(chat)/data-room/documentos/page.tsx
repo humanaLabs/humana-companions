@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Plus, Upload } from 'lucide-react';
+import { FileIcon, MoreIcon } from '@/components/icons';
 
 export default async function DocumentosPage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function DocumentosPage() {
       <PageHeader 
         title="Documentos" 
         description="Gerencie e organize seus documentos de forma inteligente"
-        badge="📄 Data Room"
+        badge="Data Room"
         showBackButton={true}
       >
         <div className="flex items-center gap-2">
@@ -58,12 +59,12 @@ export default async function DocumentosPage() {
             {/* Document Card 1 */}
             <div className="bg-card border rounded-lg p-4 hover:shadow-lg transition-shadow group">
               <div className="flex items-start justify-between mb-3">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">📄</span>
+                <div className="text-muted-foreground">
+                  <FileIcon size={28} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-1 hover:bg-muted rounded">
-                    <span className="text-muted-foreground text-sm">⋯</span>
+                  <button className="p-1 hover:bg-muted rounded text-muted-foreground">
+                    <MoreIcon size={16} />
                   </button>
                 </div>
               </div>

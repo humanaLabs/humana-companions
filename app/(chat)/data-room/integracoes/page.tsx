@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Plus, Settings } from 'lucide-react';
+import { ServerIcon, MessageIcon, SparklesIcon } from '@/components/icons';
 
 export default async function IntegracoesPage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function IntegracoesPage() {
       <PageHeader 
         title="Integrações" 
         description="Conecte suas ferramentas favoritas"
-        badge="🔗 Data Room"
+        badge="Data Room"
         showBackButton={true}
       >
         <div className="flex items-center gap-2">
@@ -55,8 +56,8 @@ export default async function IntegracoesPage() {
             {/* Storage Integrations */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">💾</span>
+                <div className="text-muted-foreground">
+                  <ServerIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -81,8 +82,8 @@ export default async function IntegracoesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">💾</span>
+                <div className="text-muted-foreground">
+                  <ServerIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -108,8 +109,8 @@ export default async function IntegracoesPage() {
             {/* Communication Integrations */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">💬</span>
+                <div className="text-muted-foreground">
+                  <MessageIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -134,8 +135,8 @@ export default async function IntegracoesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">💬</span>
+                <div className="text-muted-foreground">
+                  <MessageIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -161,8 +162,8 @@ export default async function IntegracoesPage() {
             {/* Productivity Integrations */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">⚡</span>
+                <div className="text-muted-foreground">
+                  <SparklesIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -187,8 +188,8 @@ export default async function IntegracoesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">⚡</span>
+                <div className="text-muted-foreground">
+                  <SparklesIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -213,8 +214,8 @@ export default async function IntegracoesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">⚡</span>
+                <div className="text-muted-foreground">
+                  <SparklesIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
@@ -239,8 +240,8 @@ export default async function IntegracoesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">💾</span>
+                <div className="text-muted-foreground">
+                  <ServerIcon size={32} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">

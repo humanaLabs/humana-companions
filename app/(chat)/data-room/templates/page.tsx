@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Plus, Upload } from 'lucide-react';
+import { LineChartIcon, FileIcon, InvoiceIcon } from '@/components/icons';
 
 export default async function TemplatesPage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function TemplatesPage() {
       <PageHeader 
         title="Templates" 
         description="Modelos prontos para acelerar seu trabalho"
-        badge="📋 Data Room"
+        badge="Data Room"
         showBackButton={true}
       >
         <div className="flex items-center gap-2">
@@ -55,8 +56,8 @@ export default async function TemplatesPage() {
             {/* Business Templates */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">📊</span>
+                <div className="text-muted-foreground">
+                  <LineChartIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Business
@@ -79,8 +80,8 @@ export default async function TemplatesPage() {
             {/* Jurídico Templates */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">⚖️</span>
+                <div className="text-muted-foreground">
+                  <InvoiceIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Jurídico
@@ -103,8 +104,8 @@ export default async function TemplatesPage() {
             {/* Marketing Templates */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">📢</span>
+                <div className="text-muted-foreground">
+                  <FileIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Marketing
@@ -127,8 +128,8 @@ export default async function TemplatesPage() {
             {/* More Templates */}
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">📋</span>
+                <div className="text-muted-foreground">
+                  <FileIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Business
@@ -150,8 +151,8 @@ export default async function TemplatesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">📄</span>
+                <div className="text-muted-foreground">
+                  <FileIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Jurídico
@@ -173,8 +174,8 @@ export default async function TemplatesPage() {
 
             <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <span className="text-2xl">📈</span>
+                <div className="text-muted-foreground">
+                  <LineChartIcon size={32} />
                 </div>
                 <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Marketing

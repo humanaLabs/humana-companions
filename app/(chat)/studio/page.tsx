@@ -3,6 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/page-header';
+import { BoxIcon, BotIcon, SparklesIcon, RouteIcon, LineChartIcon } from '@/components/icons';
 import Link from 'next/link';
 
 export default function StudioPage() {
@@ -20,8 +21,8 @@ export default function StudioPage() {
             {/* Organization Designer */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                  <span className="text-2xl">🏢</span>
+                <div className="text-muted-foreground">
+                  <BoxIcon size={48} />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
                   Organization Designer
@@ -49,8 +50,10 @@ export default function StudioPage() {
             {/* Companions Designer */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                  <span className="text-2xl">🤖</span>
+                <div className="text-muted-foreground flex justify-center">
+                  <div className="scale-[3]">
+                    <BotIcon />
+                  </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
                   Companions Designer
@@ -84,7 +87,9 @@ export default function StudioPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="p-4">
                 <div className="flex items-center space-x-3">
-                  <span className="text-lg">⚡</span>
+                  <div className="text-muted-foreground">
+                    <SparklesIcon size={20} />
+                  </div>
                   <div>
                     <h4 className="font-semibold text-foreground">Criação Rápida</h4>
                     <p className="text-sm text-muted-foreground">
@@ -96,7 +101,9 @@ export default function StudioPage() {
               
               <Card className="p-4">
                 <div className="flex items-center space-x-3">
-                  <span className="text-lg">🔄</span>
+                  <div className="text-muted-foreground">
+                    <RouteIcon size={20} />
+                  </div>
                   <div>
                     <h4 className="font-semibold text-foreground">Sincronização</h4>
                     <p className="text-sm text-muted-foreground">
@@ -108,7 +115,9 @@ export default function StudioPage() {
               
               <Card className="p-4">
                 <div className="flex items-center space-x-3">
-                  <span className="text-lg">📊</span>
+                  <div className="text-muted-foreground">
+                    <LineChartIcon size={20} />
+                  </div>
                   <div>
                     <h4 className="font-semibold text-foreground">Analytics</h4>
                     <p className="text-sm text-muted-foreground">

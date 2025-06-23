@@ -20,22 +20,75 @@
 - `border-gray-200 dark:border-gray-700`
 - `bg-blue-600`, `bg-green-600`, etc.
 
-### Ícones: SEMPRE use emojis/ASCII, NUNCA SVG coloridos:
-- 📄 Documentos, 📋 Templates, 🔗 Integrações, 🧪 Experimental
-- 💾 Armazenamento, 💬 Comunicação, ⚡ API/Produtividade
-- ↓ Download, + Adicionar, ✓ Sucesso, ⋯ Menu, 🔍 Busca
+### Padrão de Ícones - OBRIGATÓRIO:
+
+**✅ CORRETO:**
+- **Menus/Sidebar**: Use ASCII/emojis (📄 📋 🔗 💾 💬 ⚡ 🧪 🔍 ⋯ + ↓ ✓)
+- **Telas/Cards**: Use ícones do framework (sobrios e profissionais)
+  - `<FileIcon />`, `<ServerIcon />`, `<MessageIcon />`, `<SparklesIcon />`
+  - `<BoxIcon />`, `<BotIcon />`, `<LineChartIcon />`, `<InvoiceIcon />`
+  - `<CheckIcon />`, `<GlobeIcon />`, `<RouteIcon />`, `<MoreIcon />`
+- **Tamanhos**: 16px (pequenos), 20-24px (médios), 32px (grandes), 48px (principais)
+- **Sem fundos**: NUNCA use `bg-muted rounded-lg` ou `bg-muted rounded-full` nos ícones
+
+**❌ NUNCA use:**
+- SVG coloridos ou ícones com cores hardcoded
+- Fundos atrás dos ícones (`p-3 bg-muted rounded-lg`)
+- Emojis nas telas principais (apenas nos menus)
+- Ícones do framework nos menus (apenas ASCII/emojis)
+
+**Casos especiais:**
+- Pode usar ASCII para destaque específico (ex: 🔍 para busca)
+- MCP Servers pode usar ASCII para diferenciação visual
 
 ### Estrutura de página padrão:
 ```tsx
 <div className="flex flex-col h-screen">
-  <div className="border-b bg-background/95 backdrop-blur">
-    {/* Header fixo */}
-  </div>
+  <PageHeader 
+    title="Título" 
+    description="Descrição"
+    badge="Seção"
+    showBackButton={true}
+  >
+    {/* Botões de ação */}
+  </PageHeader>
   <div className="flex-1 overflow-auto p-6">
-    {/* Conteúdo */}
+    <div className="max-w-6xl w-full mx-auto space-y-6">
+      {/* Conteúdo principal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Cards */}
+      </div>
+    </div>
   </div>
 </div>
 ```
+
+### Padrão de Cards:
+```tsx
+<div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+  <div className="flex items-start justify-between mb-4">
+    <div className="text-muted-foreground">
+      <IconComponent size={32} />
+    </div>
+    <div className="flex items-center gap-2">
+      <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+        Categoria
+      </span>
+    </div>
+  </div>
+  <h3 className="font-semibold text-foreground mb-2">Título</h3>
+  <p className="text-sm text-muted-foreground mb-4">Descrição</p>
+  <div className="flex items-center justify-between">
+    <span className="text-xs text-muted-foreground">Status</span>
+    <Button variant="outline" size="sm">Ação</Button>
+  </div>
+</div>
+```
+
+### Terminologia Padrão:
+- Use "Companion" ao invés de "Chat" 
+- "Companion Padrão" ao invés de "Chat Padrão"
+- Mantenha consistência em toda a aplicação
 
 Consulte: `docs/arquitetura_geral/PADRAO_LAYOUT_UI.md` para detalhes completos.
 
