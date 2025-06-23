@@ -337,16 +337,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     
                     {/* Seção Pastas de Projetos - Expanded */}
                     <div className="space-y-1">
-                      <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group w-full"
+                      <div 
+                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group w-full cursor-pointer"
                       >
-                        <div className="flex items-center justify-center w-6 h-6">
-                          <div className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                            <ChevronDownIcon size={16} />
+                        <button
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="flex items-center gap-3 flex-1"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <div className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                              <ChevronDownIcon size={16} />
+                            </div>
                           </div>
-                        </div>
-                        <span className="flex-1 text-left">Pastas</span>
+                          <span className="flex-1 text-left">Pastas</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -356,7 +360,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         >
                           <PlusIcon size={12} />
                         </button>
-                      </button>
+                      </div>
                       
                       {isExpanded && (
                         <div className="ml-6 space-y-1">
@@ -391,12 +395,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                                 <span className="flex-1">{folder.name}</span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <button 
-                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted-foreground/20 rounded"
+                                    <div 
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted-foreground/20 rounded cursor-pointer"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <MoreIcon size={12} />
-                                    </button>
+                                    </div>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-32">
                                     <DropdownMenuItem

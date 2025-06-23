@@ -26,7 +26,7 @@ interface Team {
   name: string;
   description: string;
   members: TeamMember[];
-  createdAt: Date;
+  createdAt?: Date | string;
   color: string;
 }
 
@@ -35,49 +35,26 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock data para demonstração
+  // Carregar dados reais da API
   useEffect(() => {
-    const mockTeams: Team[] = [
-      {
-        id: '1',
-        name: 'Equipe de Desenvolvimento',
-        description: 'Responsável pelo desenvolvimento e manutenção do sistema',
-        color: 'bg-blue-500',
-        createdAt: new Date('2024-01-15'),
-        members: [
-          {
-            id: '1',
-            name: 'João Silva',
-            email: 'joao@humana.com',
-            role: 'Tech Lead'
-          },
-          {
-            id: '2',
-            name: 'Maria Santos',
-            email: 'maria@humana.com',
-            role: 'Developer'
-          }
-        ]
-      },
-      {
-        id: '2',
-        name: 'Equipe de Design',
-        description: 'Criação de interfaces e experiência do usuário',
-        color: 'bg-purple-500',
-        createdAt: new Date('2024-01-20'),
-        members: [
-          {
-            id: '4',
-            name: 'Ana Oliveira',
-            email: 'ana@humana.com',
-            role: 'UX Designer'
-          }
-        ]
+    async function loadTeams() {
+      try {
+        const response = await fetch('/api/admin/teams');
+        if (response.ok) {
+          const data = await response.json();
+          setTeams(data.teams || []);
+        } else {
+          toast.error('Erro ao carregar teams');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar teams:', error);
+        toast.error('Erro ao carregar teams');
+      } finally {
+        setLoading(false);
       }
-    ];
+    }
 
-    setTeams(mockTeams);
-    setLoading(false);
+    loadTeams();
   }, []);
 
   const filteredTeams = teams.filter(team =>
@@ -118,7 +95,7 @@ export default function TeamsPage() {
       >
         <Button className="flex items-center gap-2">
           <PlusIcon size={16} />
-          Novo Time
+          Criar Time
         </Button>
       </PageHeader>
       
@@ -236,7 +213,10 @@ export default function TeamsPage() {
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-4 border-t border-muted">
                   <span className="text-xs text-muted-foreground">
-                    {team.createdAt.toLocaleDateString('pt-BR')}
+                    {team.createdAt 
+                      ? new Date(team.createdAt).toLocaleDateString('pt-BR')
+                      : 'N/A'
+                    }
                   </span>
                   <Button variant="outline" size="sm">
                     <div className="mr-1">

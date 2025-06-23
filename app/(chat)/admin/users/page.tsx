@@ -13,111 +13,80 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import type { User, Role } from '@/lib/db/schema';
+// Definir tipos específicos para admin que não dependem do schema
+interface AdminRole {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string;
+  permissions: string[];
+}
 
-interface UserWithRole extends User {
-  role: Role;
+interface AdminUser {
+  id: string;
+  email: string;
+  name?: string;
+  isMasterAdmin?: boolean;
+  createdAt?: Date | string;
+  status: 'active' | 'invited' | 'suspended'; // Status do usuário
+  role: AdminRole;
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserWithRole[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [roles, setRoles] = useState<AdminRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
 
-  // Mock data para demonstração
+  // Carregar dados reais da API
   useEffect(() => {
-    const mockUsers: UserWithRole[] = [
-      {
-        id: '1',
-        email: 'admin@humana.com',
-        name: 'Administrador Sistema',
-        image: null,
-        roleId: '1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: {
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/admin/users');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+        } else {
+          toast.error('Erro ao carregar usuários');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        toast.error('Erro ao carregar usuários');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function loadRoles() {
+      // Mock roles por enquanto - implementar API depois
+      const mockRoles: AdminRole[] = [
+        {
           id: '1',
           name: 'Administrador',
+          displayName: 'Administrador',
           description: 'Acesso total ao sistema',
           permissions: ['read', 'write', 'delete', 'admin'],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-      },
-      {
-        id: '2',
-        email: 'gerente@humana.com',
-        name: 'Maria Silva',
-        image: null,
-        roleId: '2',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: {
+        },
+        {
           id: '2',
-          name: 'Gerente',
-          description: 'Gerenciamento de equipes',
-          permissions: ['read', 'write'],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-      },
-      {
-        id: '3',
-        email: 'usuario@humana.com',
-        name: 'João Santos',
-        image: null,
-        roleId: '3',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        role: {
-          id: '3',
           name: 'Usuário',
+          displayName: 'Usuário',
           description: 'Usuário padrão',
           permissions: ['read'],
-          createdAt: new Date(),
-          updatedAt: new Date(),
         }
-      }
-    ];
+      ];
+      setRoles(mockRoles);
+    }
 
-    const mockRoles: Role[] = [
-      {
-        id: '1',
-        name: 'Administrador',
-        description: 'Acesso total ao sistema',
-        permissions: ['read', 'write', 'delete', 'admin'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: '2',
-        name: 'Gerente',
-        description: 'Gerenciamento de equipes',
-        permissions: ['read', 'write'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: '3',
-        name: 'Usuário',
-        description: 'Usuário padrão',
-        permissions: ['read'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    ];
-
-    setUsers(mockUsers);
-    setRoles(mockRoles);
-    setLoading(false);
+    loadUsers();
+    loadRoles();
   }, []);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.roleId === selectedRole;
+    const matchesRole = selectedRole === 'all' || user.role.id === selectedRole;
     return matchesSearch && matchesRole;
   });
 
@@ -134,13 +103,49 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(u => u.id !== userId));
-    toast.success('Usuário removido com sucesso!');
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'invited':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'suspended':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
   };
 
-  const handleEditUser = (userId: string) => {
-    toast.info('Funcionalidade de edição será implementada');
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Ativo';
+      case 'invited':
+        return 'Convidado';
+      case 'suspended':
+        return 'Suspenso';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user?.status === 'invited') {
+      setUsers(users.filter(u => u.id !== userId));
+      toast.success('Convite cancelado com sucesso!');
+    } else {
+      setUsers(users.filter(u => u.id !== userId));
+      toast.success('Usuário removido com sucesso!');
+    }
+  };
+
+  const handleChangePermissions = (userId: string) => {
+    toast.info('Funcionalidade de alteração de permissões será implementada');
+  };
+
+  const handleResendInvite = (userId: string) => {
+    toast.success('Convite reenviado com sucesso!');
   };
 
   if (loading) {
@@ -169,7 +174,7 @@ export default function UsersPage() {
       >
         <Button className="flex items-center gap-2">
           <PlusIcon size={16} />
-          Novo Usuário
+          Convidar Usuário
         </Button>
       </PageHeader>
       
@@ -202,28 +207,34 @@ export default function UsersPage() {
           </div>
 
           {/* Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="bg-card border rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-foreground">{users.length}</div>
-              <div className="text-sm text-muted-foreground">Total de Usuários</div>
+              <div className="text-sm text-muted-foreground">Total</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-green-600">
+                {users.filter(u => u.status === 'active').length}
+              </div>
+              <div className="text-sm text-muted-foreground">Ativos</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {users.filter(u => u.status === 'invited').length}
+              </div>
+              <div className="text-sm text-muted-foreground">Convidados</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-red-600">
                 {users.filter(u => u.role.name === 'Administrador').length}
               </div>
-              <div className="text-sm text-muted-foreground">Administradores</div>
+              <div className="text-sm text-muted-foreground">Admins</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-2xl font-bold text-blue-600">
                 {users.filter(u => u.role.name === 'Gerente').length}
               </div>
               <div className="text-sm text-muted-foreground">Gerentes</div>
-            </div>
-            <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-foreground">
-                {users.filter(u => u.role.name === 'Usuário').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Usuários</div>
             </div>
           </div>
 
@@ -249,6 +260,9 @@ export default function UsersPage() {
                       Role
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                       Criado em
                     </th>
                     <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
@@ -266,8 +280,13 @@ export default function UsersPage() {
                           </div>
                           <div>
                             <div className="font-medium text-foreground">
-                              {user.name || 'Sem nome'}
+                              {user.name || (user.status === 'invited' ? 'Aguardando registro' : 'Sem nome')}
                             </div>
+                            {user.status === 'invited' && (
+                              <div className="text-xs text-muted-foreground">
+                                Convite pendente
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -283,8 +302,19 @@ export default function UsersPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
+                        <Badge 
+                          variant="outline" 
+                          className={getStatusBadgeColor(user.status)}
+                        >
+                          {getStatusLabel(user.status)}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="text-sm text-muted-foreground">
-                          {user.createdAt.toLocaleDateString('pt-BR')}
+                          {user.createdAt 
+                            ? new Date(user.createdAt).toLocaleDateString('pt-BR')
+                            : 'N/A'
+                          }
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -292,8 +322,9 @@ export default function UsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEditUser(user.id)}
+                            onClick={() => handleChangePermissions(user.id)}
                             className="h-8 w-8 p-0"
+                            title="Alterar permissões"
                           >
                             <PencilEditIcon size={14} />
                           </Button>
@@ -305,17 +336,25 @@ export default function UsersPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
-                                onClick={() => handleEditUser(user.id)}
+                                onClick={() => handleChangePermissions(user.id)}
                               >
-                                <PencilEditIcon size={14} className="mr-2" />
-                                Editar
+                                <PencilEditIcon size={14} />
+                                <span className="ml-2">Alterar Permissões</span>
                               </DropdownMenuItem>
+                              {user.status === 'invited' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleResendInvite(user.id)}
+                                >
+                                  <PlusIcon size={14} />
+                                  <span className="ml-2">Reenviar Convite</span>
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="text-red-600"
                               >
-                                <TrashIcon size={14} className="mr-2" />
-                                Excluir
+                                <TrashIcon size={14} />
+                                <span className="ml-2">Remover</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
