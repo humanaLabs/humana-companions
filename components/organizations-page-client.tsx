@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Bot, Building2, Users, Briefcase, Target, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Building2, Users, Briefcase, Target } from 'lucide-react';
 import { OrganizationsList } from './organizations-list';
 import { OrganizationForm } from './organization-form';
 import { AIOrganizationGenerator } from './ai-organization-generator';
@@ -59,6 +58,22 @@ export function OrganizationsPageClient() {
     ]);
   }, []);
 
+  useEffect(() => {
+    const handleTemplate = () => setShowTemplateSelector(true);
+    const handleAIGenerate = () => setShowAIGenerator(true);
+    const handleNew = () => setShowForm(true);
+
+    window.addEventListener('organizations:template', handleTemplate);
+    window.addEventListener('organizations:ai-generate', handleAIGenerate);
+    window.addEventListener('organizations:new', handleNew);
+
+    return () => {
+      window.removeEventListener('organizations:template', handleTemplate);
+      window.removeEventListener('organizations:ai-generate', handleAIGenerate);
+      window.removeEventListener('organizations:new', handleNew);
+    };
+  }, []);
+
   const handleOrganizationCreated = (newOrganization: OrganizationStructure) => {
     setOrganizations(prev => [newOrganization, ...prev]);
     setShowForm(false);
@@ -93,57 +108,7 @@ export function OrganizationsPageClient() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-20 items-center justify-between px-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <Building2 className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold">Organization Designer</h1>
-              {userPermissions.isMasterAdmin && (
-                <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                  Master Admin
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {userPermissions.isMasterAdmin 
-                ? "Gerencie todas as organizações do sistema"
-                : "Gerencie suas organizações e estruturas"
-              }
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => setShowTemplateSelector(true)}
-              className="flex items-center gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Usar Template
-            </Button>
-            <Button 
-              onClick={() => setShowAIGenerator(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Bot className="h-4 w-4" />
-              Gerar com IA
-            </Button>
-            {userPermissions.canCreateOrganization && (
-              <Button 
-                variant="outline"
-                onClick={() => setShowForm(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nova Organização
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto p-6">
+    <div className="p-6">
         {/* Dashboard Organizações */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-card border rounded-lg p-4">
@@ -219,7 +184,6 @@ export function OrganizationsPageClient() {
             onSave={handleOrganizationCreated}
           />
         )}
-      </div>
     </div>
   );
 } 

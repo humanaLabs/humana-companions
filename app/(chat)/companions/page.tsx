@@ -3,6 +3,7 @@ import { getCompanionsByUserId } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { CompanionsPageClient } from '@/components/companions-page-client';
 import { PageHeader } from '@/components/page-header';
+import { CompanionsHeaderActions } from '@/components/companions-header-actions';
 
 export default async function CompanionsPage() {
   const session = await auth();
@@ -20,7 +21,9 @@ export default async function CompanionsPage() {
       <PageHeader 
         title="Companions" 
         description="Gerencie seus assistentes de IA personalizados"
-      />
+      >
+        <CompanionsHeaderActions />
+      </PageHeader>
       
       {/* Conteúdo scrollável */}
       <div className="flex-1 overflow-auto">

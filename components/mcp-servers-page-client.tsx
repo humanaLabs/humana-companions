@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Server, CheckCircle, Wrench, Activity } from 'lucide-react';
+import { Server, CheckCircle, Wrench, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { McpServersList } from '@/components/mcp-servers-list';
 import { McpServerForm } from '@/components/mcp-server-form';
@@ -69,6 +69,15 @@ export function McpServersPageClient() {
 
   useEffect(() => {
     fetchMcpServers();
+  }, []);
+
+  useEffect(() => {
+    const handleNewServer = () => {
+      setShowForm(true);
+    };
+
+    window.addEventListener('mcp-servers:new', handleNewServer);
+    return () => window.removeEventListener('mcp-servers:new', handleNewServer);
   }, []);
 
   const handleCreateSuccess = (newServer: McpServer) => {
@@ -139,17 +148,6 @@ export function McpServersPageClient() {
 
   return (
     <div className="p-6">
-      {/* Botão Novo Servidor */}
-      <div className="flex justify-end mb-6">
-        <Button 
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2"
-        >
-          <Plus size={16} />
-          Novo Servidor
-        </Button>
-      </div>
-
       {showForm && (
         <McpServerForm 
           onSuccess={handleCreateSuccess}
@@ -223,4 +221,4 @@ export function McpServersPageClient() {
       )}
     </div>
   );
-} 
+}

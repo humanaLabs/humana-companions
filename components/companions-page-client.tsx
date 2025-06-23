@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Sparkles, Bot, Target, Star, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Bot, Target, Star, TrendingUp } from 'lucide-react';
 import { CompanionsList } from '@/components/companions-list';
 import { CompanionForm } from '@/components/companion-form';
-import { AICompanionGenerator } from '@/components/ai-companion-generator';
 import type { Companion } from '@/lib/db/schema';
 
 interface CompanionsPageClientProps {
@@ -42,6 +40,15 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
     updateCompanionStats();
   }, [companions]);
 
+  useEffect(() => {
+    const handleNewCompanion = () => {
+      setShowForm(true);
+    };
+
+    window.addEventListener('companions:new', handleNewCompanion);
+    return () => window.removeEventListener('companions:new', handleNewCompanion);
+  }, []);
+
   const handleCreateSuccess = () => {
     setShowForm(false);
     router.refresh();
@@ -49,10 +56,6 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
 
   const handleUpdateSuccess = () => {
     setEditingCompanion(null);
-    router.refresh();
-  };
-
-  const handleAIGenerateSuccess = () => {
     router.refresh();
   };
 
@@ -74,37 +77,7 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-20 items-center justify-between px-6">
-          <div>
-            <h1 className="text-2xl font-bold">Companions Designer</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Projete e desenvolva companions especializados para diferentes contextos
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <AICompanionGenerator 
-              onSuccess={handleAIGenerateSuccess}
-              trigger={
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Sparkles size={16} />
-                  Gerar com IA
-                </Button>
-              }
-            />
-            <Button 
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus size={16} />
-              Novo Companion
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto p-6">
+    <div className="p-6">
         {showForm && (
           <CompanionForm 
             onSuccess={handleCreateSuccess}
@@ -166,7 +139,6 @@ export function CompanionsPageClient({ companions: initialCompanions }: Companio
             />
           </>
         )}
-      </div>
     </div>
   );
 } 
