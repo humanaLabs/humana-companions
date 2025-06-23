@@ -1,5 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
 export default async function ExperimentalPage() {
   const session = await auth();
@@ -56,6 +57,29 @@ export default async function ExperimentalPage() {
             
             <div className="p-4">
               <div className="space-y-3">
+                {/* Visualizador Hierárquico */}
+                <Link
+                  href="/experimental/organization-visualizer"
+                  className="flex items-center justify-between p-3 bg-card border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded">
+                      <span className="text-primary text-sm">🌐</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-foreground">
+                        Visualizador Hierárquico
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        Editor visual de organizações e companions com ReactFlow
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded">
+                    Ativo
+                  </div>
+                </Link>
+
                 {/* Placeholder for future experimental features */}
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border-dashed border">
                   <div className="flex items-center space-x-3">

@@ -1085,6 +1085,23 @@ export async function getUserById(id: string): Promise<User | null> {
   }
 }
 
+export async function updateUserEmail(currentEmail: string, newEmail: string): Promise<User | null> {
+  try {
+    const [updatedUser] = await db
+      .update(user)
+      .set({ email: newEmail })
+      .where(eq(user.email, currentEmail))
+      .returning();
+    
+    return updatedUser || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update user email',
+    );
+  }
+}
+
 export async function checkUserHasOrganization(userId: string): Promise<boolean> {
   try {
     const [result] = await db

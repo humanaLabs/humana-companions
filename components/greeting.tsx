@@ -14,8 +14,8 @@ export const Greeting = ({ session }: { session?: Session }) => {
         transition={{ delay: 0.5 }}
         className="text-2xl font-semibold"
       >
-        Olá {session?.user?.email?.split('@')[0] || 'usuário'}!
-      </motion.div>
+        Olá Eduardo Ibrahim!
+        </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
