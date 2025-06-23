@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-export function TopLoadingBar() {
+function TopLoadingBarInner() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const pathname = usePathname();
@@ -84,4 +84,12 @@ export function TopLoadingBar() {
       <div className="fixed top-0 left-0 right-0 z-[99] h-1 bg-background/80 backdrop-blur-sm" />
     </>
   );
-} 
+}
+
+export function TopLoadingBar() {
+  return (
+    <Suspense fallback={null}>
+      <TopLoadingBarInner />
+    </Suspense>
+  );
+}

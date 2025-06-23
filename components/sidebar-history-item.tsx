@@ -25,6 +25,7 @@ import {
   MoreHorizontalIcon,
   ShareIcon,
   TrashIcon,
+  FileIcon,
 } from './icons';
 import { memo } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';

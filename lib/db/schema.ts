@@ -364,3 +364,137 @@ export const companionPerformance = pgTable('CompanionPerformance', {
 });
 
 export type CompanionPerformance = InferSelectModel<typeof companionPerformance>;
+
+// ============================================================================
+// SISTEMA DE ADMINISTRAÇÃO - FASE 2
+// ============================================================================
+
+// Tabela de Roles (Admin, Manager, User)
+export const role = pgTable('Role', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 50 }).notNull().unique(),
+  displayName: varchar('displayName', { length: 100 }).notNull(),
+  description: text('description'),
+  permissions: json('permissions').notNull(), // Array de permissões
+  isSystemRole: boolean('isSystemRole').notNull().default(false), // Para roles do sistema (Admin, Manager, User)
+  organizationId: uuid('organizationId').references(() => organization.id), // null = role global
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type Role = InferSelectModel<typeof role>;
+
+// Tabela de Teams
+export const team = pgTable('Team', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
+  parentTeamId: uuid('parentTeamId'), // Para hierarquia de times - referência será adicionada após
+  managerId: uuid('managerId').references(() => user.id), // Manager do time
+  settings: json('settings'), // Configurações específicas do time
+  isActive: boolean('isActive').notNull().default(true),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type Team = InferSelectModel<typeof team>;
+
+// Tabela de User-Role assignments
+export const userRole = pgTable('UserRole', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  roleId: uuid('roleId')
+    .notNull()
+    .references(() => role.id),
+  organizationId: uuid('organizationId').references(() => organization.id), // null = role global
+  teamId: uuid('teamId').references(() => team.id), // null = role organizacional
+  assignedBy: uuid('assignedBy')
+    .notNull()
+    .references(() => user.id),
+  assignedAt: timestamp('assignedAt').notNull().defaultNow(),
+  expiresAt: timestamp('expiresAt'), // null = sem expiração
+  isActive: boolean('isActive').notNull().default(true),
+  metadata: json('metadata'), // Dados adicionais sobre a atribuição
+});
+
+export type UserRole = InferSelectModel<typeof userRole>;
+
+// Tabela de Team Members
+export const teamMember = pgTable('TeamMember', {
+  teamId: uuid('teamId')
+    .notNull()
+    .references(() => team.id),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  roleInTeam: varchar('roleInTeam', { 
+    enum: ['member', 'lead', 'manager', 'admin'] 
+  }).notNull().default('member'),
+  joinedAt: timestamp('joinedAt').notNull().defaultNow(),
+  addedBy: uuid('addedBy')
+    .notNull()
+    .references(() => user.id),
+  isActive: boolean('isActive').notNull().default(true),
+  permissions: json('permissions'), // Permissões específicas no time
+}, (table) => {
+  return {
+    // Chave primária composta para evitar duplicatas
+    pk: primaryKey({ columns: [table.teamId, table.userId] }),
+  };
+});
+
+export type TeamMember = InferSelectModel<typeof teamMember>;
+
+// Tabela de User-Organization assignments
+export const userOrganization = pgTable('UserOrganization', {
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
+  roleInOrganization: varchar('roleInOrganization', { 
+    enum: ['owner', 'admin', 'manager', 'member', 'guest'] 
+  }).notNull().default('member'),
+  invitedBy: uuid('invitedBy').references(() => user.id),
+  joinedAt: timestamp('joinedAt').notNull().defaultNow(),
+  invitedAt: timestamp('invitedAt'),
+  lastActiveAt: timestamp('lastActiveAt'),
+  status: varchar('status', { 
+    enum: ['active', 'inactive', 'pending', 'suspended'] 
+  }).notNull().default('active'),
+  settings: json('settings'), // Configurações específicas do usuário na organização
+}, (table) => {
+  return {
+    // Chave primária composta para evitar duplicatas
+    pk: primaryKey({ columns: [table.userId, table.organizationId] }),
+  };
+});
+
+export type UserOrganization = InferSelectModel<typeof userOrganization>;
+
+// Tabela de Audit Log para rastreamento de ações administrativas
+export const auditLog = pgTable('AuditLog', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  teamId: uuid('teamId').references(() => team.id),
+  action: varchar('action', { length: 100 }).notNull(), // Ex: 'user.role.assigned', 'team.created'
+  resource: varchar('resource', { length: 50 }).notNull(), // Ex: 'user', 'team', 'organization'
+  resourceId: uuid('resourceId'), // ID do recurso afetado
+  oldValues: json('oldValues'), // Valores antes da mudança
+  newValues: json('newValues'), // Valores após a mudança
+  ipAddress: varchar('ipAddress', { length: 45 }), // IPv4 ou IPv6
+  userAgent: text('userAgent'),
+  metadata: json('metadata'), // Dados contextuais adicionais
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type AuditLog = InferSelectModel<typeof auditLog>;

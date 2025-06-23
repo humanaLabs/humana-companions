@@ -17,11 +17,12 @@ import { getChatHistoryPaginationKey } from './sidebar-history';
 import { toast } from './toast';
 import type { Session } from 'next-auth';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
 
-export function Chat({
+function ChatInner({
   id,
   initialMessages,
   initialChatModel,
@@ -185,5 +186,21 @@ export function Chat({
         selectedVisibilityType={visibilityType}
       />
     </>
+  );
+}
+
+export function Chat(props: {
+  id: string;
+  initialMessages: Array<UIMessage>;
+  initialChatModel: string;
+  initialVisibilityType: VisibilityType;
+  isReadonly: boolean;
+  session: Session;
+  autoResume: boolean;
+}) {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <ChatInner {...props} />
+    </Suspense>
   );
 }
