@@ -60,7 +60,7 @@ export function CompanionSelector({
           <span className="text-xs font-medium">
             {isLoading 
               ? 'Carregando...' 
-              : selectedCompanion?.name || 'Chat Padrão'
+              : selectedCompanion?.name || 'Companion Padrão'
             }
           </span>
           <ChevronDownIcon size={12} />
@@ -69,13 +69,13 @@ export function CompanionSelector({
       <DropdownMenuContent align="start" className="min-w-48">
         <DropdownMenuItem
           onClick={() => {
-            console.log('Selecionando Chat Padrão');
+            console.log('Selecionando Companion Padrão');
             onCompanionChange(undefined);
           }}
           className="cursor-pointer"
         >
           <div className="flex flex-col">
-            <span className="font-medium">Chat Padrão</span>
+            <span className="font-medium">Companion Padrão</span>
             <span className="text-xs text-muted-foreground">
               Usar comportamento padrão
             </span>

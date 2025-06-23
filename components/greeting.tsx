@@ -59,7 +59,7 @@ export const Greeting = ({ session, selectedCompanionId }: { session?: Session; 
   const getCompanionName = () => {
     if (isLoadingCompanion) return 'carregando...';
     if (selectedCompanion) return selectedCompanion.name;
-    return 'Chat Padrão';
+    return 'Companion Padrão';
   };
 
   return (
