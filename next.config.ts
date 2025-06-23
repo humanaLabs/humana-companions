@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  env: {
+    AUTH_TRUST_HOST: 'true',
+    NEXTAUTH_URL: 'http://localhost:3000',
+  },
 };
 
 export default nextConfig;
