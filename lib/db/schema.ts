@@ -9,330 +9,226 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
+import { UserRole } from '@/lib/types/auth';
 
-export const user = pgTable('User', {
+export const users = pgTable('users', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
-  isMasterAdmin: boolean('isMasterAdmin').notNull().default(false),
+  salt: varchar('salt', { length: 32 }),
+  name: varchar('name', { length: 64 }),
+  avatar: varchar('avatar', { length: 512 }),
+  role: varchar('role', { length: 32 }).notNull().default(UserRole.MEMBER),
+  // organizationId removido - usar userOrganizations para relacionamento
+  isActive: boolean('is_active').notNull().default(true),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type User = InferSelectModel<typeof user>;
-
-export const chat = pgTable('Chat', {
+export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp('createdAt').notNull(),
-  title: text('title').notNull(),
-  userId: uuid('userId')
+  userId: uuid('user_id')
     .notNull()
-    .references(() => user.id),
-  visibility: varchar('visibility', { enum: ['public', 'private'] })
-    .notNull()
-    .default('private'),
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export type Chat = InferSelectModel<typeof chat>;
-
-// DEPRECATED: The following schema is deprecated and will be removed in the future.
-// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
-export const messageDeprecated = pgTable('Message', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  chatId: uuid('chatId')
-    .notNull()
-    .references(() => chat.id),
-  role: varchar('role').notNull(),
-  content: json('content').notNull(),
-  createdAt: timestamp('createdAt').notNull(),
-});
-
-export type MessageDeprecated = InferSelectModel<typeof messageDeprecated>;
-
-export const message = pgTable('Message_v2', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  chatId: uuid('chatId')
-    .notNull()
-    .references(() => chat.id),
-  role: varchar('role').notNull(),
-  parts: json('parts').notNull(),
-  attachments: json('attachments').notNull(),
-  createdAt: timestamp('createdAt').notNull(),
-});
-
-export type DBMessage = InferSelectModel<typeof message>;
-
-// DEPRECATED: The following schema is deprecated and will be removed in the future.
-// Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
-export const voteDeprecated = pgTable(
-  'Vote',
-  {
-    chatId: uuid('chatId')
-      .notNull()
-      .references(() => chat.id),
-    messageId: uuid('messageId')
-      .notNull()
-      .references(() => messageDeprecated.id),
-    isUpvoted: boolean('isUpvoted').notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
-  },
-);
-
-export type VoteDeprecated = InferSelectModel<typeof voteDeprecated>;
-
-export const vote = pgTable(
-  'Vote_v2',
-  {
-    chatId: uuid('chatId')
-      .notNull()
-      .references(() => chat.id),
-    messageId: uuid('messageId')
-      .notNull()
-      .references(() => message.id),
-    isUpvoted: boolean('isUpvoted').notNull(),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
-  },
-);
-
-export type Vote = InferSelectModel<typeof vote>;
-
-export const document = pgTable(
-  'Document',
-  {
-    id: uuid('id').notNull().defaultRandom(),
-    createdAt: timestamp('createdAt').notNull(),
-    title: text('title').notNull(),
-    content: text('content'),
-    kind: varchar('text', { enum: ['text', 'code', 'image', 'sheet'] })
-      .notNull()
-      .default('text'),
-    userId: uuid('userId')
-      .notNull()
-      .references(() => user.id),
-  },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.id, table.createdAt] }),
-    };
-  },
-);
-
-export type Document = InferSelectModel<typeof document>;
-
-export const suggestion = pgTable(
-  'Suggestion',
-  {
-    id: uuid('id').notNull().defaultRandom(),
-    documentId: uuid('documentId').notNull(),
-    documentCreatedAt: timestamp('documentCreatedAt').notNull(),
-    originalText: text('originalText').notNull(),
-    suggestedText: text('suggestedText').notNull(),
-    description: text('description'),
-    isResolved: boolean('isResolved').notNull().default(false),
-    userId: uuid('userId')
-      .notNull()
-      .references(() => user.id),
-    createdAt: timestamp('createdAt').notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    documentRef: foreignKey({
-      columns: [table.documentId, table.documentCreatedAt],
-      foreignColumns: [document.id, document.createdAt],
-    }),
-  }),
-);
-
-export type Suggestion = InferSelectModel<typeof suggestion>;
-
-export const stream = pgTable(
-  'Stream',
-  {
-    id: uuid('id').notNull().defaultRandom(),
-    chatId: uuid('chatId').notNull(),
-    createdAt: timestamp('createdAt').notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    chatRef: foreignKey({
-      columns: [table.chatId],
-      foreignColumns: [chat.id],
-    }),
-  }),
-);
-
-export type Stream = InferSelectModel<typeof stream>;
-
-export const companion = pgTable('Companion', {
+export const organizations = pgTable('organizations', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
-  role: text('role').notNull(),
-  responsibilities: json('responsibilities').notNull(), // Array de strings
-  expertises: json('expertises').notNull(), // Array de objetos {area, topics}
-  sources: json('sources').notNull(), // Array de objetos {type, description}
-  rules: json('rules').notNull(), // Array de objetos {type, description}
-  contentPolicy: json('contentPolicy').notNull(), // Objeto {allowed, disallowed}
-  skills: json('skills'), // Array de objetos com skills avançadas (opcional)
-  fallbacks: json('fallbacks'), // Objeto com respostas padrão (opcional)
-  // Campos de vinculação organizacional
-  organizationId: uuid('organizationId').references(() => organization.id),
-  positionId: text('positionId'), // ID da posição na estrutura JSON da organização
-  linkedTeamId: text('linkedTeamId'), // ID da equipe na estrutura JSON da organização
-  // Campos legados para compatibilidade
-  instruction: text('instruction'), // Deprecated, será removido após migração
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
-});
-
-export type Companion = InferSelectModel<typeof companion>;
-
-export const mcpServer = pgTable('McpServer', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  name: varchar('name', { length: 100 }).notNull(),
-  url: text('url').notNull(),
-  transport: varchar('transport', { enum: ['sse', 'stdio'] }).notNull().default('sse'),
   description: text('description'),
-  isActive: boolean('isActive').notNull().default(true),
-  // Campos de autenticação
-  authType: varchar('authType', { enum: ['none', 'bearer', 'basic', 'apikey'] }).notNull().default('none'),
-  authToken: text('authToken'), // Para Bearer Token ou API Key
-  authUsername: varchar('authUsername', { length: 100 }), // Para Basic Auth
-  authPassword: varchar('authPassword', { length: 100 }), // Para Basic Auth
-  authHeaderName: varchar('authHeaderName', { length: 50 }), // Para API Key (nome do header)
-  // Status de conexão real
-  isConnected: boolean('isConnected').notNull().default(false),
-  lastConnectionTest: timestamp('lastConnectionTest'),
-  connectionError: text('connectionError'),
-  userId: uuid('userId')
+  structure: json('structure'),
+  visibility: varchar('visibility', { length: 10 }).notNull().default('private'),
+  createdBy: uuid('created_by')
     .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+    .references(() => users.id, { onDelete: 'cascade' }),
+  isActive: boolean('is_active').notNull().default(true),
+  settings: json('settings'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type McpServer = InferSelectModel<typeof mcpServer>;
+export const userOrganizations = pgTable('user_organizations', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 32 }).notNull().default(UserRole.MEMBER),
+  permissions: json('permissions'),
+  invitedBy: uuid('invited_by').references(() => users.id),
+  joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  isActive: boolean('is_active').notNull().default(true),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.organizationId] }),
+}));
 
-export const organization = pgTable('Organization', {
+export const organizationInvites = pgTable('organization_invites', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 64 }).notNull(),
+  role: varchar('role', { length: 32 }).notNull().default(UserRole.MEMBER),
+  invitedBy: uuid('invited_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: varchar('token', { length: 128 }).notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  acceptedAt: timestamp('accepted_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const companions = pgTable('companions', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
-  description: text('description').notNull(),
-  tenantConfig: json('tenantConfig').notNull(), // Configurações do tenant
-  values: json('values').notNull(), // Array de valores organizacionais
-  teams: json('teams').notNull(), // Array de equipes
-  positions: json('positions').notNull(), // Array de posições/cargos
-  orgUsers: json('orgUsers').notNull(), // Array de usuários da organização
-  userId: uuid('userId')
+  description: text('description'),
+  instructions: text('instructions'),
+  model: varchar('model', { length: 50 }).notNull().default('gpt-4'),
+  visibility: varchar('visibility', { length: 10 }).notNull().default('private'),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  createdBy: uuid('created_by')
     .notNull()
-    .references(() => user.id),
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+    .references(() => users.id, { onDelete: 'cascade' }),
+  isActive: boolean('is_active').notNull().default(true),
+  settings: json('settings'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type Organization = InferSelectModel<typeof organization>;
-
-// Tabela para feedback dos companions
-export const companionFeedback = pgTable('CompanionFeedback', {
+export const chats = pgTable('chats', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  companionId: uuid('companionId')
+  userId: uuid('user_id')
     .notNull()
-    .references(() => companion.id),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  type: varchar('type', { enum: ['positive', 'negative', 'suggestion'] }).notNull(),
-  category: varchar('category', { 
-    enum: ['accuracy', 'helpfulness', 'relevance', 'tone', 'completeness'] 
-  }).notNull(),
-  rating: varchar('rating', { length: 1 }).notNull(), // 1-5
-  comment: text('comment').notNull(),
-  interactionId: uuid('interactionId'), // Referência à interação específica (opcional)
-  metadata: json('metadata'), // Dados adicionais sobre o contexto
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
+    .references(() => users.id, { onDelete: 'cascade' }),
+  companionId: uuid('companion_id').references(() => companions.id),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  title: varchar('title', { length: 100 }),
+  visibility: varchar('visibility', { length: 10 }).notNull().default('private'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type CompanionFeedback = InferSelectModel<typeof companionFeedback>;
-
-// Tabela para interações dos companions (para análise de performance)
-export const companionInteraction = pgTable('CompanionInteraction', {
+export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  companionId: uuid('companionId')
+  chatId: uuid('chat_id')
     .notNull()
-    .references(() => companion.id),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  chatId: uuid('chatId').references(() => chat.id),
-  messageId: uuid('messageId').references(() => message.id),
-  type: varchar('type', { 
-    enum: ['question', 'task', 'consultation', 'feedback_request'] 
-  }).notNull(),
-  context: json('context'), // Contexto da interação
-  response: json('response'), // Resposta do companion
-  duration: varchar('duration', { length: 10 }), // Duração da interação em ms
-  tokens_used: varchar('tokens_used', { length: 10 }), // Tokens utilizados
-  success: boolean('success').default(true), // Se a interação foi bem-sucedida
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
+    .references(() => chats.id, { onDelete: 'cascade' }),
+  role: varchar('role', { length: 10 }).notNull(),
+  content: json('content').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export type CompanionInteraction = InferSelectModel<typeof companionInteraction>;
+export const votes = pgTable('votes', {
+  chatId: uuid('chat_id')
+    .notNull()
+    .references(() => chats.id, { onDelete: 'cascade' }),
+  messageId: uuid('message_id').notNull(),
+  isUpvoted: boolean('is_upvoted').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+}));
 
-// Tabela para relatórios do ciclo MCP
-export const mcpCycleReport = pgTable('McpCycleReport', {
+export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  companionId: uuid('companionId')
+  title: varchar('title', { length: 100 }).notNull(),
+  content: text('content'),
+  kind: varchar('kind', { length: 10 }).notNull().default('text'),
+  userId: uuid('user_id')
     .notNull()
-    .references(() => companion.id),
-  cycleDate: timestamp('cycleDate').notNull().defaultNow(),
-  metrics: json('metrics').notNull(), // Métricas quantitativas
-  analysis: json('analysis').notNull(), // Análise qualitativa da IA
-  recommendations: json('recommendations').notNull(), // Recomendações de melhoria
-  nextSteps: json('nextSteps').notNull(), // Próximos passos
-  improvementSuggestions: json('improvementSuggestions'), // Sugestões de melhoria específicas
-  status: varchar('status', { 
-    enum: ['pending', 'in_progress', 'completed', 'failed'] 
-  }).notNull().default('pending'),
-  executedBy: uuid('executedBy').references(() => user.id), // Quem executou o ciclo
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  visibility: varchar('visibility', { length: 10 }).notNull().default('private'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export type McpCycleReport = InferSelectModel<typeof mcpCycleReport>;
-
-// Tabela para performance dos companions (métricas agregadas)
-export const companionPerformance = pgTable('CompanionPerformance', {
+export const suggestions = pgTable('suggestions', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  companionId: uuid('companionId')
+  documentId: uuid('document_id')
     .notNull()
-    .references(() => companion.id),
-  // Métricas de feedback
-  averageRating: varchar('averageRating', { length: 3 }), // Ex: "4.2"
-  totalFeedback: varchar('totalFeedback', { length: 10 }).default('0'),
-  positiveFeedbackRate: varchar('positiveFeedbackRate', { length: 5 }), // Ex: "85.5"
-  lastFeedbackAt: timestamp('lastFeedbackAt'),
-  // Métricas de interação
-  totalInteractions: varchar('totalInteractions', { length: 10 }).default('0'),
-  averageResponseTime: varchar('averageResponseTime', { length: 10 }), // Em ms
-  successRate: varchar('successRate', { length: 5 }), // Ex: "92.3"
-  lastInteractionAt: timestamp('lastInteractionAt'),
-  // Métricas de MCP
-  lastMcpCycleAt: timestamp('lastMcpCycleAt'),
-  mcpScore: varchar('mcpScore', { length: 4 }), // Score de 1-10
-  improvementTrend: varchar('improvementTrend', { 
-    enum: ['improving', 'stable', 'declining', 'unknown'] 
-  }).default('unknown'),
-  // Timestamps
-  createdAt: timestamp('createdAt').notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  originalText: text('original_text').notNull(),
+  suggestedText: text('suggested_text').notNull(),
+  description: text('description'),
+  isResolved: boolean('is_resolved').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
-export type CompanionPerformance = InferSelectModel<typeof companionPerformance>;
+export const mcpServers = pgTable('mcp_servers', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  url: varchar('url', { length: 500 }),
+  config: json('config'),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  organizationId: uuid('organization_id').references(() => organizations.id),
+  action: varchar('action', { length: 100 }).notNull(),
+  resource: varchar('resource', { length: 50 }).notNull(),
+  resourceId: uuid('resource_id'),
+  details: json('details'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
+
+export type UserOrganization = typeof userOrganizations.$inferSelect;
+export type NewUserOrganization = typeof userOrganizations.$inferInsert;
+
+export type OrganizationInvite = typeof organizationInvites.$inferSelect;
+export type NewOrganizationInvite = typeof organizationInvites.$inferInsert;
+
+export type Companion = typeof companions.$inferSelect;
+export type NewCompanion = typeof companions.$inferInsert;
+
+export type Chat = typeof chats.$inferSelect;
+export type NewChat = typeof chats.$inferInsert;
+
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+
+export type Vote = typeof votes.$inferSelect;
+export type NewVote = typeof votes.$inferInsert;
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+
+export type Suggestion = typeof suggestions.$inferSelect;
+export type NewSuggestion = typeof suggestions.$inferInsert;
+
+export type McpServer = typeof mcpServers.$inferSelect;
+export type NewMcpServer = typeof mcpServers.$inferInsert;
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

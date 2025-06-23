@@ -84,7 +84,14 @@ export function SidebarUserNav({ user }: { user: User }) {
             side={state === 'collapsed' ? 'right' : 'top'}
             className={state === 'expanded' ? 'w-[--radix-popper-anchor-width]' : ''}
           >
-
+            <DropdownMenuItem
+              data-testid="user-nav-item-admin"
+              className="cursor-pointer"
+              onSelect={() => router.push('/admin')}
+            >
+              Administração
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               data-testid="user-nav-item-mcp-servers"
               className="cursor-pointer"
