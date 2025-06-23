@@ -4,7 +4,7 @@ import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-import { PlusIcon, SidebarLeftIcon } from '@/components/icons';
+import { PlusIcon, SidebarLeftIcon, HomeIcon, BoxIcon, SparklesIcon, FileIcon, ServerIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
@@ -107,56 +107,70 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                           className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                         >
                           <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">🏠</span>
+                            <HomeIcon size={16} />
                           </div>
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">My Companion</TooltipContent>
                     </Tooltip>
-                                          <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href="/university"
-                            onClick={() => setOpenMobile(false)}
-                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                          >
-                            <div className="flex items-center justify-center w-6 h-6">
-                              <span className="text-sm">🎓</span>
-                            </div>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">University</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href="/studio"
-                            onClick={() => setOpenMobile(false)}
-                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                          >
-                            <div className="flex items-center justify-center w-6 h-6">
-                              <span className="text-sm">🎨</span>
-                            </div>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">Studio</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href="/aplicativos"
-                            onClick={() => setOpenMobile(false)}
-                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                          >
-                            <div className="flex items-center justify-center w-6 h-6">
-                              <span className="text-sm">📱</span>
-                            </div>
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">Aplicativos</TooltipContent>
-                      </Tooltip>
-                    </>
-                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/university"
+                          onClick={() => setOpenMobile(false)}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <BoxIcon size={16} />
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">University</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/studio"
+                          onClick={() => setOpenMobile(false)}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <SparklesIcon size={16} />
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Studio</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/aplicativos"
+                          onClick={() => setOpenMobile(false)}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <BoxIcon size={16} />
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Aplicativos</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/data-room"
+                          onClick={() => setOpenMobile(false)}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <ServerIcon size={16} />
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Data Room</TooltipContent>
+                    </Tooltip>
+                  </>
+                ) : (
                   <>
                     <Link
                       href="/"
@@ -166,7 +180,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">🏠</span>
+                        <HomeIcon size={16} />
                       </div>
                       <span className="flex-1">My Companion</span>
                     </Link>
@@ -176,7 +190,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">🎓</span>
+                        <BoxIcon size={16} />
                       </div>
                       <span className="flex-1">University</span>
                     </Link>
@@ -186,7 +200,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">🎨</span>
+                        <SparklesIcon size={16} />
                       </div>
                       <span className="flex-1">Studio</span>
                     </Link>
@@ -196,98 +210,19 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">📱</span>
+                        <BoxIcon size={16} />
                       </div>
                       <span className="flex-1">Aplicativos</span>
                     </Link>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="px-2 py-2">
-              {state === 'expanded' && (
-                <div className="text-xs font-semibold text-muted-foreground tracking-wider px-2 mb-2">
-                  Data Room
-                </div>
-              )}
-              <div className="space-y-1">
-{state === 'collapsed' ? (
-                  <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/data-room/documentos"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">📄</span>
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Documentos</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/data-room/templates"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">📋</span>
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Templates</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/data-room/integracoes"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">🔗</span>
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Integrações</TooltipContent>
-                    </Tooltip>
-                  </>
-                ) : (
-                  <>
                     <Link
-                      href="/data-room/documentos"
+                      href="/data-room"
                       onClick={() => setOpenMobile(false)}
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">📄</span>
+                        <ServerIcon size={16} />
                       </div>
-                      <span className="flex-1">Documentos</span>
-                    </Link>
-                    <Link
-                      href="/data-room/templates"
-                      onClick={() => setOpenMobile(false)}
-                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">📋</span>
-                      </div>
-                      <span className="flex-1">Templates</span>
-                    </Link>
-                    <Link
-                      href="/data-room/integracoes"
-                      onClick={() => setOpenMobile(false)}
-                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <span className="text-sm">🔗</span>
-                      </div>
-                      <span className="flex-1">Integrações</span>
+                      <span className="flex-1">Data Room</span>
                     </Link>
                   </>
                 )}
