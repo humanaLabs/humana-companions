@@ -84,8 +84,35 @@ export function SidebarUserNav({ user }: { user: User }) {
             side={state === 'collapsed' ? 'right' : 'top'}
             className={state === 'expanded' ? 'w-[--radix-popper-anchor-width]' : ''}
           >
-
-
+            <DropdownMenuItem
+              data-testid="user-nav-item-preferences"
+              className="cursor-pointer"
+              onSelect={() => router.push('/preferences')}
+            >
+              ⚙️ Preferências
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-testid="user-nav-item-studio"
+              className="cursor-pointer"
+              onSelect={() => router.push('/studio')}
+            >
+              Studio
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-university"
+              className="cursor-pointer"
+              onSelect={() => router.push('/university')}
+            >
+              University
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-admin"
+              className="cursor-pointer"
+              onSelect={() => router.push('/admin')}
+            >
+              Administração
+            </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="user-nav-item-experimental"
               className="cursor-pointer"

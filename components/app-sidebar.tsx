@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import type { ProjectFolder } from '@/lib/db/schema';
 
-import { PlusIcon, SidebarLeftIcon, HomeIcon, BoxIcon, SparklesIcon, FileIcon, ServerIcon, CodeIcon, ChevronDownIcon, MoreIcon, TrashIcon, InvoiceIcon, UserIcon } from '@/components/icons';
+import { PlusIcon, SidebarLeftIcon, HomeIcon, BoxIcon, ServerIcon, CodeIcon, ChevronDownIcon, MoreIcon, TrashIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
@@ -232,7 +232,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                           </div>
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right">My Companions</TooltipContent>
+                      <TooltipContent side="right">My Companion</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -265,20 +265,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
-                          href="/studio"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <SparklesIcon size={16} />
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Studio</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
                           href="/aplicativos"
                           onClick={() => setOpenMobile(false)}
                           className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
@@ -289,34 +275,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">Aplicativos</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/university"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <InvoiceIcon size={16} />
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">University</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/admin"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <UserIcon size={16} />
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Administração</TooltipContent>
                     </Tooltip>
                     {/* Pastas de Projetos - Collapsed */}
                     {folders.map((folder) => (
@@ -344,7 +302,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <div className="flex items-center justify-center w-6 h-6">
                         <HomeIcon size={16} />
                       </div>
-                      <span className="flex-1">My Companions</span>
+                      <span className="flex-1">My Companion</span>
                     </Link>
                     <Link
                       href="/data-room"
@@ -367,16 +325,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <span className="flex-1">Ferramentas</span>
                     </Link>
                     <Link
-                      href="/studio"
-                      onClick={() => setOpenMobile(false)}
-                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <SparklesIcon size={16} />
-                      </div>
-                      <span className="flex-1">Studio</span>
-                    </Link>
-                    <Link
                       href="/aplicativos"
                       onClick={() => setOpenMobile(false)}
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
@@ -385,26 +333,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         <BoxIcon size={16} />
                       </div>
                       <span className="flex-1">Aplicativos</span>
-                    </Link>
-                    <Link
-                      href="/university"
-                      onClick={() => setOpenMobile(false)}
-                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <InvoiceIcon size={16} />
-                      </div>
-                      <span className="flex-1">University</span>
-                    </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setOpenMobile(false)}
-                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <UserIcon size={16} />
-                      </div>
-                      <span className="flex-1">Administração</span>
                     </Link>
                     
                     {/* Seção Pastas de Projetos - Expanded */}
