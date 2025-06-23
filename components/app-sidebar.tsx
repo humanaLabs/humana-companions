@@ -1,6 +1,13 @@
 'use client';
 
-import type { User } from '@/lib/db/schema';
+import type { User } from 'next-auth';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
+import { PlusIcon, SidebarLeftIcon } from '@/components/icons';
+import { SidebarHistory } from '@/components/sidebar-history';
+import { SidebarUserNav } from '@/components/sidebar-user-nav';
+import { Button } from '@/components/ui/button';
 import {
   Sidebar,
   SidebarContent,
@@ -9,28 +16,36 @@ import {
   SidebarMenu,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { PlusIcon, SidebarLeftIcon } from './icons';
-import { SidebarHistory } from './sidebar-history';
-import { SidebarUserNav } from './sidebar-user-nav';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { useRouter, usePathname } from 'next/navigation';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
-  const { state, setOpenMobile, toggleSidebar } = useSidebar();
   const router = useRouter();
-  const pathname = usePathname();
+  const { setOpenMobile, toggleSidebar, state } = useSidebar();
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
       <SidebarHeader>
         <SidebarMenu>
-          <div className="flex items-center justify-between px-2 py-2">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="font-bold text-foreground">
+          <div className="flex flex-row justify-between items-center">
+            <Link
+              href="/"
+              onClick={() => {
+                setOpenMobile(false);
+              }}
+              className="flex flex-row gap-3 items-center"
+            >
+              <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
                 {state === 'expanded' ? (
-                  <span className="text-xl font-bold">Humana</span>
+                  <Image 
+                    src="/images/LogobrancoHumana.svg" 
+                    alt="Humana AI" 
+                    width={150} 
+                    height={35}
+                    priority
+                    style={{ objectFit: 'contain' }}
+                    className="invert dark:invert-0"
+                  />
                 ) : (
                   <span className="text-xl font-bold">H</span>
                 )}
@@ -82,7 +97,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <div className="space-y-1">
                 {state === 'collapsed' ? (
                   <>
-                    {/* My Companion */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
@@ -99,42 +113,37 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       </TooltipTrigger>
                       <TooltipContent side="right">My Companion</TooltipContent>
                     </Tooltip>
-
-                    {/* University */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/university"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">🎓</span>
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">University</TooltipContent>
-                    </Tooltip>
-
-                    {/* Studio */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/studio"
-                          onClick={() => setOpenMobile(false)}
-                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                        >
-                          <div className="flex items-center justify-center w-6 h-6">
-                            <span className="text-sm">🎨</span>
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Studio</TooltipContent>
-                    </Tooltip>
-                  </>
-                ) : (
+                                          <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href="/university"
+                            onClick={() => setOpenMobile(false)}
+                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                          >
+                            <div className="flex items-center justify-center w-6 h-6">
+                              <span className="text-sm">🎓</span>
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">University</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href="/studio"
+                            onClick={() => setOpenMobile(false)}
+                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                          >
+                            <div className="flex items-center justify-center w-6 h-6">
+                              <span className="text-sm">🎨</span>
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Studio</TooltipContent>
+                      </Tooltip>
+                    </>
+                  ) : (
                   <>
-                    {/* My Companion */}
                     <Link
                       href="/"
                       onClick={() => {
@@ -147,8 +156,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       </div>
                       <span className="flex-1">My Companion</span>
                     </Link>
-
-                    {/* University */}
                     <Link
                       href="/university"
                       onClick={() => setOpenMobile(false)}
@@ -159,8 +166,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       </div>
                       <span className="flex-1">University</span>
                     </Link>
-
-                    {/* Studio */}
                     <Link
                       href="/studio"
                       onClick={() => setOpenMobile(false)}
@@ -176,7 +181,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </div>
             </div>
 
-            {/* Data Room */}
             <div className="px-2 py-2">
               {state === 'expanded' && (
                 <div className="text-xs font-semibold text-muted-foreground tracking-wider px-2 mb-2">
@@ -184,7 +188,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 </div>
               )}
               <div className="space-y-1">
-                {state === 'collapsed' ? (
+{state === 'collapsed' ? (
                   <>
                     <Tooltip>
                       <TooltipTrigger asChild>
