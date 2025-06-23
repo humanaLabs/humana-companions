@@ -18,7 +18,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+// import { Progress } from '@/components/ui/progress'; // Temporariamente removido
 import { Separator } from '@/components/ui/separator';
 
 interface CompanionAnalyticsProps {
@@ -235,10 +235,12 @@ export function CompanionAnalytics({ companionId, onRunMCPCycle }: CompanionAnal
                   {latestMcpReport.analysis?.score_geral || 'N/A'}/10
                 </span>
               </div>
-              <Progress 
-                value={(latestMcpReport.analysis?.score_geral || 0) * 10} 
-                className="h-2"
-              />
+              <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all" 
+                  style={{ width: `${(latestMcpReport.analysis?.score_geral || 0) * 10}%` }}
+                />
+              </div>
             </div>
 
             <Separator />

@@ -9,14 +9,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isMasterAdmin = session.user.role === 'master_admin';
-    const canCreateOrganization = isMasterAdmin;
+    const isMasterAdmin = false; // No master admin concept in current UserType
+    const canCreateOrganization = session.user.type === 'regular';
 
     return NextResponse.json({
       canCreateOrganization,
       isMasterAdmin,
       userId: session.user.id,
-      role: session.user.role || 'user'
+      type: session.user.type
     });
   } catch (error) {
     console.error('Error fetching user permissions:', error);

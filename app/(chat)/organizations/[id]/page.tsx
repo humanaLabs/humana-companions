@@ -21,5 +21,5 @@ export default async function OrganizationEditPage({ params }: OrganizationEditP
     notFound();
   }
 
-  return <OrganizationEditClient organization={organization} />;
+  return <OrganizationEditClient organization={organization as any} />;
 } 

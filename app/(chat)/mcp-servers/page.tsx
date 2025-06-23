@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Server, CheckCircle, Wrench, Activity, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { McpServersList } from '@/components/mcp-servers-list';
 import { McpServerForm } from '@/components/mcp-server-form';
 import type { McpServer } from '@/lib/db/schema';
@@ -13,6 +15,11 @@ export default function McpServersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
+  const [serverStats, setServerStats] = useState({
+    totalTools: 0,
+    connectedServers: 0,
+    activeServers: 0,
+  });
 
   const fetchMcpServers = async () => {
     try {
@@ -20,6 +27,7 @@ export default function McpServersPage() {
       if (response.ok) {
         const data = await response.json();
         setMcpServers(data);
+        updateServerStats(data);
       } else {
         toast.error('Erro ao carregar servidores MCP');
       }
@@ -31,22 +39,54 @@ export default function McpServersPage() {
     }
   };
 
+  const updateServerStats = async (servers: McpServer[]) => {
+    const activeServers = servers.filter(server => server.isActive).length;
+    let totalTools = 0;
+    let connectedServers = 0;
+
+    // Buscar ferramentas de cada servidor ativo
+    for (const server of servers) {
+      if (server.isActive) {
+        try {
+          const toolsResponse = await fetch(`/api/mcp-servers/${server.id}/tools`);
+          if (toolsResponse.ok) {
+            const toolsData = await toolsResponse.json();
+            if (toolsData.success && toolsData.tools) {
+              totalTools += toolsData.tools.length;
+              connectedServers++;
+            }
+          }
+        } catch (error) {
+          console.error(`Erro ao buscar ferramentas do servidor ${server.name}:`, error);
+        }
+      }
+    }
+
+    setServerStats({
+      totalTools,
+      connectedServers,
+      activeServers,
+    });
+  };
+
   useEffect(() => {
     fetchMcpServers();
   }, []);
 
   const handleCreateSuccess = (newServer: McpServer) => {
-    setMcpServers(prev => [newServer, ...prev]);
+    const updatedServers = [newServer, ...mcpServers];
+    setMcpServers(updatedServers);
+    updateServerStats(updatedServers);
     setShowForm(false);
     toast.success('Servidor MCP criado com sucesso!');
   };
 
   const handleUpdateSuccess = (updatedServer: McpServer) => {
-    setMcpServers(prev => 
-      prev.map(server => 
-        server.id === updatedServer.id ? updatedServer : server
-      )
+    const updatedServers = mcpServers.map(server => 
+      server.id === updatedServer.id ? updatedServer : server
     );
+    setMcpServers(updatedServers);
+    updateServerStats(updatedServers);
     setEditingServer(null);
     toast.success('Servidor MCP atualizado com sucesso!');
   };
@@ -62,7 +102,9 @@ export default function McpServersPage() {
       });
 
       if (response.ok) {
-        setMcpServers(prev => prev.filter(server => server.id !== serverId));
+        const updatedServers = mcpServers.filter(server => server.id !== serverId);
+        setMcpServers(updatedServers);
+        updateServerStats(updatedServers);
         toast.success('Servidor MCP excluído com sucesso!');
       } else {
         toast.error('Erro ao excluir servidor MCP');
@@ -135,6 +177,40 @@ export default function McpServersPage() {
 
         {!showForm && !editingServer && (
           <>
+            {/* Dashboard MCP */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-card border rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <Server className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Servidores</span>
+                </div>
+                <p className="text-2xl font-bold mt-1">
+                  {serverStats.connectedServers} de {serverStats.activeServers}
+                </p>
+                <p className="text-sm text-muted-foreground">conectados</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Ferramentas</span>
+                </div>
+                <p className="text-2xl font-bold mt-1">{serverStats.totalTools}</p>
+                <p className="text-sm text-muted-foreground">disponíveis</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Status</span>
+                </div>
+                <p className="text-2xl font-bold mt-1">
+                  {serverStats.connectedServers > 0 ? 'ON' : 'OFF'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {serverStats.connectedServers > 0 ? 'operacional' : 'desconectado'}
+                </p>
+              </div>
+            </div>
+
             {mcpServers.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-4xl mb-4">🔌</div>

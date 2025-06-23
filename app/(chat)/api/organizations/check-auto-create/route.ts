@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session || !session.user?.id || session.user.role === 'guest') {
+    if (!session || !session.user?.id || session.user.type === 'guest') {
       return NextResponse.json({ needsAutoCreate: false });
     }
 

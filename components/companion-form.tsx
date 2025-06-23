@@ -44,14 +44,14 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
   );
   
   // Estados de política de conteúdo
-  const [allowedContent, setAllowedContent] = useState<string[]>(
-    companion?.contentPolicy ? 
-      (typeof companion.contentPolicy === 'object' ? companion.contentPolicy.allowed : JSON.parse(companion.contentPolicy as string).allowed) 
+    const [allowedContent, setAllowedContent] = useState<string[]>(
+    companion?.contentPolicy ?
+      (typeof companion.contentPolicy === 'object' ? (companion.contentPolicy as any).allowed : JSON.parse(companion.contentPolicy as string).allowed)
       : ['']
   );
   const [disallowedContent, setDisallowedContent] = useState<string[]>(
     companion?.contentPolicy ? 
-      (typeof companion.contentPolicy === 'object' ? companion.contentPolicy.disallowed : JSON.parse(companion.contentPolicy as string).disallowed) 
+      (typeof companion.contentPolicy === 'object' ? (companion.contentPolicy as any).disallowed : JSON.parse(companion.contentPolicy as string).disallowed) 
       : ['']
   );
   
@@ -60,9 +60,9 @@ export function CompanionForm({ companion, onCancel, onSuccess }: CompanionFormP
     companion?.skills ? (Array.isArray(companion.skills) ? companion.skills : JSON.parse(companion.skills as string)) : []
   );
   const [fallbacks, setFallbacks] = useState({
-    ambiguous: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? companion.fallbacks.ambiguous : JSON.parse(companion.fallbacks as string).ambiguous) || '' : '',
-    out_of_scope: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? companion.fallbacks.out_of_scope : JSON.parse(companion.fallbacks as string).out_of_scope) || '' : '',
-    unknown: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? companion.fallbacks.unknown : JSON.parse(companion.fallbacks as string).unknown) || '' : '',
+    ambiguous: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? (companion.fallbacks as any).ambiguous : JSON.parse(companion.fallbacks as string).ambiguous) || '' : '',
+    out_of_scope: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? (companion.fallbacks as any).out_of_scope : JSON.parse(companion.fallbacks as string).out_of_scope) || '' : '',
+    unknown: companion?.fallbacks ? (typeof companion.fallbacks === 'object' ? (companion.fallbacks as any).unknown : JSON.parse(companion.fallbacks as string).unknown) || '' : '',
   });
   
   const [isLoading, setIsLoading] = useState(false);

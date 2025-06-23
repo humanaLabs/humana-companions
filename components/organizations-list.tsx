@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from './toast';
 import type { OrganizationStructure } from '@/lib/types';
 
@@ -82,12 +83,10 @@ export function OrganizationsList({ organizations, onEdit, onDelete, isMasterAdm
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-4">
         {organizations.map((organization) => (
-          <div
-            key={organization.id}
-            className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow"
-          >
+          <Card key={organization.id} className="relative">
+            <CardContent className="p-6">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-2">
@@ -124,25 +123,25 @@ export function OrganizationsList({ organizations, onEdit, onDelete, isMasterAdm
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-green-500" />
+                <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   {organization.teams?.length || 0} equipes
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-purple-500" />
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   {organization.positions?.length || 0} posições
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Bot className="h-4 w-4 text-cyan-500" />
+                <Bot className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   {organization.positions?.reduce((total, pos) => total + (pos.companions?.length || 0), 0) || 0} companions
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-orange-500" />
+                <Target className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   {organization.values?.length || 0} valores
                 </span>
@@ -184,7 +183,8 @@ export function OrganizationsList({ organizations, onEdit, onDelete, isMasterAdm
             <div className="text-xs text-muted-foreground">
               Criado em {new Date(organization.createdAt!).toLocaleDateString('pt-BR')}
             </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 

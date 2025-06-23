@@ -4,7 +4,7 @@ import { getCompanionsByOrganizationId } from '@/lib/db/queries';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -13,7 +13,8 @@ export async function GET(
   }
 
   try {
-    const organizationId = params.id;
+    const { id } = await params;
+    const organizationId = id;
     
     const companions = await getCompanionsByOrganizationId({
       organizationId,

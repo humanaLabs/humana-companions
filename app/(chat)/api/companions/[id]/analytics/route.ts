@@ -5,7 +5,7 @@ import { getCompanionAnalytics } from '@/lib/db/queries';
 // GET /api/companions/[id]/analytics
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -14,7 +14,8 @@ export async function GET(
   }
 
   try {
-    const analytics = await getCompanionAnalytics(params.id);
+    const { id } = await params;
+    const analytics = await getCompanionAnalytics(id);
     return NextResponse.json(analytics);
   } catch (error) {
     console.error('Error fetching companion analytics:', error);

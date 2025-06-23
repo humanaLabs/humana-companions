@@ -103,7 +103,7 @@ export function CompanionsList({
                           {companion.instruction.length > 80 && '...'}
                         </div>
                       )}
-                      {!companion.instruction && companion.responsibilities && (
+                      {!companion.instruction && (companion.responsibilities as any) && (
                         <div className="mt-1 text-xs">
                           <strong>Responsabilidade:</strong> Responsabilidades definidas
                         </div>

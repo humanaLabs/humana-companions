@@ -65,7 +65,7 @@ export function McpSelector({
         disabled
         className={cn("h-fit px-2 py-1.5", className)}
       >
-        <ServerIcon className="w-4 h-4" />
+        <ServerIcon size={16} />
         <span className="sr-only md:not-sr-only ml-2">Carregando...</span>
       </Button>
     );
@@ -82,7 +82,7 @@ export function McpSelector({
           variant="outline"
           className={cn("h-fit px-2 py-1.5 gap-2", className)}
         >
-          <ServerIcon className="w-4 h-4" />
+          <ServerIcon size={16} />
           <span className="sr-only md:not-sr-only">
             Servidores MCP
           </span>
@@ -112,7 +112,7 @@ export function McpSelector({
                 "w-4 h-4 border rounded flex items-center justify-center",
                 isSelected ? "bg-primary border-primary" : "border-border"
               )}>
-                {isSelected && <CheckIcon className="w-3 h-3 text-primary-foreground" />}
+                {isSelected && <CheckIcon size={12} />}
               </div>
               <div className="flex-1">
                 <div className="font-medium">{server.name}</div>

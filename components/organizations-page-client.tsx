@@ -93,127 +93,133 @@ export function OrganizationsPageClient() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Building2 className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Organization Designer</h1>
-          {userPermissions.isMasterAdmin && (
-            <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-              Master Admin
-            </span>
-          )}
-        </div>
-        <p className="text-muted-foreground text-lg">
-          {userPermissions.isMasterAdmin 
-            ? "Gerencie todas as organizações do sistema e crie novas estruturas organizacionais."
-            : "Gerencie suas organizações e crie estruturas organizacionais completas."
-          }
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-blue-500" />
-            <span className="font-medium">
-              {userPermissions.isMasterAdmin ? 'Total Organizações' : 'Suas Organizações'}
-            </span>
+    <div className="flex flex-col h-screen">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-20 items-center justify-between px-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <Building2 className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold">Organization Designer</h1>
+              {userPermissions.isMasterAdmin && (
+                <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                  Master Admin
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {userPermissions.isMasterAdmin 
+                ? "Gerencie todas as organizações do sistema"
+                : "Gerencie suas organizações e estruturas"
+              }
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-1">{organizations.length}</p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-green-500" />
-            <span className="font-medium">Equipes</span>
+            <Button 
+              onClick={() => setShowTemplateSelector(true)}
+              className="flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Usar Template
+            </Button>
+            <Button 
+              onClick={() => setShowAIGenerator(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Bot className="h-4 w-4" />
+              Gerar com IA
+            </Button>
+            {userPermissions.canCreateOrganization && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Organização
+              </Button>
+            )}
           </div>
-          <p className="text-2xl font-bold mt-1">
-            {organizations.reduce((acc, org) => acc + (org.teams?.length || 0), 0)}
-          </p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-purple-500" />
-            <span className="font-medium">Posições</span>
-          </div>
-          <p className="text-2xl font-bold mt-1">
-            {organizations.reduce((acc, org) => acc + (org.positions?.length || 0), 0)}
-          </p>
-        </div>
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-orange-500" />
-            <span className="font-medium">Valores</span>
-          </div>
-          <p className="text-2xl font-bold mt-1">
-            {organizations.reduce((acc, org) => acc + (org.values?.length || 0), 0)}
-          </p>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 mb-6">
-        <Button 
-          onClick={() => setShowTemplateSelector(true)}
-          className="flex items-center gap-2"
-        >
-          <Sparkles className="h-4 w-4" />
-          Usar Template
-        </Button>
-        <Button 
-          onClick={() => setShowAIGenerator(true)}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <Bot className="h-4 w-4" />
-          Gerar com IA
-        </Button>
-        {userPermissions.canCreateOrganization && (
-          <Button 
-            variant="outline"
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Organização
-          </Button>
+      <div className="flex-1 overflow-auto p-6">
+        {/* Dashboard Organizações */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">
+                {userPermissions.isMasterAdmin ? 'Total Organizações' : 'Suas Organizações'}
+              </span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{organizations.length}</p>
+            <p className="text-sm text-muted-foreground">cadastradas</p>
+          </div>
+          
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">Equipes</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {organizations.reduce((acc, org) => acc + (org.teams?.length || 0), 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">criadas</p>
+          </div>
+          
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">Posições</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {organizations.reduce((acc, org) => acc + (org.positions?.length || 0), 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">definidas</p>
+          </div>
+          
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-muted-foreground" />
+              <span className="font-medium">Valores</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">
+              {organizations.reduce((acc, org) => acc + (org.values?.length || 0), 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">estabelecidos</p>
+          </div>
+        </div>
+
+        <OrganizationsList
+          organizations={organizations}
+          onEdit={() => {}} // Navegação é feita diretamente na lista
+          onDelete={handleOrganizationDeleted}
+          isMasterAdmin={userPermissions.isMasterAdmin}
+        />
+
+        <OrganizationTemplateSelector
+          isOpen={showTemplateSelector}
+          onClose={() => setShowTemplateSelector(false)}
+          onTemplateSelected={handleTemplateSelected}
+        />
+
+        {showAIGenerator && (
+          <AIOrganizationGenerator
+            onClose={() => setShowAIGenerator(false)}
+            onOrganizationCreated={handleOrganizationCreated}
+          />
+        )}
+
+        {showForm && (
+          <OrganizationForm
+            organization={null}
+            templateData={templateData}
+            onClose={handleCloseForm}
+            onSave={handleOrganizationCreated}
+          />
         )}
       </div>
-
-      {/* Organizations List */}
-      <OrganizationsList
-        organizations={organizations}
-        onEdit={() => {}} // Não usado mais, a navegação é feita diretamente na lista
-        onDelete={handleOrganizationDeleted}
-        isMasterAdmin={userPermissions.isMasterAdmin}
-      />
-
-      {/* Template Selector */}
-      <OrganizationTemplateSelector
-        isOpen={showTemplateSelector}
-        onClose={() => setShowTemplateSelector(false)}
-        onTemplateSelected={handleTemplateSelected}
-      />
-
-      {/* AI Generator Modal */}
-      {showAIGenerator && (
-        <AIOrganizationGenerator
-          onClose={() => setShowAIGenerator(false)}
-          onOrganizationCreated={handleOrganizationCreated}
-        />
-      )}
-
-      {/* Organization Form Modal - para criação ou com template */}
-      {showForm && (
-        <OrganizationForm
-          organization={null}
-          templateData={templateData}
-          onClose={handleCloseForm}
-          onSave={handleOrganizationCreated}
-        />
-      )}
     </div>
   );
 } 

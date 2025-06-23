@@ -9,15 +9,15 @@ import { z } from 'zod';
 
 const feedbackSchema = z.object({
   type: z.enum(['positive', 'negative', 'suggestion']),
-  category: z.enum(['response_quality', 'accuracy', 'helpfulness', 'speed', 'other']),
+  category: z.enum(['accuracy', 'helpfulness', 'relevance', 'tone', 'completeness']),
   rating: z.number().min(1).max(5),
-  comment: z.string().optional(),
+  comment: z.string(),
 });
 
 // GET /api/companions/[id]/feedback
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -26,7 +26,8 @@ export async function GET(
   }
 
   try {
-    const feedback = await getCompanionFeedback(params.id);
+    const { id } = await params;
+    const feedback = await getCompanionFeedback(id);
     return NextResponse.json({ feedback });
   } catch (error) {
     console.error('Error fetching feedback:', error);
@@ -40,7 +41,7 @@ export async function GET(
 // POST /api/companions/[id]/feedback
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -49,17 +50,20 @@ export async function POST(
   }
 
   try {
+    const { id } = await params;
     const body = await request.json();
     const validatedData = feedbackSchema.parse(body);
 
     const feedback = await createCompanionFeedback({
-      companionId: params.id,
+      companionId: id,
       userId: session.user.id,
       ...validatedData,
     });
 
     // Atualizar métricas de performance
-    await updateCompanionPerformance(params.id);
+    await updateCompanionPerformance(id, {
+      lastFeedbackAt: new Date(),
+    });
 
     return NextResponse.json({ feedback });
   } catch (error) {

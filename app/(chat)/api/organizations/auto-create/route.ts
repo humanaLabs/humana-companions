@@ -6,11 +6,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     
-    if (!session || !session.user?.id || session.user.role === 'guest') {
+    if (!session || !session.user?.id || session.user.type === 'guest') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const organization = await createDefaultOrganization(session.user.id);
+    const organization = await createDefaultOrganization(
+      session.user.id, 
+      session.user.email || 'unknown@example.com'
+    );
     
     return NextResponse.json({ 
       success: true,

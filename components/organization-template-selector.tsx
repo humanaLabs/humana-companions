@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, ChevronRight, Sparkles, Users, Target, Briefcase } from 'lucide-react';
+import { Building2, ChevronRight, Sparkles, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -101,9 +101,7 @@ export function OrganizationTemplateSelector({
   const getTemplateStats = (template: OrganizationTemplate) => {
     const structure = template.structure;
     return {
-      teams: structure.teams?.length || 0,
-      positions: structure.positions?.length || 0,
-      values: structure.values?.length || 0,
+      companions: structure.companions?.length || 0,
     };
   };
 
@@ -120,7 +118,7 @@ export function OrganizationTemplateSelector({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="flex gap-6 h-[60vh]">
+        <div className="flex gap-6 h-[50vh]">
           {/* Template List */}
           <div className="flex-1 overflow-y-auto pr-2">
             <div className="space-y-3">
@@ -159,16 +157,8 @@ export function OrganizationTemplateSelector({
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {stats.teams} equipes
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Briefcase className="h-3 w-3" />
-                        {stats.positions} posições
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Target className="h-3 w-3" />
-                        {stats.values} valores
+                        <Bot className="h-3 w-3" />
+                        {stats.companions} companions prontos
                       </div>
                     </div>
 
@@ -184,7 +174,7 @@ export function OrganizationTemplateSelector({
           </div>
 
           {/* Template Preview */}
-          <div className="w-1/2 border-l pl-6">
+          <div className="w-1/2 border-l pl-6 overflow-y-auto">
             {selectedTemplate ? (
               <div className="space-y-4">
                 <div>
@@ -199,62 +189,57 @@ export function OrganizationTemplateSelector({
                   </p>
                 </div>
 
-                {/* Values Preview */}
-                {selectedTemplate.structure.values && selectedTemplate.structure.values.length > 0 && (
+                {/* Estrutura Organizacional Sugerida */}
+                {selectedTemplate.structure.orgChart && (
                   <div>
-                    <h4 className="font-medium mb-2">Valores Organizacionais</h4>
-                    <div className="space-y-2">
-                      {selectedTemplate.structure.values.slice(0, 3).map((value: any, index: number) => (
-                        <div key={index} className="p-2 bg-muted rounded text-sm">
-                          <div className="font-medium">{value.name}</div>
-                          <div className="text-muted-foreground text-xs">{value.description}</div>
-                        </div>
-                      ))}
-                      {selectedTemplate.structure.values.length > 3 && (
-                        <div className="text-xs text-muted-foreground">
-                          +{selectedTemplate.structure.values.length - 3} valores adicionais
-                        </div>
-                      )}
+                    <h4 className="font-medium mb-2">Estrutura Organizacional</h4>
+                    <div className="p-3 bg-muted rounded text-sm">
+                      <p className="text-muted-foreground">{selectedTemplate.structure.orgChart}</p>
                     </div>
                   </div>
                 )}
 
-                {/* Teams Preview */}
-                {selectedTemplate.structure.teams && selectedTemplate.structure.teams.length > 0 && (
+                {/* Companions Prontos */}
+                {selectedTemplate.structure.companions && selectedTemplate.structure.companions.length > 0 && (
                   <div>
-                    <h4 className="font-medium mb-2">Equipes</h4>
-                    <div className="space-y-2">
-                      {selectedTemplate.structure.teams.map((team: any, index: number) => (
-                        <div key={index} className="p-2 bg-muted rounded text-sm">
-                          <div className="font-medium">{team.name}</div>
-                          <div className="text-muted-foreground text-xs">{team.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Positions Preview */}
-                {selectedTemplate.structure.positions && selectedTemplate.structure.positions.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-2">Posições</h4>
-                    <div className="space-y-2">
-                      {selectedTemplate.structure.positions.slice(0, 3).map((position: any, index: number) => (
-                        <div key={index} className="p-2 bg-muted rounded text-sm">
-                          <div className="font-medium">{position.title}</div>
-                          <div className="text-muted-foreground text-xs">
-                            Nível: {position.level}
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      Companions Prontos ({selectedTemplate.structure.companions.length})
+                    </h4>
+                    <div className="space-y-3">
+                      {selectedTemplate.structure.companions.map((companion: any, index: number) => (
+                        <div key={index} className="p-3 bg-muted rounded text-sm">
+                          <div className="font-medium flex items-center gap-2">
+                            <Bot className="h-3 w-3" />
+                            {companion.name}
                           </div>
+                          <div className="text-muted-foreground text-xs mt-1">
+                            <strong>Papel:</strong> {companion.role}
+                          </div>
+                          <div className="text-muted-foreground text-xs mt-1">
+                            {companion.description}
+                          </div>
+                          {companion.expertises && companion.expertises.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {companion.expertises.slice(0, 3).map((expertise: any, idx: number) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {expertise.area}
+                                </Badge>
+                              ))}
+                              {companion.expertises.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{companion.expertises.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
-                      {selectedTemplate.structure.positions.length > 3 && (
-                        <div className="text-xs text-muted-foreground">
-                          +{selectedTemplate.structure.positions.length - 3} posições adicionais
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
+
+
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-center">

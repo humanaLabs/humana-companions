@@ -128,7 +128,7 @@ export function OrganizationForm({ organization, templateData, onClose, onSave }
   const updateNestedField = (section: string, index: number, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: prev[section as keyof OrganizationStructure].map((item: any, i: number) =>
+      [section]: (prev[section as keyof OrganizationStructure] as any[])?.map((item: any, i: number) =>
         i === index ? { ...item, [field]: value } : item
       ),
     }));
@@ -137,14 +137,14 @@ export function OrganizationForm({ organization, templateData, onClose, onSave }
   const addArrayItem = (section: string, newItem: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: [...prev[section as keyof OrganizationStructure], newItem],
+      [section]: [...(prev[section as keyof OrganizationStructure] as any[]), newItem],
     }));
   };
 
   const removeArrayItem = (section: string, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [section]: prev[section as keyof OrganizationStructure].filter((_: any, i: number) => i !== index),
+      [section]: (prev[section as keyof OrganizationStructure] as any[])?.filter((_: any, i: number) => i !== index),
     }));
   };
 
