@@ -141,6 +141,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         </TooltipTrigger>
                         <TooltipContent side="right">Studio</TooltipContent>
                       </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href="/aplicativos"
+                            onClick={() => setOpenMobile(false)}
+                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                          >
+                            <div className="flex items-center justify-center w-6 h-6">
+                              <span className="text-sm">📱</span>
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Aplicativos</TooltipContent>
+                      </Tooltip>
                     </>
                   ) : (
                   <>
@@ -175,6 +189,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         <span className="text-sm">🎨</span>
                       </div>
                       <span className="flex-1">Studio</span>
+                    </Link>
+                    <Link
+                      href="/aplicativos"
+                      onClick={() => setOpenMobile(false)}
+                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6">
+                        <span className="text-sm">📱</span>
+                      </div>
+                      <span className="flex-1">Aplicativos</span>
                     </Link>
                   </>
                 )}
