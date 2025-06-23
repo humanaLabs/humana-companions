@@ -96,38 +96,91 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             <div className="px-2 py-2">
               <div className="space-y-1">
                 {state === 'collapsed' ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href="/"
-                        onClick={() => {
-                          setOpenMobile(false);
-                        }}
-                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                      >
-                        <div className="flex items-center justify-center w-6 h-6">
-                          <span className="text-sm">🏠</span>
-                        </div>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Cockpit</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Link
-                    href="/"
-                    onClick={() => {
-                      setOpenMobile(false);
-                    }}
-                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                  >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <span className="text-sm">🏠</span>
-                    </div>
-                    <span className="flex-1">Cockpit</span>
-                  </Link>
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/"
+                          onClick={() => {
+                            setOpenMobile(false);
+                          }}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <span className="text-sm">🏠</span>
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">My Companion</TooltipContent>
+                    </Tooltip>
+                                          <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href="/university"
+                            onClick={() => setOpenMobile(false)}
+                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                          >
+                            <div className="flex items-center justify-center w-6 h-6">
+                              <span className="text-sm">🎓</span>
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">University</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href="/studio"
+                            onClick={() => setOpenMobile(false)}
+                            className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                          >
+                            <div className="flex items-center justify-center w-6 h-6">
+                              <span className="text-sm">🎨</span>
+                            </div>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Studio</TooltipContent>
+                      </Tooltip>
+                    </>
+                  ) : (
+                  <>
+                    <Link
+                      href="/"
+                      onClick={() => {
+                        setOpenMobile(false);
+                      }}
+                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6">
+                        <span className="text-sm">🏠</span>
+                      </div>
+                      <span className="flex-1">My Companion</span>
+                    </Link>
+                    <Link
+                      href="/university"
+                      onClick={() => setOpenMobile(false)}
+                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6">
+                        <span className="text-sm">🎓</span>
+                      </div>
+                      <span className="flex-1">University</span>
+                    </Link>
+                    <Link
+                      href="/studio"
+                      onClick={() => setOpenMobile(false)}
+                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6">
+                        <span className="text-sm">🎨</span>
+                      </div>
+                      <span className="flex-1">Studio</span>
+                    </Link>
+                  </>
                 )}
               </div>
             </div>
+
             <div className="px-2 py-2">
               {state === 'expanded' && (
                 <div className="text-xs font-semibold text-muted-foreground tracking-wider px-2 mb-2">

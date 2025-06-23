@@ -1,6 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Plus, Upload } from 'lucide-react';
 
 export default async function DocumentosPage() {
   const session = await auth();
@@ -15,40 +17,40 @@ export default async function DocumentosPage() {
         title="Documentos" 
         description="Gerencie e organize seus documentos de forma inteligente"
         badge="📄 Data Room"
-      />
+        showBackButton={true}
+      >
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Upload size={16} />
+            Upload
+          </Button>
+          <Button className="flex items-center gap-2">
+            <Plus size={16} />
+            Novo Documento
+          </Button>
+        </div>
+      </PageHeader>
       
       {/* Conteúdo scrollável */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-6xl w-full mx-auto space-y-6">
-          {/* Actions Bar */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-card border rounded-lg p-4">
-            <div className="flex gap-3">
-              <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                <span className="text-sm">+</span>
-                Novo Documento
-              </button>
-              <button className="bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                <span className="text-sm">↑</span>
-                Upload
-              </button>
+          {/* Search and Filters Bar */}
+          <div className="flex gap-2 justify-end">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar documentos..."
+                className="pl-8 pr-4 py-2 border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">🔍</span>
             </div>
-            <div className="flex gap-2">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar documentos..."
-                  className="pl-8 pr-4 py-2 border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground text-sm">🔍</span>
-              </div>
-              <select className="px-3 py-2 border rounded-lg bg-background text-foreground">
-                <option>Todos os tipos</option>
-                <option>PDF</option>
-                <option>Word</option>
-                <option>Excel</option>
-                <option>PowerPoint</option>
-              </select>
-            </div>
+            <select className="px-3 py-2 border rounded-lg bg-background text-foreground">
+              <option>Todos os tipos</option>
+              <option>PDF</option>
+              <option>Word</option>
+              <option>Excel</option>
+              <option>PowerPoint</option>
+            </select>
           </div>
 
           {/* Document Grid */}

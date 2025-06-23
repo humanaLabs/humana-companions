@@ -19,6 +19,7 @@ interface MessagesProps {
   isReadonly: boolean;
   isArtifactVisible: boolean;
   session?: Session;
+  selectedCompanionId?: string;
 }
 
 function PureMessages({
@@ -30,6 +31,7 @@ function PureMessages({
   reload,
   isReadonly,
   session,
+  selectedCompanionId,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -47,7 +49,7 @@ function PureMessages({
       ref={messagesContainerRef}
       className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4 relative"
     >
-      {messages.length === 0 && <Greeting session={session} />}
+      {messages.length === 0 && <Greeting session={session} selectedCompanionId={selectedCompanionId} />}
 
       {messages.map((message, index) => (
         <PreviewMessage
@@ -91,6 +93,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (prevProps.selectedCompanionId !== nextProps.selectedCompanionId) return false;
 
   return true;
 });

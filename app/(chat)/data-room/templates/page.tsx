@@ -1,6 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Plus, Upload } from 'lucide-react';
 
 export default async function TemplatesPage() {
   const session = await auth();
@@ -15,7 +17,19 @@ export default async function TemplatesPage() {
         title="Templates" 
         description="Modelos prontos para acelerar seu trabalho"
         badge="📋 Data Room"
-      />
+        showBackButton={true}
+      >
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Upload size={16} />
+            Importar Template
+          </Button>
+          <Button className="flex items-center gap-2">
+            <Plus size={16} />
+            Criar Template
+          </Button>
+        </div>
+      </PageHeader>
       
       {/* Conteúdo scrollável */}
       <div className="flex-1 overflow-auto p-6">

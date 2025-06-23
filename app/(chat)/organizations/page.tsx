@@ -16,6 +16,7 @@ export default async function OrganizationsPage() {
       <PageHeader 
         title="Organizações" 
         description="Configure estruturas organizacionais para seus companions"
+        showBackButton={true}
       >
         <OrganizationsHeaderActions />
       </PageHeader>

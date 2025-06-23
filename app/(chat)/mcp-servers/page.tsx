@@ -16,6 +16,7 @@ export default async function McpServersPage() {
       <PageHeader 
         title="Gerenciador MCP" 
         description="Configure e gerencie servidores Model Context Protocol"
+        showBackButton={true}
       >
         <McpServersHeaderActions />
       </PageHeader>

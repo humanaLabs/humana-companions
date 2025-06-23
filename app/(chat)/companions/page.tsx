@@ -21,6 +21,7 @@ export default async function CompanionsPage() {
       <PageHeader 
         title="Companions" 
         description="Gerencie seus assistentes de IA personalizados"
+        showBackButton={true}
       >
         <CompanionsHeaderActions />
       </PageHeader>

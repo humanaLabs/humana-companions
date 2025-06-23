@@ -1,6 +1,8 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Settings, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ExperimentalPage() {
@@ -16,7 +18,19 @@ export default async function ExperimentalPage() {
         title="Área Experimental" 
         description="Teste novas funcionalidades em desenvolvimento"
         badge="🧪 BETA"
-      />
+        showBackButton={true}
+      >
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
+            <AlertTriangle size={16} />
+            Relatório de Bugs
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Settings size={16} />
+            Configurações
+          </Button>
+        </div>
+      </PageHeader>
       
       {/* Conteúdo scrollável */}
       <div className="flex-1 overflow-auto p-6">
