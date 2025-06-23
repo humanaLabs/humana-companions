@@ -1,0 +1,79 @@
+# Humana Companions - Cursor Rules
+
+## Padrão de Layout UI - OBRIGATÓRIO
+
+### NUNCA use cores hardcoded para temas dark/light. SEMPRE use as classes do design system:
+
+**✅ CORRETO:**
+- Cards: `bg-card border rounded-lg`
+- Texto principal: `text-foreground`
+- Texto secundário: `text-muted-foreground`
+- Backgrounds internos: `bg-muted` ou `bg-muted/50`
+- Botões primários: `bg-primary hover:bg-primary/90 text-primary-foreground`
+- Inputs: `bg-background text-foreground border`
+
+**❌ NUNCA use:**
+- `bg-white dark:bg-gray-800`
+- `text-gray-900 dark:text-white`
+- `text-gray-600 dark:text-gray-400`
+- `bg-gray-50 dark:bg-gray-700`
+- `border-gray-200 dark:border-gray-700`
+- `bg-blue-600`, `bg-green-600`, etc.
+
+### Ícones: SEMPRE use emojis/ASCII, NUNCA SVG coloridos:
+- 📄 Documentos, 📋 Templates, 🔗 Integrações, 🧪 Experimental
+- 💾 Armazenamento, 💬 Comunicação, ⚡ API/Produtividade
+- ↓ Download, + Adicionar, ✓ Sucesso, ⋯ Menu, 🔍 Busca
+
+### Estrutura de página padrão:
+```tsx
+<div className="flex flex-col h-screen">
+  <div className="border-b bg-background/95 backdrop-blur">
+    {/* Header fixo */}
+  </div>
+  <div className="flex-1 overflow-auto p-6">
+    {/* Conteúdo */}
+  </div>
+</div>
+```
+
+Consulte: `docs/arquitetura_geral/PADRAO_LAYOUT_UI.md` para detalhes completos.
+
+## Outras Regras Existentes
+
+### Tecnologias
+- Next.js 15 App Router
+- TypeScript
+- Tailwind CSS v4
+- Drizzle ORM
+- AI SDK (Vercel)
+
+### Estrutura de Arquivos
+- Use convenções do Next.js 15
+- Componentes em `/components`
+- Utilitários em `/lib`
+- Hooks em `/hooks`
+
+### Código
+- TypeScript strict mode
+- Componentes funcionais com hooks
+- Props bem tipadas
+- Comentários em português
+- Nomes de variáveis em inglês
+
+### Banco de Dados
+- Drizzle ORM para queries
+- Schema bem definido
+- Migrations versionadas
+
+### UI/UX
+- Design responsivo (mobile-first)
+- Acessibilidade (WCAG)
+- Performance otimizada
+- Componentes reutilizáveis
+
+### AI/LLM
+- Use AI SDK para integrações
+- Prompts bem estruturados
+- Streaming quando possível
+- Error handling robusto 

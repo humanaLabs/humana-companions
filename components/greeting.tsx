@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
+import type { Session } from 'next-auth';
 
-export const Greeting = () => {
+export const Greeting = ({ session }: { session?: Session }) => {
   return (
     <div
       key="overview"
@@ -13,16 +14,16 @@ export const Greeting = () => {
         transition={{ delay: 0.5 }}
         className="text-2xl font-semibold"
       >
-        Hello there!
+        Olá {session?.user?.email?.split('@')[0] || 'usuário'}!
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.6 }}
-        className="text-2xl text-zinc-500"
+        className="text-2xl text-muted-foreground"
       >
-        How can I help you today?
+        O que o seu Companion pode fazer hoje por você?
       </motion.div>
     </div>
   );

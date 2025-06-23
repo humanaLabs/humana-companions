@@ -17,6 +17,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useRouter } from 'next/navigation';
 import { toast } from './toast';
@@ -27,6 +28,7 @@ export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
   const { data, status } = useSession();
   const { setTheme, resolvedTheme } = useTheme();
+  const { state } = useSidebar();
 
   const isGuest = guestRegex.test(data?.user?.email ?? '');
 
@@ -59,24 +61,28 @@ export function SidebarUserNav({ user }: { user: User }) {
                   height={24}
                   className="rounded-full"
                 />
-                <div className="flex flex-col items-start flex-1 min-w-0">
-                  <span data-testid="user-email" className="truncate text-sm">
-                    {isGuest ? 'Guest' : user?.email}
-                  </span>
-                  {isGuest && (
-                    <span className="text-[10px] text-muted-foreground/50 truncate w-full font-mono leading-tight">
-                      {user.id}
-                    </span>
-                  )}
-                </div>
-                <ChevronUp className="ml-auto" />
+                {state === 'expanded' && (
+                  <>
+                    <div className="flex flex-col items-start flex-1 min-w-0">
+                      <span data-testid="user-email" className="truncate text-sm">
+                        {isGuest ? 'Guest' : user?.email}
+                      </span>
+                      {isGuest && (
+                        <span className="text-[10px] text-muted-foreground/50 truncate w-full font-mono leading-tight">
+                          {user.id}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronUp className="ml-auto" />
+                  </>
+                )}
               </SidebarMenuButton>
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent
             data-testid="user-nav-menu"
-            side="top"
-            className="w-[--radix-popper-anchor-width]"
+            side={state === 'collapsed' ? 'right' : 'top'}
+            className={state === 'expanded' ? 'w-[--radix-popper-anchor-width]' : ''}
           >
             <DropdownMenuItem
               data-testid="user-nav-item-companions"
@@ -98,6 +104,13 @@ export function SidebarUserNav({ user }: { user: User }) {
               onSelect={() => router.push('/mcp-servers')}
             >
               Servidores MCP
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-experimental"
+              className="cursor-pointer"
+              onSelect={() => router.push('/experimental')}
+            >
+              Experimental
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
