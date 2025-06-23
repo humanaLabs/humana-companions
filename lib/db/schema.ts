@@ -34,6 +34,34 @@ export const chat = pgTable('Chat', {
 
 export type Chat = InferSelectModel<typeof chat>;
 
+export const projectFolder = pgTable('ProjectFolder', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull(),
+  color: varchar('color', { length: 20 }).notNull().default('bg-blue-500'),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type ProjectFolder = InferSelectModel<typeof projectFolder>;
+
+export const chatFolder = pgTable('ChatFolder', {
+  chatId: uuid('chatId')
+    .notNull()
+    .references(() => chat.id),
+  folderId: uuid('folderId')
+    .notNull()
+    .references(() => projectFolder.id),
+  addedAt: timestamp('addedAt').notNull().defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.chatId, table.folderId] }),
+  };
+});
+
+export type ChatFolder = InferSelectModel<typeof chatFolder>;
+
 // DEPRECATED: The following schema is deprecated and will be removed in the future.
 // Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts
 export const messageDeprecated = pgTable('Message', {

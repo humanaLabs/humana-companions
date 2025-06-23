@@ -15,6 +15,9 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import { useState, useEffect } from 'react';
+import type { ProjectFolder } from '@/lib/db/schema';
+import { toast } from 'sonner';
 import {
   CheckCircleFillIcon,
   GlobeIcon,
@@ -41,6 +44,48 @@ const PureChatItem = ({
     chatId: chat.id,
     initialVisibilityType: chat.visibility,
   });
+
+  const [folders, setFolders] = useState<ProjectFolder[]>([]);
+
+  useEffect(() => {
+    loadFolders();
+  }, []);
+
+  const loadFolders = async () => {
+    try {
+      const response = await fetch('/api/folders');
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data);
+      }
+    } catch (error) {
+      console.error('Error loading folders:', error);
+    }
+  };
+
+  const addToFolder = async (folderId: string) => {
+    try {
+      const response = await fetch('/api/folders/chats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: chat.id,
+          folderId,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Conversa adicionada à pasta!');
+      } else {
+        toast.error('Erro ao adicionar conversa à pasta');
+      }
+    } catch (error) {
+      console.error('Error adding chat to folder:', error);
+      toast.error('Erro ao adicionar conversa à pasta');
+    }
+  };
 
   return (
     <SidebarMenuItem>
@@ -98,6 +143,29 @@ const PureChatItem = ({
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
+
+          {folders.length > 0 && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <FileIcon size={12} />
+                <span>Adicionar à Pasta</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {folders.map((folder) => (
+                    <DropdownMenuItem
+                      key={folder.id}
+                      className="cursor-pointer"
+                      onClick={() => addToFolder(folder.id)}
+                    >
+                      <div className={`w-3 h-3 rounded-full ${folder.color} mr-2`} />
+                      <span>{folder.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+          )}
 
           <DropdownMenuItem
             className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
