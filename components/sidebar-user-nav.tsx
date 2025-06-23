@@ -85,13 +85,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             className={state === 'expanded' ? 'w-[--radix-popper-anchor-width]' : ''}
           >
 
-            <DropdownMenuItem
-              data-testid="user-nav-item-mcp-servers"
-              className="cursor-pointer"
-              onSelect={() => router.push('/mcp-servers')}
-            >
-              Servidores MCP
-            </DropdownMenuItem>
+
             <DropdownMenuItem
               data-testid="user-nav-item-experimental"
               className="cursor-pointer"

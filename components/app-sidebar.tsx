@@ -4,7 +4,7 @@ import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-import { PlusIcon, SidebarLeftIcon, HomeIcon, BoxIcon, SparklesIcon, FileIcon, ServerIcon } from '@/components/icons';
+import { PlusIcon, SidebarLeftIcon, HomeIcon, BoxIcon, SparklesIcon, FileIcon, ServerIcon, CodeIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
@@ -111,21 +111,35 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                           </div>
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right">My Companion</TooltipContent>
+                      <TooltipContent side="right">My Companions</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
-                          href="/university"
+                          href="/data-room"
                           onClick={() => setOpenMobile(false)}
                           className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                         >
                           <div className="flex items-center justify-center w-6 h-6">
-                            <BoxIcon size={16} />
+                            <ServerIcon size={16} />
                           </div>
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right">University</TooltipContent>
+                      <TooltipContent side="right">Data Room</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href="/mcp-servers"
+                          onClick={() => setOpenMobile(false)}
+                          className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center justify-center w-6 h-6">
+                            <CodeIcon size={16} />
+                          </div>
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Ferramentas</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -158,16 +172,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
-                          href="/data-room"
+                          href="/university"
                           onClick={() => setOpenMobile(false)}
                           className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                         >
                           <div className="flex items-center justify-center w-6 h-6">
-                            <ServerIcon size={16} />
+                            <BoxIcon size={16} />
                           </div>
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent side="right">Data Room</TooltipContent>
+                      <TooltipContent side="right">University</TooltipContent>
                     </Tooltip>
                   </>
                 ) : (
@@ -182,17 +196,27 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <div className="flex items-center justify-center w-6 h-6">
                         <HomeIcon size={16} />
                       </div>
-                      <span className="flex-1">My Companion</span>
+                      <span className="flex-1">My Companions</span>
                     </Link>
                     <Link
-                      href="/university"
+                      href="/data-room"
                       onClick={() => setOpenMobile(false)}
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <BoxIcon size={16} />
+                        <ServerIcon size={16} />
                       </div>
-                      <span className="flex-1">University</span>
+                      <span className="flex-1">Data Room</span>
+                    </Link>
+                    <Link
+                      href="/mcp-servers"
+                      onClick={() => setOpenMobile(false)}
+                      className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6">
+                        <CodeIcon size={16} />
+                      </div>
+                      <span className="flex-1">Ferramentas</span>
                     </Link>
                     <Link
                       href="/studio"
@@ -215,14 +239,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <span className="flex-1">Aplicativos</span>
                     </Link>
                     <Link
-                      href="/data-room"
+                      href="/university"
                       onClick={() => setOpenMobile(false)}
                       className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
                     >
                       <div className="flex items-center justify-center w-6 h-6">
-                        <ServerIcon size={16} />
+                        <BoxIcon size={16} />
                       </div>
-                      <span className="flex-1">Data Room</span>
+                      <span className="flex-1">University</span>
                     </Link>
                   </>
                 )}

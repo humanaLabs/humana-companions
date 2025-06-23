@@ -14,7 +14,7 @@ export default async function McpServersPage() {
   return (
     <div className="flex flex-col h-screen">
       <PageHeader 
-        title="Gerenciador MCP" 
+        title="Ferramentas" 
         description="Configure e gerencie servidores Model Context Protocol"
         showBackButton={true}
       >
