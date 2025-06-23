@@ -87,7 +87,7 @@
 
 ### Terminologia Padrão:
 - Use "Companion" ao invés de "Chat" 
-- "Companion Padrão" ao invés de "Chat Padrão"
+- "Companion Super Hero" ao invés de "Chat Padrão"
 - Mantenha consistência em toda a aplicação
 
 Consulte: `docs/arquitetura_geral/PADRAO_LAYOUT_UI.md` para detalhes completos.
