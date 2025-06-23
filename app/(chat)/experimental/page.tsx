@@ -1,5 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
+import { PageHeader } from '@/components/page-header';
 import Link from 'next/link';
 
 export default async function ExperimentalPage() {
@@ -11,94 +12,139 @@ export default async function ExperimentalPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="border-b bg-background/95 backdrop-blur">
-        <div className="flex h-16 items-center px-6">
-          <div className="flex items-center space-x-3">
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-              🧪 Experimental
-            </div>
-            <h1 className="text-xl font-semibold text-foreground">
-              Desenvolvimentos Experimentais
-            </h1>
-          </div>
-        </div>
-      </div>
-
+      <PageHeader 
+        title="Área Experimental" 
+        description="Teste novas funcionalidades em desenvolvimento"
+        badge="🧪 BETA"
+      />
+      
+      {/* Conteúdo scrollável */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          {/* Warning Card */}
-          <div className="bg-muted/50 border rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <span className="text-muted-foreground">⚠️</span>
-              </div>
+          {/* Warning */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-yellow-600 dark:text-yellow-400 text-lg">⚠️</span>
               <div>
-                <h3 className="text-sm font-medium text-foreground mb-1">
-                  Área de Desenvolvimento
+                <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+                  Área Experimental
                 </h3>
-                <p className="text-sm text-muted-foreground">
-                  Esta área contém funcionalidades experimentais que podem estar incompletas 
-                  ou instáveis. Use apenas para testes e desenvolvimento.
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  As funcionalidades desta área estão em desenvolvimento e podem apresentar instabilidades. 
+                  Os dados não são persistidos e podem ser perdidos.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Experimental Features List */}
-          <div className="bg-card border rounded-lg">
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold text-foreground">
-                Desenvolvimentos Experimentais
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Funcionalidades em desenvolvimento para testes futuros
-              </p>
-            </div>
-            
-            <div className="p-4">
-              <div className="space-y-3">
-                {/* Visualizador Hierárquico */}
-                <Link
-                  href="/experimental/organization-visualizer"
-                  className="flex items-center justify-between p-3 bg-card border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded">
-                      <span className="text-primary text-sm">🌐</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-foreground">
-                        Visualizador Hierárquico
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        Editor visual de organizações e companions com ReactFlow
-                      </p>
-                    </div>
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Components Lab */}
+            <Link href="/experimental/components" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <span className="text-2xl">🧪</span>
                   </div>
-                  <div className="text-xs text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300 px-2 py-1 rounded">
-                    Ativo
-                  </div>
-                </Link>
-
-                {/* Placeholder for future experimental features */}
-                <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border-dashed border">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-1 bg-muted rounded">
-                      <span className="text-muted-foreground text-sm">🚧</span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-medium text-foreground">
-                        Área reservada para desenvolvimentos futuros
-                      </span>
-                      <p className="text-xs text-muted-foreground">
-                        Novos recursos experimentais aparecerão aqui
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                    Em breve
-                  </div>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    Componentes
+                  </span>
                 </div>
+                <h3 className="font-semibold text-foreground mb-2">
+                  Laboratório de Componentes
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Teste e visualize novos componentes da interface antes da implementação.
+                </p>
+                <div className="flex items-center text-sm text-primary group-hover:text-primary/80">
+                  <span>Explorar →</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* API Playground */}
+            <Link href="/experimental/api-playground" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <span className="text-2xl">⚡</span>
+                  </div>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    API
+                  </span>
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">
+                  API Playground
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Teste endpoints experimentais e funcionalidades de API em desenvolvimento.
+                </p>
+                <div className="flex items-center text-sm text-primary group-hover:text-primary/80">
+                  <span>Testar →</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Organization Visualizer */}
+            <Link href="/experimental/organization-visualizer" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    Visualização
+                  </span>
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">
+                  Visualizador de Organizações
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Visualize e edite a estrutura hierárquica das organizações e companions.
+                </p>
+                <div className="flex items-center text-sm text-primary group-hover:text-primary/80">
+                  <span>Visualizar →</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Coming Soon */}
+            <div className="bg-card border rounded-lg p-6 opacity-60">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">🚧</span>
+                </div>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Em Breve
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Mais Funcionalidades
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Novas funcionalidades experimentais serão adicionadas regularmente.
+              </p>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <span>Aguarde...</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="bg-card border rounded-lg p-6">
+            <h3 className="font-semibold text-foreground mb-4">Status da Área Experimental</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary mb-1">3</div>
+                <div className="text-sm text-muted-foreground">Funcionalidades Ativas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600 mb-1">Estável</div>
+                <div className="text-sm text-muted-foreground">Status Atual</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600 mb-1">Beta</div>
+                <div className="text-sm text-muted-foreground">Versão</div>
               </div>
             </div>
           </div>

@@ -2,11 +2,12 @@ import { auth } from '@/app/(auth)/auth';
 import { getCompanionsByUserId } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { CompanionsPageClient } from '@/components/companions-page-client';
+import { PageHeader } from '@/components/page-header';
 
 export default async function CompanionsPage() {
   const session = await auth();
 
-  if (!session || !session.user) {
+  if (!session?.user) {
     redirect('/login');
   }
 
@@ -14,5 +15,17 @@ export default async function CompanionsPage() {
     userId: session.user.id! 
   });
 
-  return <CompanionsPageClient companions={companions} />;
+  return (
+    <div className="flex flex-col h-screen">
+      <PageHeader 
+        title="Companions" 
+        description="Gerencie seus assistentes de IA personalizados"
+      />
+      
+      {/* Conteúdo scrollável */}
+      <div className="flex-1 overflow-auto">
+        <CompanionsPageClient companions={companions} />
+      </div>
+    </div>
+  );
 } 

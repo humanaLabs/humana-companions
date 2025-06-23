@@ -1,5 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
+import { PageHeader } from '@/components/page-header';
 
 export default async function TemplatesPage() {
   const session = await auth();
@@ -9,119 +10,173 @@ export default async function TemplatesPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col flex-1 p-8">
-        <div className="max-w-6xl w-full mx-auto space-y-8">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Templates
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Modelos prontos para acelerar seu trabalho
-              </p>
-            </div>
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-              📋 Templates
-            </div>
+    <div className="flex flex-col h-screen">
+      <PageHeader 
+        title="Templates" 
+        description="Modelos prontos para acelerar seu trabalho"
+        badge="📋 Data Room"
+      />
+      
+      {/* Conteúdo scrollável */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-6xl w-full mx-auto space-y-6">
+          {/* Categories */}
+          <div className="flex gap-2 flex-wrap">
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium">
+              Todos
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Business
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Jurídico
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Marketing
+            </button>
           </div>
 
-          {/* Template Categories Grid */}
+          {/* Templates Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Business Templates */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                  <span className="text-lg">🏢</span>
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">📊</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Business
-                </h3>
+                </span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Plano de Negócios</p>
-                    <p className="text-xs text-muted-foreground">Estrutura completa</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Proposta Comercial</p>
-                    <p className="text-xs text-muted-foreground">Modelo profissional</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
-                </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Plano de Negócios
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Template completo para estruturar seu plano de negócios com todas as seções essenciais.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">12 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
               </div>
             </div>
 
-            {/* Legal Templates */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">⚖️</span>
+            {/* Jurídico Templates */}
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">⚖️</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Jurídico
-                </h3>
+                </span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Contrato de Serviços</p>
-                    <p className="text-xs text-muted-foreground">Modelo padrão</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">NDA</p>
-                    <p className="text-xs text-muted-foreground">Acordo de confidencialidade</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
-                </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Contrato de Prestação de Serviços
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Modelo de contrato padrão para prestação de serviços profissionais.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">8 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
               </div>
             </div>
 
             {/* Marketing Templates */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">📢</span>
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">📢</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                   Marketing
-                </h3>
+                </span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Plano de Marketing</p>
-                    <p className="text-xs text-muted-foreground">Estratégia completa</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
+              <h3 className="font-semibold text-foreground mb-2">
+                Estratégia de Marketing Digital
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Framework completo para desenvolver sua estratégia de marketing digital.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">15 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
+              </div>
+            </div>
+
+            {/* More Templates */}
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">📋</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted cursor-pointer transition-colors">
-                  <div>
-                    <p className="font-medium text-foreground text-sm">Apresentação Pitch</p>
-                    <p className="text-xs text-muted-foreground">Para investidores</p>
-                  </div>
-                  <button className="text-muted-foreground hover:text-foreground">
-                    <span className="text-sm">↓</span>
-                  </button>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Business
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Relatório Executivo
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Template para criação de relatórios executivos profissionais.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">6 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">📄</span>
                 </div>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Jurídico
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Política de Privacidade
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Template de política de privacidade em conformidade com a LGPD.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">10 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">📈</span>
+                </div>
+                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                  Marketing
+                </span>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Dashboard de KPIs
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Template para acompanhamento e análise de indicadores de performance.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">4 páginas</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Usar Template
+                </button>
               </div>
             </div>
           </div>

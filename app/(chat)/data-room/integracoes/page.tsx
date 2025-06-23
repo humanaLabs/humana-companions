@@ -1,5 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import { redirect } from 'next/navigation';
+import { PageHeader } from '@/components/page-header';
 
 export default async function IntegracoesPage() {
   const session = await auth();
@@ -9,183 +10,242 @@ export default async function IntegracoesPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col flex-1 p-8">
-        <div className="max-w-6xl w-full mx-auto space-y-8">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Integrações
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Conecte suas ferramentas favoritas e automatize workflows
-              </p>
-            </div>
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-              🔗 Integrações
-            </div>
+    <div className="flex flex-col h-screen">
+      <PageHeader 
+        title="Integrações" 
+        description="Conecte suas ferramentas favoritas"
+        badge="🔗 Data Room"
+      />
+      
+      {/* Conteúdo scrollável */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-6xl w-full mx-auto space-y-6">
+          {/* Categories */}
+          <div className="flex gap-2 flex-wrap">
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium">
+              Todas
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Armazenamento
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Comunicação
+            </button>
+            <button className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition-colors">
+              Produtividade
+            </button>
           </div>
 
-          {/* Integration Categories */}
+          {/* Integrations Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Cloud Storage */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">💾</span>
+            {/* Storage Integrations */}
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">💾</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Armazenamento
-                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Armazenamento
+                  </span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">GD</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Google Drive</p>
-                      <p className="text-xs text-muted-foreground">Sincronização automática</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">DB</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Dropbox</p>
-                      <p className="text-xs text-muted-foreground">Backup automático</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Google Drive
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sincronize e acesse seus arquivos do Google Drive diretamente na plataforma.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-green-600 font-medium">✓ Conectado</span>
+                <button className="bg-muted hover:bg-muted/80 text-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Configurar
+                </button>
               </div>
             </div>
 
-            {/* Communication */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">💬</span>
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">💾</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Comunicação
-                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Armazenamento
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">SL</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Slack</p>
-                      <p className="text-xs text-muted-foreground">Notificações em tempo real</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">TM</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Microsoft Teams</p>
-                      <p className="text-xs text-muted-foreground">Colaboração empresarial</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Dropbox
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Integre seus arquivos do Dropbox para acesso rápido e sincronização.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
               </div>
             </div>
 
-            {/* Productivity */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  <span className="text-lg">⚡</span>
+            {/* Communication Integrations */}
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">💬</span>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  Produtividade
-                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Comunicação
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">NT</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Notion</p>
-                      <p className="text-xs text-muted-foreground">Workspace colaborativo</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-muted-foreground font-bold text-xs">TR</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground text-sm">Trello</p>
-                      <p className="text-xs text-muted-foreground">Gestão de projetos</p>
-                    </div>
-                  </div>
-                  <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium transition-colors">
-                    Conectar
-                  </button>
-                </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Slack
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Receba notificações e interaja com seus companions diretamente no Slack.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
               </div>
             </div>
-          </div>
 
-          {/* Active Integrations */}
-          <div className="bg-card border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              Integrações Ativas
-            </h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-muted/50 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                    <span className="text-muted-foreground text-sm">✓</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Google Drive</p>
-                    <p className="text-sm text-muted-foreground">Conectado há 2 dias • Última sincronização: há 5 min</p>
-                  </div>
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">💬</span>
                 </div>
-                <div className="flex gap-2">
-                  <button className="text-muted-foreground hover:text-foreground p-2">
-                    <span className="text-sm">⚙</span>
-                  </button>
-                  <button className="text-muted-foreground hover:text-foreground p-2">
-                    <span className="text-sm">🗑</span>
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Comunicação
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                 </div>
               </div>
-              <div className="flex items-center justify-center p-8 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
-                <div className="text-center">
-                  <span className="text-2xl opacity-50 block mb-2">🔗</span>
-                  <p className="text-sm">Conecte mais integrações para ver aqui</p>
+              <h3 className="font-semibold text-foreground mb-2">
+                Microsoft Teams
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Integre com o Teams para colaboração e comunicação em equipe.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
+              </div>
+            </div>
+
+            {/* Productivity Integrations */}
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">⚡</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Produtividade
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Notion
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sincronize suas páginas e bancos de dados do Notion.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">⚡</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Produtividade
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Trello
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Conecte seus boards do Trello para gerenciamento de projetos.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">⚡</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Produtividade
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                Asana
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Integre com o Asana para acompanhar tarefas e projetos.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-muted rounded-lg">
+                  <span className="text-2xl">💾</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                    Armazenamento
+                  </span>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                </div>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">
+                OneDrive
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Acesse e sincronize arquivos da Microsoft OneDrive.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Não conectado</span>
+                <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-sm font-medium transition-colors">
+                  Conectar
+                </button>
               </div>
             </div>
           </div>
