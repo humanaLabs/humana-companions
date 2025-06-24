@@ -1,10 +1,14 @@
-import type { Chat } from '@/lib/db/schema';
+'use client';
+
+import type { Chat, ProjectFolder } from '@/lib/db/schema';
+import { useState, useEffect, memo } from 'react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from './ui/sidebar';
-import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +19,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { useState, useEffect } from 'react';
-import type { ProjectFolder } from '@/lib/db/schema';
-import { toast } from 'sonner';
 import {
   CheckCircleFillIcon,
   GlobeIcon,
@@ -27,7 +28,6 @@ import {
   TrashIcon,
   FileIcon,
 } from './icons';
-import { memo } from 'react';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 
 const PureChatItem = ({
