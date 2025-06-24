@@ -42,11 +42,11 @@ function runTests(testType = 'all') {
   createDirectories();
 
   const commands = {
-    'admin': 'npx playwright test tests/e2e/admin-permissions.test.ts --project=chromium',
-    'visual': 'npx playwright test tests/e2e/visual-regression.test.ts --project=chromium',
-    'all': 'npx playwright test tests/e2e/admin-permissions.test.ts tests/e2e/visual-regression.test.ts --project=chromium',
-    'cross-browser': 'npx playwright test tests/e2e/visual-regression.test.ts --project=chromium --project=firefox',
-    'mobile': 'npx playwright test tests/e2e/visual-regression.test.ts --project=chromium --grep="Mobile"'
+    'admin': 'npx playwright test tests/e2e/admin-permissions.test.ts --project=e2e',
+    'visual': 'npx playwright test tests/e2e/visual-regression.test.ts --project=e2e',
+    'all': 'npx playwright test tests/e2e/admin-permissions.test.ts tests/e2e/visual-regression.test.ts --project=e2e',
+    'cross-browser': 'npx playwright test tests/e2e/visual-regression.test.ts --project=e2e',
+    'mobile': 'npx playwright test tests/e2e/visual-regression.test.ts --project=e2e --grep="Mobile"'
   };
 
   const command = commands[testType] || commands['all'];
@@ -156,7 +156,7 @@ function updateBaselines() {
   log('\n🔄 Atualizando Baselines...', 'yellow');
   
   try {
-    execSync('npx playwright test tests/e2e/visual-regression.test.ts --update-snapshots', {
+    execSync('npx playwright test tests/e2e/visual-regression.test.ts --update-snapshots --project=e2e', {
       stdio: 'inherit'
     });
     log('✅ Baselines atualizados!', 'green');

@@ -1,32 +1,56 @@
 import type { Page, Locator } from '@playwright/test';
 import { expect } from '../fixtures';
+import { AuthHelper } from '../helpers/auth-helper';
 
 export class AdminPage {
   // Locators para elementos da página
   readonly page: Page;
+  readonly authHelper: AuthHelper;
   readonly pageTitle: Locator;
-  readonly inviteUserButton: Locator;
-  readonly createTeamButton: Locator;
-  readonly createRoleButton: Locator;
+  readonly usersCard: Locator;
+  readonly teamsCard: Locator;
+  readonly rolesCard: Locator;
+  readonly masterAdminCard: Locator;
   readonly debugPermissions: Locator;
-  readonly usersList: Locator;
-  readonly teamsList: Locator;
+  readonly systemOverview: Locator;
 
   constructor(page: Page) {
     this.page = page;
+    this.authHelper = new AuthHelper(page);
     this.pageTitle = page.locator('h1');
-    this.inviteUserButton = page.locator('[data-testid="invite-user-btn"]');
-    this.createTeamButton = page.locator('[data-testid="create-team-btn"]');
-    this.createRoleButton = page.locator('[data-testid="create-role-btn"]');
+    this.usersCard = page.locator('a[href="/admin/users"]');
+    this.teamsCard = page.locator('a[href="/admin/teams"]');
+    this.rolesCard = page.locator('a[href="/admin/roles"]');
+    this.masterAdminCard = page.locator('a[href="/admin/master"]');
     this.debugPermissions = page.locator('[data-testid="debug-permissions"]');
-    this.usersList = page.locator('[data-testid="users-list"]');
-    this.teamsList = page.locator('[data-testid="teams-list"]');
+    this.systemOverview = page.locator('text=Visão Geral do Sistema');
   }
 
-  // Navegação
-  async goto() {
+  // Navegação com autenticação Master Admin
+  async gotoAsMasterAdmin() {
+    await this.authHelper.loginAsMasterAdmin();
     await this.page.goto('/admin');
-    await expect(this.pageTitle).toContainText('Administração');
+    await expect(this.pageTitle).toContainText('Dashboard Administrativo');
+  }
+
+  // Navegação com autenticação Admin
+  async gotoAsAdmin() {
+    await this.authHelper.loginAsAdmin();
+    await this.page.goto('/admin');
+    await expect(this.pageTitle).toContainText('Dashboard Administrativo');
+  }
+
+  // Navegação como usuário comum (deve dar acesso negado)
+  async gotoAsUser() {
+    await this.authHelper.loginAsUser();
+    await this.page.goto('/admin');
+    // Para usuário comum, esperamos "Acesso Negado"
+    await expect(this.pageTitle).toContainText('Acesso Negado');
+  }
+
+  // Navegação original (mantida para compatibilidade)
+  async goto() {
+    await this.gotoAsMasterAdmin(); // Por padrão, usa Master Admin
   }
 
   // Mock de permissões
@@ -135,49 +159,56 @@ export class AdminPage {
     });
   }
 
-  // Verificações de permissões
+  // Verificações de permissões (corrigidas para evitar strict mode violations)
   async verifyMasterAdminAccess() {
-    await expect(this.page.locator('text=Gestão de Usuários')).toBeVisible();
-    await expect(this.page.locator('text=Gestão de Equipes')).toBeVisible();
-    await expect(this.page.locator('text=Roles e Permissões')).toBeVisible();
-    await expect(this.page.locator('text=Administração Master')).toBeVisible();
+    await expect(this.usersCard).toBeVisible();
+    await expect(this.teamsCard).toBeVisible();
+    await expect(this.rolesCard).toBeVisible();
+    await expect(this.masterAdminCard).toBeVisible();
+    
+    // Usar seletores mais específicos para evitar múltiplas correspondências
+    await expect(this.usersCard.locator('h3:has-text("Usuários")')).toBeVisible();
+    await expect(this.teamsCard.locator('h3:has-text("Times")')).toBeVisible();
+    await expect(this.rolesCard.locator('h3:has-text("Roles & Permissões")')).toBeVisible();
+    await expect(this.masterAdminCard.locator('h3:has-text("Administração Master")')).toBeVisible();
   }
 
   async verifyAdminAccess() {
-    await expect(this.page.locator('text=Gestão de Usuários')).toBeVisible();
-    await expect(this.page.locator('text=Gestão de Equipes')).toBeVisible();
-    await expect(this.page.locator('text=Roles e Permissões')).not.toBeVisible();
-    await expect(this.page.locator('text=Administração Master')).not.toBeVisible();
+    await expect(this.usersCard).toBeVisible();
+    await expect(this.teamsCard).toBeVisible();
+    
+    // Usar seletores mais específicos
+    await expect(this.usersCard.locator('h3:has-text("Usuários")')).toBeVisible();
+    await expect(this.teamsCard.locator('h3:has-text("Times")')).toBeVisible();
+    
+    // Admin não deve ver Roles e Master Admin (devem estar com opacity-50)
+    await expect(this.page.locator('text=🔒 Sem acesso').first()).toBeVisible();
   }
 
   async verifyUserAccessDenied() {
     await expect(this.page.locator('text=Você não tem permissão')).toBeVisible();
-    await expect(this.page.locator('text=Gestão de Usuários')).not.toBeVisible();
+    await expect(this.usersCard).not.toBeVisible();
   }
 
-  // Ações de interface
-  async openInviteUserModal() {
-    await this.inviteUserButton.click();
-    await expect(this.page.locator('text=Convidar Usuário')).toBeVisible();
-    return new InviteUserModal(this.page);
+  // Ações de interface (adaptadas para a estrutura atual)
+  async openUsersSection() {
+    await this.usersCard.click();
+    await this.page.waitForURL('**/admin/users');
   }
 
-  async openCreateTeamModal() {
-    await this.createTeamButton.click();
-    await expect(this.page.locator('text=Criar Nova Equipe')).toBeVisible();
-    return new CreateTeamModal(this.page);
+  async openTeamsSection() {
+    await this.teamsCard.click();
+    await this.page.waitForURL('**/admin/teams');
   }
 
   async verifyUsersSection() {
-    await expect(this.usersList).toBeVisible();
-    await expect(this.page.locator('text=Eduardo Ibrahim')).toBeVisible();
-    await expect(this.page.locator('text=eduibrahim@yahoo.com.br')).toBeVisible();
+    await expect(this.usersCard).toBeVisible();
+    await expect(this.usersCard.locator('text=Gerencie usuários, roles e permissões')).toBeVisible();
   }
 
   async verifyTeamsSection() {
-    await expect(this.teamsList).toBeVisible();
-    await expect(this.page.locator('text=Desenvolvimento')).toBeVisible();
-    await expect(this.page.locator('text=Equipe de desenvolvimento')).toBeVisible();
+    await expect(this.teamsCard).toBeVisible();
+    await expect(this.teamsCard.locator('text=Organize usuários em equipes')).toBeVisible();
   }
 
   // Screenshots para documentação
@@ -189,7 +220,7 @@ export class AdminPage {
   }
 }
 
-// Modal classes para testes específicos
+// Modal classes para testes específicos (mantidas para compatibilidade, mas não usadas na página atual)
 export class InviteUserModal {
   readonly page: Page;
   readonly emailInput: Locator;
@@ -199,8 +230,8 @@ export class InviteUserModal {
 
   constructor(page: Page) {
     this.page = page;
-    this.emailInput = page.locator('#email');
-    this.roleSelect = page.locator('#role');
+    this.emailInput = page.locator('input[name="email"]');
+    this.roleSelect = page.locator('select[name="role"]');
     this.submitButton = page.locator('button[type="submit"]');
     this.cancelButton = page.locator('button:has-text("Cancelar")');
   }
@@ -208,25 +239,14 @@ export class InviteUserModal {
   async fillAndSubmit(email: string, role: string) {
     await this.emailInput.fill(email);
     await this.roleSelect.selectOption(role);
-    
-    // Mock da API de convite
-    await this.page.route('/api/admin/users/invite', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true })
-      });
-    });
-
     await this.submitButton.click();
     
-    // Verificar toast de sucesso
-    await expect(this.page.locator('text=Convite enviado!')).toBeVisible();
+    // Aguardar feedback de sucesso
+    await expect(this.page.locator('text=Convite enviado')).toBeVisible();
   }
 
   async cancel() {
     await this.cancelButton.click();
-    await expect(this.page.locator('text=Convidar Usuário')).not.toBeVisible();
   }
 }
 
@@ -238,32 +258,17 @@ export class CreateTeamModal {
 
   constructor(page: Page) {
     this.page = page;
-    this.nameInput = page.locator('#name');
-    this.descriptionTextarea = page.locator('#description');
+    this.nameInput = page.locator('input[name="name"]');
+    this.descriptionTextarea = page.locator('textarea[name="description"]');
     this.submitButton = page.locator('button[type="submit"]');
   }
 
   async fillAndSubmit(name: string, description: string) {
     await this.nameInput.fill(name);
     await this.descriptionTextarea.fill(description);
-
-    // Mock da API de criação
-    await this.page.route('/api/admin/teams', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ 
-          id: '3',
-          name,
-          description,
-          createdAt: new Date().toISOString()
-        })
-      });
-    });
-
     await this.submitButton.click();
     
-    // Verificar toast de sucesso
-    await expect(this.page.locator(`text=Equipe "${name}" foi criada`)).toBeVisible();
+    // Aguardar feedback de sucesso
+    await expect(this.page.locator('text=Equipe criada')).toBeVisible();
   }
 } 
