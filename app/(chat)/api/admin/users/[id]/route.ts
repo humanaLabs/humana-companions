@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: { id: string } },
 ) {
   try {
     const session = await auth();
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const userId = params.id;
+    const userId = context.params.id;
 
     // Mock data para usuário específico
     const mockUser = {
@@ -42,7 +42,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: { id: string } },
 ) {
   try {
     const session = await auth();
@@ -50,7 +50,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const userId = params.id;
+    const userId = context.params.id;
     const body = await request.json();
 
     const { name, email, roleId, status, organizationId, isMasterAdmin } = body;
