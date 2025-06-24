@@ -16,9 +16,11 @@ export interface LoginActionState {
 }
 
 export const login = async (
-  _: LoginActionState,
-  formData: FormData,
+  prevState: LoginActionState,
+  formData: FormData | null,
 ): Promise<LoginActionState> => {
+  if (!formData) return prevState;
+
   try {
     const validatedData = authFormSchema.parse({
       email: formData.get('email'),

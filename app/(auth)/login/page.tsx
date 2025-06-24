@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useActionState, useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useFormState } from 'react-dom';
 import { toast } from '@/components/toast';
 
 import { AuthForm } from '@/components/auth-form';
@@ -21,12 +22,9 @@ function LoginContent() {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    {
-      status: 'idle',
-    },
-  );
+  const [state, formAction] = useFormState(login, {
+    status: 'idle',
+  } as LoginActionState);
 
   const { update: updateSession } = useSession();
 
@@ -102,7 +100,7 @@ function LoginContent() {
             Use seu email e senha para entrar
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
+        <AuthForm action={formAction} defaultEmail={email}>
           <SubmitButton isSuccessful={isSuccessful}>Entrar</SubmitButton>
           <div className="mt-4 flex flex-col gap-4 items-center">
             <div className="relative w-full">
