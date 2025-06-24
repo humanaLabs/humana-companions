@@ -95,26 +95,26 @@ export default function RolesPage() {
     role.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getPermissionBadgeColor = (action: string) => {
+  const getPermissionLevel = (action: string) => {
     switch (action) {
       case 'manage':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'Gerenciar';
       case 'create':
       case 'write':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'Criar';
       case 'read':
       case 'view':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'Visualizar';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return action;
     }
   };
 
-  const getConditionIcon = (permission: Permission) => {
-    if (permission.conditions?.own_only) return '👤';
-    if (permission.conditions?.organization_only) return '🏢';
-    if (permission.conditions?.team_only) return '👥';
-    return '🌐';
+  const getConditionText = (permission: Permission) => {
+    if (permission.conditions?.own_only) return 'Próprio';
+    if (permission.conditions?.organization_only) return 'Organização';
+    if (permission.conditions?.team_only) return 'Time';
+    return 'Global';
   };
 
   const handleDeleteRole = (roleId: string) => {
@@ -166,7 +166,7 @@ export default function RolesPage() {
         />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="mx-auto mb-4 text-red-500">
+            <div className="mx-auto mb-4 text-muted-foreground">
               <LockIcon size={48} />
             </div>
             <div className="text-lg font-semibold text-foreground mb-2">Acesso Restrito</div>
@@ -210,19 +210,19 @@ export default function RolesPage() {
               <div className="text-sm text-muted-foreground">Total de Roles</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-foreground">
                 {roles.filter(r => r.isSystemRole).length}
               </div>
               <div className="text-sm text-muted-foreground">Roles do Sistema</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-foreground">
                 {roles.filter(r => !r.isSystemRole).length}
               </div>
               <div className="text-sm text-muted-foreground">Roles Customizadas</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-foreground">
                 {roles.reduce((sum, role) => sum + role.userCount, 0)}
               </div>
               <div className="text-sm text-muted-foreground">Usuários Associados</div>
@@ -242,7 +242,7 @@ export default function RolesPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-foreground">{role.displayName}</h3>
                         {role.isSystemRole && (
-                          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                          <Badge variant="outline">
                             Sistema
                           </Badge>
                         )}
@@ -278,7 +278,6 @@ export default function RolesPage() {
                       {!role.isSystemRole && (
                         <DropdownMenuItem 
                           onClick={() => handleDeleteRole(role.id)}
-                          className="text-red-600"
                         >
                           <TrashIcon size={14} />
                           <span className="ml-2">Excluir Role</span>
@@ -300,14 +299,13 @@ export default function RolesPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {role.permissions.slice(0, 9).map((permission, index) => (
                       <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
-                        <span>{getConditionIcon(permission)}</span>
-                        <span className="font-medium">{permission.resource}</span>
-                        <Badge 
-                          variant="outline" 
-                          className={getPermissionBadgeColor(permission.action)}
-                        >
-                          {permission.action}
+                        <span className="font-medium text-foreground">{permission.resource}</span>
+                        <Badge variant="outline">
+                          {getPermissionLevel(permission.action)}
                         </Badge>
+                        <span className="text-muted-foreground">
+                          ({getConditionText(permission)})
+                        </span>
                       </div>
                     ))}
                     {role.permissions.length > 9 && (

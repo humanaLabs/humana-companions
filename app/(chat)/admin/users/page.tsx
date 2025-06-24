@@ -90,30 +90,12 @@ export default function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  const getRoleBadgeColor = (roleName: string) => {
-    switch (roleName.toLowerCase()) {
-      case 'administrador':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'gerente':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'usuário':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  const getRoleLabel = (roleName: string) => {
+    return roleName;
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'invited':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'suspended':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  const getStatusVariant = (status: string): "default" | "secondary" | "outline" => {
+    return "outline";
   };
 
   const getStatusLabel = (status: string) => {
@@ -213,25 +195,25 @@ export default function UsersPage() {
               <div className="text-sm text-muted-foreground">Total</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-foreground">
                 {users.filter(u => u.status === 'active').length}
               </div>
               <div className="text-sm text-muted-foreground">Ativos</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-2xl font-bold text-foreground">
                 {users.filter(u => u.status === 'invited').length}
               </div>
               <div className="text-sm text-muted-foreground">Convidados</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-2xl font-bold text-foreground">
                 {users.filter(u => u.role.name === 'Administrador').length}
               </div>
               <div className="text-sm text-muted-foreground">Admins</div>
             </div>
             <div className="bg-card border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-foreground">
                 {users.filter(u => u.role.name === 'Gerente').length}
               </div>
               <div className="text-sm text-muted-foreground">Gerentes</div>
@@ -294,18 +276,12 @@ export default function UsersPage() {
                         <div className="text-sm text-foreground">{user.email}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge 
-                          variant="outline" 
-                          className={getRoleBadgeColor(user.role.name)}
-                        >
+                        <Badge variant="outline">
                           {user.role.name}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge 
-                          variant="outline" 
-                          className={getStatusBadgeColor(user.status)}
-                        >
+                        <Badge variant="outline">
                           {getStatusLabel(user.status)}
                         </Badge>
                       </td>
@@ -351,7 +327,6 @@ export default function UsersPage() {
                               )}
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user.id)}
-                                className="text-red-600"
                               >
                                 <TrashIcon size={14} />
                                 <span className="ml-2">Remover</span>

@@ -135,7 +135,6 @@ export default function TeamsPage() {
               <div key={team.id} className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${team.color}`} />
                     <div className="text-muted-foreground">
                       <BoxIcon size={24} />
                     </div>
@@ -161,7 +160,6 @@ export default function TeamsPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleDeleteTeam(team.id)}
-                        className="text-red-600"
                       >
                         <div className="mr-2">
                           <TrashIcon size={14} />

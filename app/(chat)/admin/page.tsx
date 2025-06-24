@@ -1,7 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { UserIcon, BoxIcon, LineChartIcon, LogsIcon, LockIcon } from '@/components/icons';
+import { UserIcon, BoxIcon, LogsIcon, LockIcon } from '@/components/icons';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -16,7 +16,7 @@ export default function AdminPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-6xl w-full mx-auto space-y-6">
           {/* Cards Principais */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Gestão de Usuários */}
             <Link href="/admin/users" className="group">
               <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -95,29 +95,33 @@ export default function AdminPage() {
               </div>
             </Link>
 
-            {/* Analytics do Sistema */}
-            <div className="bg-card border rounded-lg p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="text-muted-foreground">
-                  <LineChartIcon size={32} />
+            {/* Administração Master */}
+            <Link href="/admin/master" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="text-muted-foreground text-3xl">
+                    👑
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                      Master Admin
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-                    Métricas
-                  </span>
+                <h3 className="font-semibold text-foreground mb-2">Administração Master</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Gerencie usuários com privilégios de Master Admin
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Máxima segurança</span>
+                  <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                    Acessar →
+                  </div>
                 </div>
               </div>
-              <h3 className="font-semibold text-foreground mb-2">Analytics</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Monitore uso, performance e métricas do sistema
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Em breve</span>
-                <div className="text-xs text-muted-foreground">
-                  Desenvolvimento
-                </div>
-              </div>
-            </div>
+            </Link>
+
+
           </div>
 
           {/* Estatísticas Rápidas */}
@@ -193,7 +197,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <LineChartIcon size={16} />
+                <LogsIcon size={16} />
                 <div>
                   <div className="text-sm font-medium text-foreground">Monitoramento</div>
                   <div className="text-xs text-muted-foreground">Métricas e analytics</div>
