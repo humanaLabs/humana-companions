@@ -29,14 +29,16 @@
 14. [🌐 Azure OpenAI](#-azure-openai)
 15. [🎨 Sistema de Artifacts](#-sistema-de-artifacts)
 16. [📱 Design e UX](#-design-e-ux)
+17. [🔐 Sistema de Permissões](#-sistema-de-permissões)
 
 ### 📊 **Análises e Planejamento**
-16. [📊 Sistema de Análise de Mudanças](#-sistema-de-análise-de-mudanças)
-17. [🎯 Projetos Prioritários](#-projetos-prioritários)
+18. [📊 Sistema de Análise de Mudanças](#-sistema-de-análise-de-mudanças)
+19. [🎯 Projetos Prioritários](#-projetos-prioritários)
+20. [📋 Changelog de Implementações](#-changelog-de-implementações)
 
 ### 🚀 **Bootstrap e Novos Projetos**
-18. [🚀 Sistema de Bootstrap](#-sistema-de-bootstrap)
-19. [📚 Recursos de Aprendizado](#-recursos-de-aprendizado)
+21. [🚀 Sistema de Bootstrap](#-sistema-de-bootstrap)
+22. [📚 Recursos de Aprendizado](#-recursos-de-aprendizado)
 
 ---
 
@@ -362,6 +364,25 @@ Se Azure não estiver configurado, o sistema usa OpenAI automaticamente
 
 ---
 
+## 🔐 Sistema de Permissões
+
+### 📖 **Guia Completo**
+**[`SISTEMA_PERMISSOES.md`](./arquitetura_geral/SISTEMA_PERMISSOES.md)**
+
+### 🛡️ **Características**
+- **26 Permissões Granulares:** Controle detalhado de acesso
+- **4 Roles Hierárquicos:** Master Admin, Admin, Manager, User
+- **Guards de Componentes:** Proteção automática de UI
+- **Middleware de API:** Validação server-side
+
+### 🎯 **Funcionalidades**
+- **Context API:** Estado global de permissões
+- **Debug em Tempo Real:** Monitoramento de acesso
+- **Master Admin:** Detecção automática por email
+- **Logs Estruturados:** Auditoria completa
+
+---
+
 ## 📊 Sistema de Análise de Mudanças
 
 ### 🎯 **Análises Disponíveis**
@@ -398,6 +419,24 @@ Se Azure não estiver configurado, o sistema usa OpenAI automaticamente
 ### ⚡ **Em Finalização**
 - **🟡 MCP Integration** - Diagramas prontos, falta implementação
 - **🟡 RAG Data Room** - Análise em andamento
+
+---
+
+## 📋 Changelog de Implementações
+
+### 📖 **Registro Completo**
+**[`CHANGELOG_IMPLEMENTACOES.md`](./CHANGELOG_IMPLEMENTACOES.md)**
+
+### 🚀 **Última Versão: v3.0.24**
+- **✅ Passo 2:** Modais administrativos completos
+- **✅ Passo 3:** Sistema de permissões granulares
+- **🔄 Próximo:** Sistema de analytics (Passo 4)
+
+### 📊 **Métricas**
+- **226 arquivos alterados**
+- **24,121 linhas adicionadas**
+- **26 permissões implementadas**
+- **5 modais administrativos criados**
 
 ---
 
