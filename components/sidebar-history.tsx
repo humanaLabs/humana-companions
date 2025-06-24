@@ -95,7 +95,8 @@ export function getChatHistoryPaginationKey(
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
-  const { id } = useParams();
+  const params = useParams();
+  const id = (params && typeof params === 'object' ? (params as Record<string, string | string[]>).id : undefined) as string | undefined;
 
   const {
     data: paginatedChatHistories,

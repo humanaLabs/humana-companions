@@ -89,7 +89,7 @@ function ChatInner({
   });
 
   const searchParams = useSearchParams();
-  const query = searchParams.get('query');
+  const query = searchParams?.get?.('query') ?? undefined;
 
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
 

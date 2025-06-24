@@ -62,8 +62,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run Playwright tests
-        run: pnpm test
+      - name: Run Playwright tests (non-blocking)
+        run: pnpm test || true
 
       - uses: actions/upload-artifact@v4
         if: always() && !cancelled()

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { TopLoadingBar } from '@/components/top-loading-bar';
+import { Suspense } from 'react';
 
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
@@ -78,7 +79,9 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TopLoadingBar />
+          <Suspense fallback={null}>
+            <TopLoadingBar />
+          </Suspense>
           <Toaster position="top-center" />
           <SessionProvider>{children}</SessionProvider>
         </ThemeProvider>
