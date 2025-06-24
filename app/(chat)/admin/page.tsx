@@ -1,7 +1,7 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { UserIcon, BoxIcon, LineChartIcon, LogsIcon } from '@/components/icons';
+import { UserIcon, BoxIcon, LineChartIcon, LogsIcon, LockIcon } from '@/components/icons';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -62,6 +62,32 @@ export default function AdminPage() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Colaboração</span>
+                  <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                    Acessar →
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Gestão de Roles */}
+            <Link href="/admin/roles" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="text-muted-foreground">
+                    <LockIcon size={32} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                      Master Admin
+                    </span>
+                  </div>
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Roles & Permissões</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Defina roles customizadas e suas permissões por menu/objeto
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Acesso restrito</span>
                   <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     Acessar →
                   </div>
