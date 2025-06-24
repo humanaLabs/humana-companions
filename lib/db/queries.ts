@@ -473,16 +473,12 @@ export async function deleteMessageById({
     // Primeiro, exclui os votos relacionados à mensagem
     await db
       .delete(vote)
-      .where(
-        and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)),
-      );
+      .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
 
     // Depois, exclui a mensagem
     return await db
       .delete(message)
-      .where(
-        and(eq(message.id, messageId), eq(message.chatId, chatId)),
-      );
+      .where(and(eq(message.id, messageId), eq(message.chatId, chatId)));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -595,33 +591,36 @@ export async function createCompanion({
   name: string;
   role: string;
   responsibilities: string[];
-  expertises: Array<{area: string; topics: string[]}>;
-  sources: Array<{type: string; description: string}>;
-  rules: Array<{type: string; description: string}>;
-  contentPolicy: {allowed: string[]; disallowed: string[]};
+  expertises: Array<{ area: string; topics: string[] }>;
+  sources: Array<{ type: string; description: string }>;
+  rules: Array<{ type: string; description: string }>;
+  contentPolicy: { allowed: string[]; disallowed: string[] };
   skills?: Array<any>;
-  fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
+  fallbacks?: { ambiguous?: string; out_of_scope?: string; unknown?: string };
   organizationId?: string;
   positionId?: string;
   linkedTeamId?: string;
   userId: string;
 }) {
   try {
-    return await db.insert(companion).values({
-      name,
-      role,
-      responsibilities,
-      expertises,
-      sources,
-      rules,
-      contentPolicy,
-      skills,
-      fallbacks,
-      organizationId,
-      positionId,
-      linkedTeamId,
-      userId,
-    }).returning();
+    return await db
+      .insert(companion)
+      .values({
+        name,
+        role,
+        responsibilities,
+        expertises,
+        sources,
+        rules,
+        contentPolicy,
+        skills,
+        fallbacks,
+        organizationId,
+        positionId,
+        linkedTeamId,
+        userId,
+      })
+      .returning();
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -645,15 +644,20 @@ export async function getCompanionsByUserId({ userId }: { userId: string }) {
   }
 }
 
-export async function getCompanionsByOrganizationId({ organizationId, userId }: { organizationId: string; userId: string }) {
+export async function getCompanionsByOrganizationId({
+  organizationId,
+  userId,
+}: { organizationId: string; userId: string }) {
   try {
     return await db
       .select()
       .from(companion)
-      .where(and(
-        eq(companion.organizationId, organizationId),
-        eq(companion.userId, userId)
-      ))
+      .where(
+        and(
+          eq(companion.organizationId, organizationId),
+          eq(companion.userId, userId),
+        ),
+      )
       .orderBy(desc(companion.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -670,7 +674,7 @@ export async function getCompanionById({ id }: { id: string }) {
       .from(companion)
       .where(eq(companion.id, id))
       .limit(1);
-    
+
     return companionResult;
   } catch (error) {
     throw new ChatSDKError(
@@ -700,12 +704,12 @@ export async function updateCompanion({
   name: string;
   role: string;
   responsibilities: string[];
-  expertises: Array<{area: string; topics: string[]}>;
-  sources: Array<{type: string; description: string}>;
-  rules: Array<{type: string; description: string}>;
-  contentPolicy: {allowed: string[]; disallowed: string[]};
+  expertises: Array<{ area: string; topics: string[] }>;
+  sources: Array<{ type: string; description: string }>;
+  rules: Array<{ type: string; description: string }>;
+  contentPolicy: { allowed: string[]; disallowed: string[] };
   skills?: Array<any>;
-  fallbacks?: {ambiguous?: string; out_of_scope?: string; unknown?: string};
+  fallbacks?: { ambiguous?: string; out_of_scope?: string; unknown?: string };
   organizationId?: string;
   positionId?: string;
   linkedTeamId?: string;
@@ -784,18 +788,21 @@ export async function createMcpServer({
   userId: string;
 }) {
   try {
-    return await db.insert(mcpServer).values({
-      name,
-      url,
-      transport,
-      description,
-      authType: authType || 'none',
-      authToken,
-      authUsername,
-      authPassword,
-      authHeaderName,
-      userId,
-    }).returning();
+    return await db
+      .insert(mcpServer)
+      .values({
+        name,
+        url,
+        transport,
+        description,
+        authType: authType || 'none',
+        authToken,
+        authUsername,
+        authPassword,
+        authHeaderName,
+        userId,
+      })
+      .returning();
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -819,7 +826,9 @@ export async function getMcpServersByUserId({ userId }: { userId: string }) {
   }
 }
 
-export async function getActiveMcpServersByUserId({ userId }: { userId: string }) {
+export async function getActiveMcpServersByUserId({
+  userId,
+}: { userId: string }) {
   try {
     return await db
       .select()
@@ -841,7 +850,7 @@ export async function getMcpServerById({ id }: { id: string }) {
       .from(mcpServer)
       .where(eq(mcpServer.id, id))
       .limit(1);
-    
+
     return mcpServerResult;
   } catch (error) {
     throw new ChatSDKError(
@@ -985,7 +994,9 @@ export async function createOrganization(
   }
 }
 
-export async function getOrganizationsByUserId(userId: string): Promise<Organization[]> {
+export async function getOrganizationsByUserId(
+  userId: string,
+): Promise<Organization[]> {
   try {
     return await db
       .select()
@@ -998,7 +1009,10 @@ export async function getOrganizationsByUserId(userId: string): Promise<Organiza
   }
 }
 
-export async function getOrganizationById(id: string, userId: string): Promise<Organization | null> {
+export async function getOrganizationById(
+  id: string,
+  userId: string,
+): Promise<Organization | null> {
   try {
     const [org] = await db
       .select()
@@ -1042,11 +1056,14 @@ export async function updateOrganization(
   }
 }
 
-export async function deleteOrganization(id: string, userId: string): Promise<void> {
+export async function deleteOrganization(
+  id: string,
+  userId: string,
+): Promise<void> {
   try {
     // Primeiro, deletar todos os companions vinculados a esta organização
     await db.delete(companion).where(eq(companion.organizationId, id));
-    
+
     // Depois, deletar a organização
     const result = await db
       .delete(organization)
@@ -1078,21 +1095,21 @@ export async function getUserById(id: string): Promise<User | null> {
     const [foundUser] = await db.select().from(user).where(eq(user.id, id));
     return foundUser || null;
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get user by id',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to get user by id');
   }
 }
 
-export async function updateUserEmail(currentEmail: string, newEmail: string): Promise<User | null> {
+export async function updateUserEmail(
+  currentEmail: string,
+  newEmail: string,
+): Promise<User | null> {
   try {
     const [updatedUser] = await db
       .update(user)
       .set({ email: newEmail })
       .where(eq(user.email, currentEmail))
       .returning();
-    
+
     return updatedUser || null;
   } catch (error) {
     throw new ChatSDKError(
@@ -1102,13 +1119,15 @@ export async function updateUserEmail(currentEmail: string, newEmail: string): P
   }
 }
 
-export async function checkUserHasOrganization(userId: string): Promise<boolean> {
+export async function checkUserHasOrganization(
+  userId: string,
+): Promise<boolean> {
   try {
     const [result] = await db
       .select({ count: count() })
       .from(organization)
       .where(eq(organization.userId, userId));
-    
+
     return result.count > 0;
   } catch (error) {
     throw new ChatSDKError(
@@ -1118,7 +1137,10 @@ export async function checkUserHasOrganization(userId: string): Promise<boolean>
   }
 }
 
-export async function createDefaultOrganization(userId: string, userEmail: string): Promise<Organization> {
+export async function createDefaultOrganization(
+  userId: string,
+  userEmail: string,
+): Promise<Organization> {
   try {
     const orgName = `org_${userEmail}`;
     const defaultTenantConfig = {
@@ -1132,17 +1154,25 @@ export async function createDefaultOrganization(userId: string, userEmail: strin
       .insert(organization)
       .values({
         name: orgName,
-        description: 'Organização criada automaticamente. Você pode editar o nome e descrição.',
+        description:
+          'Organização criada automaticamente. Você pode editar o nome e descrição.',
         tenantConfig: defaultTenantConfig,
         values: [],
         teams: [],
         positions: [],
-        orgUsers: [{
-          user_id: userId,
-          position_id: 'admin',
-          role: 'admin',
-          permissions: ['read_org', 'write_org', 'manage_companions', 'manage_users'],
-        }],
+        orgUsers: [
+          {
+            user_id: userId,
+            position_id: 'admin',
+            role: 'admin',
+            permissions: [
+              'read_org',
+              'write_org',
+              'manage_companions',
+              'manage_users',
+            ],
+          },
+        ],
         userId,
       })
       .returning();
@@ -1157,11 +1187,17 @@ export async function createDefaultOrganization(userId: string, userEmail: strin
   }
 }
 
-export async function getOrganizationsForUser(userId: string, isMasterAdmin: boolean): Promise<Organization[]> {
+export async function getOrganizationsForUser(
+  userId: string,
+  isMasterAdmin: boolean,
+): Promise<Organization[]> {
   try {
     if (isMasterAdmin) {
       // Master admin vê todas as organizações
-      return await db.select().from(organization).orderBy(desc(organization.createdAt));
+      return await db
+        .select()
+        .from(organization)
+        .orderBy(desc(organization.createdAt));
     } else {
       // Usuário normal vê apenas suas organizações
       return await db
@@ -1178,13 +1214,15 @@ export async function getOrganizationsForUser(userId: string, isMasterAdmin: boo
   }
 }
 
-export async function checkCanCreateOrganization(userId: string): Promise<boolean> {
+export async function checkCanCreateOrganization(
+  userId: string,
+): Promise<boolean> {
   try {
     const [foundUser] = await db
       .select({ isMasterAdmin: user.isMasterAdmin })
       .from(user)
       .where(eq(user.id, userId));
-    
+
     return foundUser?.isMasterAdmin || false;
   } catch (error) {
     throw new ChatSDKError(
@@ -1336,7 +1374,7 @@ export async function updateCompanionPerformance(
     lastMcpCycleAt?: Date;
     mcpScore?: number;
     improvementTrend?: 'improving' | 'stable' | 'declining' | 'unknown';
-  }
+  },
 ) {
   try {
     // Verificar se já existe registro de performance
@@ -1495,7 +1533,7 @@ export async function getCompanionAnalytics(companionId: string) {
   try {
     // Buscar dados de performance
     const performance = await getCompanionPerformance(companionId);
-    
+
     // Buscar feedback recente
     const recentFeedback = await db
       .select()
@@ -1522,9 +1560,11 @@ export async function getCompanionAnalytics(companionId: string) {
       latestMcpReport,
       summary: {
         totalFeedback: recentFeedback.length,
-        averageRating: recentFeedback.length > 0 
-          ? recentFeedback.reduce((sum, f) => sum + parseInt(f.rating), 0) / recentFeedback.length 
-          : 0,
+        averageRating:
+          recentFeedback.length > 0
+            ? recentFeedback.reduce((sum, f) => sum + parseInt(f.rating), 0) /
+              recentFeedback.length
+            : 0,
         totalInteractions: recentInteractions.length,
         lastActivity: recentInteractions[0]?.createdAt || null,
       },
