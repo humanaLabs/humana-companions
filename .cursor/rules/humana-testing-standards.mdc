@@ -1,0 +1,675 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Padrões de Testes Obrigatórios
+
+## Princípio Fundamental
+**TODO código crítico DEVE ter testes automatizados.** Testes são investimento, não gasto de tempo.
+
+## Regras Obrigatórias
+
+### 🧪 SEMPRE Teste
+- Funções de API e integração
+- Hooks customizados
+- Componentes críticos
+- Validação de dados
+- Lógica de negócio
+- Tratamento de erros
+- Configurações importantes
+
+### ✅ Estrutura de Testes Padrão
+
+#### 1. Unit Tests - Funções Puras
+```typescript
+// lib/ai/dify/agents.test.ts
+import { describe, it, expect, vi } from 'vitest'
+import { fetchDifyAgents, validateDifyAgent, isValidDifyId } from './agents'
+
+describe('Dify Agents', () => {
+  describe('isValidDifyId', () => {
+    it('should validate correct Dify ID format', () => {
+      const validId = 'app-123e4567-e89b-12d3-a456-426614174000'
+      expect(isValidDifyId(validId)).toBe(true)
+    })
+
+    it('should reject invalid ID formats', () => {
+      expect(isValidDifyId('invalid-id')).toBe(false)
+      expect(isValidDifyId('')).toBe(false)
+      expect(isValidDifyId('app-123')).toBe(false)
+    })
+  })
+
+  describe('validateDifyAgent', () => {
+    it('should validate correct agent data', () => {
+      const validAgent = {
+        id: 'app-123e4567-e89b-12d3-a456-426614174000',
+        name: 'Test Agent',
+        description: 'Test description',
+        category: 'development',
+        baseUrl: 'https://api.dify.ai',
+        apiKey: 'test-key',
+        timeout: 30000,
+        enabled: true
+      }
+
+      expect(() => validateDifyAgent(validAgent)).not.toThrow()
+    })
+
+    it('should throw ValidationError for invalid agent data', () => {
+      const invalidAgent = {
+        id: 'invalid-id',
+        name: '',
+        baseUrl: 'not-a-url'
+      }
+
+      expect(() => validateDifyAgent(invalidAgent)).toThrow('Agent name is required')
+    })
+  })
+
+  describe('fetchDifyAgents', () => {
+    it('should fetch and validate agents successfully', async () => {
+      // Mock fetch
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          agents: [
+            {
+              id: 'app-123e4567-e89b-12d3-a456-426614174000',
+              name: 'Test Agent',
+              description: 'Test description',
+              category: 'development',
+              baseUrl: 'https://api.dify.ai',
+              apiKey: 'test-key'
+            }
+          ]
+        })
+      })
+
+      const agents = await fetchDifyAgents()
+      
+      expect(agents).toHaveLength(1)
+      expect(agents[0].name).toBe('Test Agent')
+    })
+
+    it('should handle API errors gracefully', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      })
+
+      await expect(fetchDifyAgents()).rejects.toThrow('HTTP 500: Internal Server Error')
+    })
+
+    it('should handle invalid response format', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          success: true,
+          agents: 'not-an-array'
+        })
+      })
+
+      await expect(fetchDifyAgents()).rejects.toThrow('Invalid API response')
+    })
+  })
+})
+```
+
+#### 2. Component Tests - React Testing Library
+```typescript
+// components/dify-agent-selector.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { DifyAgentSelector } from './dify-agent-selector'
+
+const mockAgents = [
+  {
+    id: 'app-123',
+    name: 'Alex',
+    description: 'Development specialist',
+    category: 'development',
+    baseUrl: 'https://api.dify.ai',
+    apiKey: 'test-key'
+  },
+  {
+    id: 'app-456',
+    name: 'Luna',
+    description: 'Design specialist',
+    category: 'design',
+    baseUrl: 'https://api.dify.ai',
+    apiKey: 'test-key'
+  }
+]
+
+describe('DifyAgentSelector', () => {
+  it('should render agents grouped by category', () => {
+    const onAgentChange = vi.fn()
+    
+    render(
+      <DifyAgentSelector
+        agents={mockAgents}
+        onAgentChange={onAgentChange}
+      />
+    )
+
+    expect(screen.getByText('Alex')).toBeInTheDocument()
+    expect(screen.getByText('Luna')).toBeInTheDocument()
+  })
+
+  it('should call onAgentChange when agent is selected', async () => {
+    const onAgentChange = vi.fn()
+    
+    render(
+      <DifyAgentSelector
+        agents={mockAgents}
+        onAgentChange={onAgentChange}
+      />
+    )
+
+    fireEvent.click(screen.getByText('Alex'))
+    
+    await waitFor(() => {
+      expect(onAgentChange).toHaveBeenCalledWith('app-123')
+    })
+  })
+
+  it('should show loading state', () => {
+    render(
+      <DifyAgentSelector
+        agents={[]}
+        onAgentChange={vi.fn()}
+        loading={true}
+      />
+    )
+
+    expect(screen.getByText(/carregando/i)).toBeInTheDocument()
+  })
+
+  it('should show disabled state', () => {
+    render(
+      <DifyAgentSelector
+        agents={mockAgents}
+        onAgentChange={vi.fn()}
+        disabled={true}
+      />
+    )
+
+    const selector = screen.getByRole('combobox')
+    expect(selector).toBeDisabled()
+  })
+
+  it('should handle empty agents list', () => {
+    render(
+      <DifyAgentSelector
+        agents={[]}
+        onAgentChange={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/nenhum agente disponível/i)).toBeInTheDocument()
+  })
+})
+```
+
+#### 3. Hook Tests - Custom Hooks
+```typescript
+// hooks/use-dify-agents.test.ts
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { useDifyAgents } from './use-dify-agents'
+
+// Mock da API
+vi.mock('../lib/ai/dify/agents', () => ({
+  fetchDifyAgents: vi.fn()
+}))
+
+describe('useDifyAgents', () => {
+  it('should initialize with empty state', () => {
+    const { result } = renderHook(() => useDifyAgents())
+
+    expect(result.current.agents).toEqual([])
+    expect(result.current.selectedAgent).toBe('')
+    expect(result.current.loading).toBe(false)
+    expect(result.current.error).toBe('')
+  })
+
+  it('should load agents successfully', async () => {
+    const mockAgents = [
+      { id: 'app-123', name: 'Alex', description: 'Test' }
+    ]
+
+    const { fetchDifyAgents } = await import('../lib/ai/dify/agents')
+    vi.mocked(fetchDifyAgents).mockResolvedValue(mockAgents)
+
+    const { result } = renderHook(() => useDifyAgents())
+
+    act(() => {
+      result.current.loadAgents()
+    })
+
+    expect(result.current.loading).toBe(true)
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.agents).toEqual(mockAgents)
+      expect(result.current.error).toBe('')
+    })
+  })
+
+  it('should handle loading errors', async () => {
+    const { fetchDifyAgents } = await import('../lib/ai/dify/agents')
+    vi.mocked(fetchDifyAgents).mockRejectedValue(new Error('API Error'))
+
+    const { result } = renderHook(() => useDifyAgents())
+
+    act(() => {
+      result.current.loadAgents()
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.error).toBe('API Error')
+      expect(result.current.agents).toEqual([])
+    })
+  })
+
+  it('should select agent', () => {
+    const { result } = renderHook(() => useDifyAgents())
+
+    act(() => {
+      result.current.selectAgent('app-123')
+    })
+
+    expect(result.current.selectedAgent).toBe('app-123')
+  })
+
+  it('should reset selection', () => {
+    const { result } = renderHook(() => useDifyAgents())
+
+    act(() => {
+      result.current.selectAgent('app-123')
+    })
+
+    expect(result.current.selectedAgent).toBe('app-123')
+
+    act(() => {
+      result.current.resetSelection()
+    })
+
+    expect(result.current.selectedAgent).toBe('')
+  })
+})
+```
+
+#### 4. Integration Tests - API Routes
+```typescript
+// app/api/dify/agents/route.test.ts
+import { describe, it, expect, vi } from 'vitest'
+import { GET, POST } from './route'
+
+describe('/api/dify/agents', () => {
+  describe('GET', () => {
+    it('should return agents list', async () => {
+      // Mock database/external API
+      vi.mock('../../../../lib/ai/dify/agents', () => ({
+        fetchDifyAgentsFromDB: vi.fn().mockResolvedValue([
+          { id: 'app-123', name: 'Alex', description: 'Test' }
+        ])
+      }))
+
+      const response = await GET()
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.agents).toHaveLength(1)
+    })
+
+    it('should handle database errors', async () => {
+      vi.mock('../../../../lib/ai/dify/agents', () => ({
+        fetchDifyAgentsFromDB: vi.fn().mockRejectedValue(new Error('DB Error'))
+      }))
+
+      const response = await GET()
+      const data = await response.json()
+
+      expect(response.status).toBe(500)
+      expect(data.success).toBe(false)
+      expect(data.error).toBe('Internal server error')
+    })
+  })
+
+  describe('POST', () => {
+    it('should create new agent with valid data', async () => {
+      const validAgentData = {
+        name: 'New Agent',
+        description: 'Test agent',
+        category: 'development',
+        config: {
+          model: 'gpt-4',
+          temperature: 0.7,
+          maxTokens: 2000
+        }
+      }
+
+      const request = new Request('http://localhost:3000/api/dify/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validAgentData)
+      })
+
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.agent).toBeDefined()
+    })
+
+    it('should reject invalid agent data', async () => {
+      const invalidAgentData = {
+        name: '', // Invalid: empty name
+        config: {
+          model: 'invalid-model', // Invalid model
+          temperature: 5 // Invalid: too high
+        }
+      }
+
+      const request = new Request('http://localhost:3000/api/dify/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(invalidAgentData)
+      })
+
+      const response = await POST(request)
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.success).toBe(false)
+      expect(data.error).toBe('Invalid request data')
+      expect(data.details).toBeDefined()
+    })
+  })
+})
+```
+
+#### 5. E2E Tests - Playwright
+```typescript
+// tests/e2e/dify-agents.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('Dify Agents Integration', () => {
+  test('should load and display agents', async ({ page }) => {
+    await page.goto('/chat')
+    
+    // Wait for agents to load
+    await expect(page.locator('[data-testid="agent-selector"]')).toBeVisible()
+    
+    // Check if agents are displayed
+    await expect(page.locator('text=Alex')).toBeVisible()
+    await expect(page.locator('text=Luna')).toBeVisible()
+  })
+
+  test('should switch between agents', async ({ page }) => {
+    await page.goto('/chat')
+    
+    // Select Alex agent
+    await page.click('[data-testid="agent-selector"]')
+    await page.click('text=Alex')
+    
+    // Verify agent is selected
+    await expect(page.locator('[data-testid="selected-agent"]')).toContainText('Alex')
+    
+    // Switch to Luna
+    await page.click('[data-testid="agent-selector"]')
+    await page.click('text=Luna')
+    
+    await expect(page.locator('[data-testid="selected-agent"]')).toContainText('Luna')
+  })
+
+  test('should handle agent errors gracefully', async ({ page }) => {
+    // Mock API to return error
+    await page.route('**/api/dify/agents', route => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'Server error' })
+      })
+    })
+
+    await page.goto('/chat')
+    
+    // Should show error message
+    await expect(page.locator('text=Erro ao carregar agentes')).toBeVisible()
+    
+    // Should show retry button
+    await expect(page.locator('text=Tentar Novamente')).toBeVisible()
+  })
+})
+```
+
+## Estrutura de Arquivos de Teste
+
+### Organização Padrão
+```
+tests/
+├── unit/                 # Testes unitários
+│   ├── lib/
+│   │   └── ai/
+│   │       └── dify/
+│   │           └── agents.test.ts
+│   └── utils/
+├── integration/          # Testes de integração
+│   ├── api/
+│   │   └── dify/
+│   │       └── agents.test.ts
+│   └── hooks/
+├── e2e/                  # Testes end-to-end
+│   ├── dify-agents.spec.ts
+│   └── chat-flow.spec.ts
+├── fixtures/             # Dados de teste
+│   ├── agents.json
+│   └── responses.json
+└── helpers/              # Utilitários de teste
+    ├── test-utils.tsx
+    └── mock-data.ts
+```
+
+## Configuração de Testes
+
+### Vitest Config
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    globals: true,
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        '**/*.d.ts',
+        '**/*.config.*'
+      ]
+    }
+  }
+})
+```
+
+### Test Setup
+```typescript
+// tests/setup.ts
+import '@testing-library/jest-dom'
+import { vi } from 'vitest'
+
+// Mock environment variables
+vi.mock('process', () => ({
+  env: {
+    NODE_ENV: 'test',
+    DIFY_BASE_URL: 'https://api.dify.ai',
+    DIFY_API_KEY: 'test-key'
+  }
+}))
+
+// Mock fetch globally
+global.fetch = vi.fn()
+
+// Reset mocks after each test
+afterEach(() => {
+  vi.clearAllMocks()
+})
+```
+
+## Utilitários de Teste
+
+### Test Utils
+```typescript
+// tests/helpers/test-utils.tsx
+import { ReactElement } from 'react'
+import { render, RenderOptions } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Mock providers
+function AllTheProviders({ children }: { children: React.ReactNode }) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false }
+    }
+  })
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
+
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+) => render(ui, { wrapper: AllTheProviders, ...options })
+
+export * from '@testing-library/react'
+export { customRender as render }
+```
+
+### Mock Data
+```typescript
+// tests/helpers/mock-data.ts
+export const mockDifyAgents = [
+  {
+    id: 'app-123e4567-e89b-12d3-a456-426614174000',
+    name: 'Alex',
+    description: 'Especialista em desenvolvimento TypeScript e React',
+    category: 'development',
+    baseUrl: 'https://api.dify.ai',
+    apiKey: 'test-key',
+    timeout: 30000,
+    enabled: true
+  },
+  {
+    id: 'app-456e7890-e89b-12d3-a456-426614174000',
+    name: 'Luna',
+    description: 'Expert em design e UX',
+    category: 'design',
+    baseUrl: 'https://api.dify.ai',
+    apiKey: 'test-key',
+    timeout: 30000,
+    enabled: true
+  }
+]
+
+export const mockAPIResponse = {
+  success: true,
+  agents: mockDifyAgents
+}
+
+export const mockErrorResponse = {
+  success: false,
+  error: 'Internal server error'
+}
+```
+
+## Estratégias de Teste
+
+### 1. Test-Driven Development (TDD)
+```typescript
+// 1. Escrever teste primeiro
+describe('formatAgentName', () => {
+  it('should format agent name with category', () => {
+    const agent = { name: 'Alex', category: 'development' }
+    expect(formatAgentName(agent)).toBe('Alex (development)')
+  })
+})
+
+// 2. Implementar função
+export function formatAgentName(agent: { name: string, category?: string }): string {
+  return agent.category ? `${agent.name} (${agent.category})` : agent.name
+}
+
+// 3. Refatorar se necessário
+```
+
+### 2. Behavior-Driven Development (BDD)
+```typescript
+describe('Given a user wants to select a Dify agent', () => {
+  describe('When the agent selector is loaded', () => {
+    it('Then it should display all available agents', () => {
+      // Test implementation
+    })
+  })
+
+  describe('When an agent is selected', () => {
+    it('Then the onAgentChange callback should be called', () => {
+      // Test implementation
+    })
+  })
+})
+```
+
+## Checklist de Testes
+
+### Para cada feature, verificar:
+- [ ] Testes unitários para lógica de negócio
+- [ ] Testes de componente para UI crítica
+- [ ] Testes de integração para APIs
+- [ ] Testes E2E para fluxos principais
+- [ ] Mocks apropriados para dependências
+- [ ] Coverage > 80% para código crítico
+- [ ] Testes de erro e edge cases
+- [ ] Performance tests se necessário
+
+## Scripts de Teste
+
+### Package.json
+```json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:watch": "vitest --watch"
+  }
+}
+```
+
+## Lembre-se
+- Testes são documentação executável
+- Teste comportamento, não implementação
+- Mocks devem ser simples e focados
+- Coverage alto não garante qualidade
+- Testes lentos são testes que não rodam
+- Falhe rápido, falhe claro

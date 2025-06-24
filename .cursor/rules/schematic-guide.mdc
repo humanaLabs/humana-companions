@@ -1,0 +1,9 @@
+---
+description: Used when Creating Payment Related APIs and files for schematic payments intergartion.
+globs: 
+alwaysApply: false
+---
+
+# Schematic Guide
+
+- When creating or adding payments you should refer to the documentations at `.cursor/docs/schematic-docs`

@@ -1,0 +1,178 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Configuração Externa
+
+## Princípio Fundamental
+**NUNCA hardcode valores que podem mudar.** Sempre use arquivos de configuração externos.
+
+## Regras Obrigatórias
+
+### 🚫 NUNCA Hardcode
+- URLs de APIs
+- Tokens e chaves de API
+- Timeouts e configurações de rede
+- Parâmetros de LLM (temperature, max_tokens)
+- Configurações de UI (temas, idiomas)
+- Nomes e configurações de agentes
+- Feature flags
+- Limites e quotas
+
+### ✅ SEMPRE Use Configuração Externa
+- Variáveis de ambiente (.env)
+- Arquivos de configuração JSON
+- Configuração centralizada TypeScript
+- Valores padrão sensatos
+
+## Padrões de Implementação
+
+### Estrutura Recomendada
+```typescript
+// lib/config/index.ts
+export const appConfig = {
+  api: {
+    timeout: Number(process.env.API_TIMEOUT) || 5000,
+    maxRetries: Number(process.env.MAX_RETRIES) || 3,
+    baseUrl: process.env.API_BASE_URL || 'http://localhost:3000'
+  },
+  
+  dify: {
+    baseUrl: process.env.DIFY_BASE_URL || 'https://api.dify.ai',
+    apiKey: process.env.DIFY_API_KEY || '',
+    timeout: Number(process.env.DIFY_TIMEOUT) || 30000
+  },
+  
+  agents: {
+    defaultModel: process.env.DEFAULT_LLM_MODEL || 'gpt-4',
+    temperature: Number(process.env.LLM_TEMPERATURE) || 0.7,
+    maxTokens: Number(process.env.LLM_MAX_TOKENS) || 2000
+  },
+  
+  ui: {
+    theme: process.env.UI_THEME || 'light',
+    language: process.env.UI_LANGUAGE || 'pt-BR',
+    itemsPerPage: Number(process.env.UI_ITEMS_PER_PAGE) || 10
+  },
+  
+  features: {
+    enableArtifacts: process.env.ENABLE_ARTIFACTS !== 'false',
+    enableDify: process.env.ENABLE_DIFY !== 'false',
+    enableAnalytics: process.env.ENABLE_ANALYTICS === 'true'
+  }
+}
+```
+
+### Uso em Componentes
+```typescript
+// ❌ RUIM - Hardcoded
+const Chat = () => {
+  const maxMessages = 50; // ❌ Hardcoded
+  
+  const sendMessage = async (text: string) => {
+    const response = await fetch('https://api.dify.ai/chat', { // ❌ Hardcoded
+      headers: {
+        'Authorization': 'Bearer sk-1234567890', // ❌ Hardcoded
+      },
+      body: JSON.stringify({
+        temperature: 0.7, // ❌ Hardcoded
+        max_tokens: 2000 // ❌ Hardcoded
+      })
+    });
+  };
+};
+
+// ✅ BOM - Configuração externa
+import { appConfig } from '@/lib/config';
+
+const Chat = () => {
+  const maxMessages = appConfig.ui.itemsPerPage;
+  
+  const sendMessage = async (text: string) => {
+    const response = await fetch(appConfig.dify.baseUrl + '/chat', {
+      headers: {
+        'Authorization': `Bearer ${appConfig.dify.apiKey}`,
+      },
+      body: JSON.stringify({
+        temperature: appConfig.agents.temperature,
+        max_tokens: appConfig.agents.maxTokens
+      })
+    });
+  };
+};
+```
+
+### Validação de Configuração
+```typescript
+// Sempre valide configurações críticas
+export function validateConfig() {
+  if (!appConfig.dify.apiKey) {
+    throw new Error('DIFY_API_KEY é obrigatório');
+  }
+  
+  if (appConfig.agents.temperature < 0 || appConfig.agents.temperature > 2) {
+    throw new Error('LLM_TEMPERATURE deve estar entre 0 e 2');
+  }
+}
+```
+
+## Checklist de Implementação
+
+Quando criar ou modificar código, sempre verificar:
+- [ ] Não há valores hardcoded
+- [ ] Configurações estão em variáveis de ambiente
+- [ ] Valores padrão estão definidos
+- [ ] Configuração está documentada
+- [ ] Validação está implementada quando necessário
+
+## Arquivos de Configuração
+
+### .env.local (exemplo)
+```bash
+# APIs
+API_TIMEOUT=5000
+API_MAX_RETRIES=3
+API_BASE_URL=http://localhost:3000
+
+# Dify
+DIFY_BASE_URL=https://api.dify.ai
+DIFY_API_KEY=app-your-key-here
+DIFY_TIMEOUT=30000
+
+# LLM
+DEFAULT_LLM_MODEL=gpt-4
+LLM_TEMPERATURE=0.7
+LLM_MAX_TOKENS=2000
+
+# UI
+UI_THEME=light
+UI_LANGUAGE=pt-BR
+UI_ITEMS_PER_PAGE=10
+
+# Features
+ENABLE_ARTIFACTS=true
+ENABLE_DIFY=true
+ENABLE_ANALYTICS=false
+```
+
+## Estrutura de Pastas
+```
+lib/config/
+├── index.ts              # Configuração principal
+├── validation.ts         # Validação de configuração
+├── environment.ts        # Configuração por ambiente
+└── types.ts             # Tipos TypeScript
+
+config/
+├── agents.json          # Configuração dos agentes
+├── features.json        # Feature flags
+└── ui-themes.json       # Temas da interface
+```
+
+## Lembre-se
+- Configuração externa = flexibilidade
+- Hardcode = rigidez e problemas
+- Sempre documente configurações
+- Sempre defina valores padrão
+- Sempre valide configurações críticas

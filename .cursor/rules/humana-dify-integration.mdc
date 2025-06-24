@@ -1,0 +1,432 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Humana Companions - Integração Dify
+
+## 📋 Visão Geral
+Esta regra define os padrões de integração com a plataforma Dify para agentes de IA especializados.
+
+## 🤖 Estrutura de Agentes Dify
+
+### Configuração Base
+```typescript
+// SEMPRE use esta interface para novos agentes
+export interface DifyAgent {
+  id: string;                    // Identificador único
+  name: string;                  // Nome amigável
+  description: string;           // Descrição da funcionalidade
+  category: 'general' | 'health' | 'education' | 'business';
+  endpoint: string;              // URL da API Dify
+  apiKey: string;               // Chave de API (nunca no frontend)
+  model: string;                // Modelo IA usado
+  temperature: number;          // Criatividade (0-1)
+  maxTokens: number;           // Limite de tokens
+  systemPrompt: string;        // Prompt de sistema
+  isActive: boolean;           // Status do agente
+}
+```
+
+### Localização dos Arquivos
+```
+📁 lib/ai/
+├── dify-agents.ts           # Configuração dos agentes
+└── tools/                   # Tools específicas
+
+📁 components/
+├── dify-agent-selector.tsx  # Seletor de agentes
+└── dify-agent-demo.tsx     # Interface de demonstração
+
+📁 app/(chat)/api/
+└── dify/route.ts           # Endpoint da API
+```
+
+## 🔧 Implementação de Agentes
+
+### Chamada Padrão
+```typescript
+// SEMPRE use este padrão para chamar agentes Dify
+export async function callDifyAgent(
+  agentId: string,
+  message: string,
+  userId: string,
+  conversationId?: string
+) {
+  const agent = await getDifyAgent(agentId);
+  
+  const response = await fetch(`${agent.endpoint}/chat-messages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${agent.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      inputs: {},
+      query: message,
+      response_mode: 'streaming',
+      conversation_id: conversationId,
+      user: userId,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Dify API error: ${response.statusText}`);
+  }
+
+  return response;
+}
+```
+
+### Streaming Response
+```typescript
+// SEMPRE implemente streaming para melhor UX
+export async function streamDifyResponse(
+  response: Response,
+  onChunk: (chunk: string) => void,
+  onComplete: (fullResponse: string) => void
+) {
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let fullResponse = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    
+    if (done) break;
+    
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.event === 'message') {
+            onChunk(data.answer);
+            fullResponse += data.answer;
+          }
+        } catch (error) {
+          console.error('Error parsing Dify response:', error);
+        }
+      }
+    }
+  }
+  
+  onComplete(fullResponse);
+}
+```
+
+## 🎯 Categorias de Agentes
+
+### Agentes de Saúde (health)
+```typescript
+// Exemplo de agente especializado em saúde
+const healthAgent: DifyAgent = {
+  id: 'health-advisor',
+  name: 'Consultor de Saúde',
+  description: 'Especialista em orientações gerais de saúde e bem-estar',
+  category: 'health',
+  endpoint: process.env.DIFY_HEALTH_ENDPOINT!,
+  apiKey: process.env.DIFY_HEALTH_API_KEY!,
+  model: 'gpt-4',
+  temperature: 0.3, // Baixa criatividade para precisão médica
+  maxTokens: 2000,
+  systemPrompt: `Você é um consultor de saúde especializado...`,
+  isActive: true,
+};
+```
+
+### Agentes Educacionais (education)
+```typescript
+// Exemplo de agente educacional
+const educationAgent: DifyAgent = {
+  id: 'education-tutor',
+  name: 'Tutor Educacional',
+  description: 'Assistente para aprendizado e educação',
+  category: 'education',
+  endpoint: process.env.DIFY_EDUCATION_ENDPOINT!,
+  apiKey: process.env.DIFY_EDUCATION_API_KEY!,
+  model: 'gpt-4',
+  temperature: 0.7, // Criatividade moderada para ensino
+  maxTokens: 3000,
+  systemPrompt: `Você é um tutor educacional...`,
+  isActive: true,
+};
+```
+
+## 🔐 Segurança e Configuração
+
+### Variáveis de Ambiente
+```bash
+# SEMPRE configure estas variáveis
+DIFY_API_BASE=https://api.dify.ai/v1
+DIFY_DEFAULT_API_KEY=your-default-key
+DIFY_HEALTH_ENDPOINT=https://api.dify.ai/v1/workflows/health
+DIFY_HEALTH_API_KEY=your-health-key
+DIFY_EDUCATION_ENDPOINT=https://api.dify.ai/v1/workflows/education
+DIFY_EDUCATION_API_KEY=your-education-key
+```
+
+### Validação de Segurança
+```typescript
+// SEMPRE valide antes de usar
+function validateDifyConfig(agent: DifyAgent): boolean {
+  if (!agent.apiKey || agent.apiKey.length < 10) {
+    throw new Error('API key inválida');
+  }
+  
+  if (!agent.endpoint || !agent.endpoint.startsWith('https://')) {
+    throw new Error('Endpoint deve usar HTTPS');
+  }
+  
+  if (agent.temperature < 0 || agent.temperature > 1) {
+    throw new Error('Temperature deve estar entre 0 e 1');
+  }
+  
+  return true;
+}
+```
+
+## 🎨 Interface de Usuário
+
+### Seletor de Agentes
+```typescript
+// Componente para seleção de agentes
+export function DifyAgentSelector() {
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const { agents } = useDifyAgents();
+
+  return (
+    <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Selecione um agente especializado" />
+      </SelectTrigger>
+      <SelectContent>
+        {agents.map((agent) => (
+          <SelectItem key={agent.id} value={agent.id}>
+            <div className="flex items-center space-x-2">
+              <Badge variant="outline">{agent.category}</Badge>
+              <span>{agent.name}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+```
+
+### Indicador de Status
+```typescript
+// SEMPRE mostre status do agente
+export function AgentStatusIndicator({ agentId }: { agentId: string }) {
+  const { status } = useAgentStatus(agentId);
+  
+  return (
+    <div className="flex items-center space-x-2">
+      <div className={`w-2 h-2 rounded-full ${
+        status === 'online' ? 'bg-green-500' : 
+        status === 'busy' ? 'bg-yellow-500' : 'bg-red-500'
+      }`} />
+      <span className="text-sm text-muted-foreground">
+        {status === 'online' ? 'Disponível' : 
+         status === 'busy' ? 'Processando' : 'Offline'}
+      </span>
+    </div>
+  );
+}
+```
+
+## 📊 Monitoramento e Logs
+
+### Logging de Interações
+```typescript
+// SEMPRE registre interações para análise
+export async function logDifyInteraction(
+  agentId: string,
+  userId: string,
+  message: string,
+  response: string,
+  duration: number
+) {
+  await db.insert(difyLogs).values({
+    agentId,
+    userId,
+    message: message.substring(0, 500), // Limitar tamanho
+    response: response.substring(0, 1000),
+    duration,
+    timestamp: new Date(),
+    success: true,
+  });
+}
+```
+
+### Métricas de Performance
+```typescript
+// SEMPRE monitore performance
+export function useDifyMetrics(agentId: string) {
+  const [metrics, setMetrics] = useState({
+    averageResponseTime: 0,
+    successRate: 0,
+    totalInteractions: 0,
+    lastError: null,
+  });
+
+  useEffect(() => {
+    // Buscar métricas do agente
+    fetchAgentMetrics(agentId).then(setMetrics);
+  }, [agentId]);
+
+  return metrics;
+}
+```
+
+## 🚨 Error Handling
+
+### Tratamento de Erros
+```typescript
+// SEMPRE implemente error handling robusto
+export async function handleDifyError(error: any, agentId: string) {
+  console.error(`Dify agent ${agentId} error:`, error);
+  
+  // Log do erro
+  await logDifyError(agentId, error);
+  
+  // Fallback para agente padrão se necessário
+  if (error.status === 503) {
+    return callFallbackAgent(agentId);
+  }
+  
+  // Mensagem amigável para o usuário
+  throw new Error(
+    'Desculpe, o agente especializado está temporariamente indisponível. ' +
+    'Tente novamente em alguns instantes.'
+  );
+}
+```
+
+### Rate Limiting
+```typescript
+// SEMPRE implemente rate limiting
+export class DifyRateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  private readonly maxRequests = 60; // por minuto
+  private readonly windowMs = 60000; // 1 minuto
+
+  canMakeRequest(userId: string): boolean {
+    const now = Date.now();
+    const userRequests = this.requests.get(userId) || [];
+    
+    // Remove requests antigas
+    const validRequests = userRequests.filter(
+      time => now - time < this.windowMs
+    );
+    
+    if (validRequests.length >= this.maxRequests) {
+      return false;
+    }
+    
+    validRequests.push(now);
+    this.requests.set(userId, validRequests);
+    return true;
+  }
+}
+```
+
+## 🧪 Testing
+
+### Testes de Integração
+```typescript
+// SEMPRE teste integração com Dify
+describe('Dify Integration', () => {
+  it('should call agent successfully', async () => {
+    const mockAgent = createMockDifyAgent();
+    const response = await callDifyAgent(
+      mockAgent.id,
+      'Test message',
+      'test-user'
+    );
+    
+    expect(response).toBeDefined();
+    expect(response.ok).toBe(true);
+  });
+  
+  it('should handle streaming response', async () => {
+    const chunks: string[] = [];
+    const mockResponse = createMockStreamResponse();
+    
+    await streamDifyResponse(
+      mockResponse,
+      (chunk) => chunks.push(chunk),
+      (full) => expect(full).toContain('test response')
+    );
+    
+    expect(chunks.length).toBeGreaterThan(0);
+  });
+});
+```
+
+## 📋 Checklist de Implementação
+
+Ao adicionar novo agente Dify:
+
+- [ ] Definir interface DifyAgent completa
+- [ ] Configurar variáveis de ambiente
+- [ ] Implementar validação de segurança
+- [ ] Adicionar error handling robusto
+- [ ] Implementar streaming response
+- [ ] Criar testes de integração
+- [ ] Adicionar logging e métricas
+- [ ] Documentar funcionalidade específica
+- [ ] Testar rate limiting
+- [ ] Validar performance
+
+## 🎯 Exemplos Práticos
+
+### Novo Agente de Negócios
+```typescript
+// 1. Definir o agente
+const businessAgent: DifyAgent = {
+  id: 'business-consultant',
+  name: 'Consultor de Negócios',
+  description: 'Especialista em estratégias empresariais',
+  category: 'business',
+  endpoint: process.env.DIFY_BUSINESS_ENDPOINT!,
+  apiKey: process.env.DIFY_BUSINESS_API_KEY!,
+  model: 'gpt-4',
+  temperature: 0.5,
+  maxTokens: 2500,
+  systemPrompt: 'Você é um consultor empresarial...',
+  isActive: true,
+};
+
+// 2. Registrar o agente
+export const difyAgents = {
+  // ... outros agentes
+  'business-consultant': businessAgent,
+};
+
+// 3. Usar no componente
+function BusinessConsultant() {
+  const { callAgent, isLoading } = useDifyAgent('business-consultant');
+  
+  return (
+    <div>
+      <h3>Consultor de Negócios</h3>
+      <button onClick={() => callAgent('Como melhorar vendas?')}>
+        Consultar
+      </button>
+    </div>
+  );
+}
+```
+
+## 📚 Documentação de Referência
+
+Para implementações específicas:
+- `lib/ai/dify-agents.ts` - Configuração dos agentes
+- `components/dify-agent-selector.tsx` - Interface de seleção
+- `app/(chat)/api/dify/route.ts` - Endpoint da API
+- `docs/dify/` - Documentação completa (se existir)
+

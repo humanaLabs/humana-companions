@@ -2,11 +2,26 @@
 
 import { PageHeader } from '@/components/page-header';
 import { UserIcon, BoxIcon, LogsIcon, LockIcon } from '@/components/icons';
+import { AdminGuard, RolesGuard } from '@/components/auth/permission-guard';
+import { DebugPermissions } from '@/components/debug-permissions';
 import Link from 'next/link';
 
 export default function AdminPage() {
   return (
-    <div className="flex flex-col h-screen">
+    <AdminGuard fallback={
+      <div className="flex flex-col h-screen">
+        <PageHeader 
+          title="Acesso Negado" 
+          description="Você não tem permissão para acessar a área administrativa"
+          badge="Administração"
+          showBackButton={true}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">Sem permissão para acessar administração</div>
+        </div>
+      </div>
+    }>
+      <div className="flex flex-col h-screen">
       <PageHeader 
         title="Dashboard Administrativo" 
         description="Gerencie usuários, times e monitore o sistema"
@@ -70,8 +85,8 @@ export default function AdminPage() {
             </Link>
 
             {/* Gestão de Roles */}
-            <Link href="/admin/roles" className="group">
-              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <RolesGuard fallback={
+              <div className="bg-card border rounded-lg p-6 opacity-50">
                 <div className="flex items-start justify-between mb-4">
                   <div className="text-muted-foreground">
                     <LockIcon size={32} />
@@ -84,20 +99,45 @@ export default function AdminPage() {
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">Roles & Permissões</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Defina roles customizadas e suas permissões por menu/objeto
+                  Acesso restrito a Master Admin
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Acesso restrito</span>
-                  <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    Acessar →
+                  <span className="text-xs text-muted-foreground">🔒 Sem acesso</span>
+                  <div className="text-xs text-muted-foreground">
+                    Restrito
                   </div>
                 </div>
               </div>
-            </Link>
+            }>
+              <Link href="/admin/roles" className="group">
+                <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-muted-foreground">
+                      <LockIcon size={32} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                        Master Admin
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Roles & Permissões</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Defina roles customizadas e suas permissões por menu/objeto
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Acesso restrito</span>
+                    <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                      Acessar →
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </RolesGuard>
 
             {/* Administração Master */}
-            <Link href="/admin/master" className="group">
-              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+            <AdminGuard requireMaster={true} fallback={
+              <div className="bg-card border rounded-lg p-6 opacity-50">
                 <div className="flex items-start justify-between mb-4">
                   <div className="text-muted-foreground text-3xl">
                     👑
@@ -110,16 +150,41 @@ export default function AdminPage() {
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">Administração Master</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Gerencie usuários com privilégios de Master Admin
+                  Acesso restrito a Master Admin
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Máxima segurança</span>
-                  <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    Acessar →
+                  <span className="text-xs text-muted-foreground">🔒 Sem acesso</span>
+                  <div className="text-xs text-muted-foreground">
+                    Restrito
                   </div>
                 </div>
               </div>
-            </Link>
+            }>
+              <Link href="/admin/master" className="group">
+                <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-muted-foreground text-3xl">
+                      👑
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                        Master Admin
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Administração Master</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Gerencie usuários com privilégios de Master Admin
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Máxima segurança</span>
+                    <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                      Acessar →
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </AdminGuard>
 
 
           </div>
@@ -215,5 +280,7 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
+    <DebugPermissions />
+    </AdminGuard>
   );
 } 

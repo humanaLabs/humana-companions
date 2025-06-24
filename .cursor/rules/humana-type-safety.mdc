@@ -1,0 +1,439 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Type Safety e Validação Runtime
+
+## Princípio Fundamental
+**TypeScript protege em tempo de compilação, mas SEMPRE valide dados externos em runtime.** Nunca confie em dados que vêm de fora do seu controle.
+
+## Regras Obrigatórias
+
+### 🔍 SEMPRE Valide
+- Dados de APIs externas
+- Input do usuário
+- Variáveis de ambiente
+- Dados do localStorage/sessionStorage
+- Query parameters
+- Form data
+- Props de componentes críticos
+
+### ✅ Ferramentas de Validação
+
+#### 1. Zod - Schema Validation
+```typescript
+import { z } from 'zod'
+
+// ✅ Schema para agente Dify
+const DifyAgentSchema = z.object({
+  id: z.string().regex(/^app-[a-f0-9-]{36}$/, 'Invalid Dify agent ID format'),
+  name: z.string().min(1, 'Agent name is required'),
+  description: z.string(),
+  category: z.string().optional().default('general'),
+  baseUrl: z.string().url('Invalid base URL'),
+  apiKey: z.string().min(1, 'API key is required'),
+  timeout: z.number().min(1000).max(120000).optional().default(30000),
+  enabled: z.boolean().optional().default(true)
+})
+
+export type DifyAgent = z.infer<typeof DifyAgentSchema>
+
+// ✅ Validação de dados de API
+export async function fetchDifyAgents(): Promise<DifyAgent[]> {
+  try {
+    const response = await fetch('/api/dify/agents')
+    const data = await response.json()
+    
+    // Validação runtime obrigatória
+    const AgentsResponseSchema = z.object({
+      success: z.boolean(),
+      agents: z.array(DifyAgentSchema)
+    })
+    
+    const validatedData = AgentsResponseSchema.parse(data)
+    return validatedData.agents
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new ValidationError(`Invalid API response: ${error.message}`)
+    }
+    throw error
+  }
+}
+```
+
+#### 2. Type Guards - Verificação Manual
+```typescript
+// ✅ Type guard para verificar se é um agente válido
+export function isDifyAgent(obj: unknown): obj is DifyAgent {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'id' in obj &&
+    'name' in obj &&
+    typeof (obj as any).id === 'string' &&
+    typeof (obj as any).name === 'string' &&
+    /^app-[a-f0-9-]{36}$/.test((obj as any).id)
+  )
+}
+
+// ✅ Uso do type guard
+export function processAgent(data: unknown) {
+  if (!isDifyAgent(data)) {
+    throw new ValidationError('Invalid agent data')
+  }
+  
+  // Agora TypeScript sabe que data é DifyAgent
+  console.log(`Processing agent: ${data.name}`)
+}
+```
+
+#### 3. Validação de Props React
+```typescript
+import { z } from 'zod'
+
+// ✅ Schema para props críticas
+const AgentSelectorPropsSchema = z.object({
+  agents: z.array(DifyAgentSchema),
+  selectedAgent: z.string().optional(),
+  onAgentChange: z.function(),
+  loading: z.boolean().optional().default(false),
+  disabled: z.boolean().optional().default(false)
+})
+
+export function DifyAgentSelector(props: unknown) {
+  // Validação das props em desenvolvimento
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      AgentSelectorPropsSchema.parse(props)
+    } catch (error) {
+      console.error('Invalid props for DifyAgentSelector:', error)
+      throw new Error('Invalid component props')
+    }
+  }
+  
+  const { agents, selectedAgent, onAgentChange, loading, disabled } = props as z.infer<typeof AgentSelectorPropsSchema>
+  
+  // implementação...
+}
+```
+
+#### 4. Validação de Environment Variables
+```typescript
+import { z } from 'zod'
+
+// ✅ Schema para variáveis de ambiente
+const EnvSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']),
+  DIFY_BASE_URL: z.string().url(),
+  DIFY_API_KEY: z.string().min(1),
+  DIFY_TIMEOUT: z.string().regex(/^\d+$/).transform(Number).optional(),
+  DATABASE_URL: z.string().url(),
+  NEXTAUTH_SECRET: z.string().min(32),
+  NEXTAUTH_URL: z.string().url()
+})
+
+// ✅ Validação na inicialização
+export function validateEnvironment() {
+  try {
+    return EnvSchema.parse(process.env)
+  } catch (error) {
+    console.error('❌ Invalid environment variables:', error)
+    process.exit(1)
+  }
+}
+
+// Validar no início da aplicação
+export const env = validateEnvironment()
+```
+
+#### 5. API Route Validation
+```typescript
+// ✅ Validação de input em API routes
+const CreateAgentRequestSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500),
+  category: z.string().optional(),
+  config: z.object({
+    model: z.enum(['gpt-4', 'gpt-3.5-turbo', 'claude-3']),
+    temperature: z.number().min(0).max(2),
+    maxTokens: z.number().min(1).max(4000)
+  })
+})
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    
+    // Validação obrigatória do input
+    const validatedData = CreateAgentRequestSchema.parse(body)
+    
+    // Processar dados validados
+    const agent = await createAgent(validatedData)
+    
+    return NextResponse.json({ success: true, agent })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request data', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+#### 6. Form Validation
+```typescript
+// ✅ Schema para formulários
+const AgentFormSchema = z.object({
+  name: z.string()
+    .min(1, 'Nome é obrigatório')
+    .max(100, 'Nome muito longo'),
+  description: z.string()
+    .max(500, 'Descrição muito longa'),
+  category: z.string()
+    .optional(),
+  model: z.enum(['gpt-4', 'gpt-3.5-turbo', 'claude-3'], {
+    errorMap: () => ({ message: 'Modelo inválido' })
+  }),
+  temperature: z.number()
+    .min(0, 'Temperature deve ser >= 0')
+    .max(2, 'Temperature deve ser <= 2'),
+  maxTokens: z.number()
+    .min(1, 'Max tokens deve ser >= 1')
+    .max(4000, 'Max tokens deve ser <= 4000')
+})
+
+export function AgentForm() {
+  const [formData, setFormData] = useState({})
+  const [errors, setErrors] = useState({})
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      // Validação antes do submit
+      const validatedData = AgentFormSchema.parse(formData)
+      setErrors({})
+      
+      // Enviar dados validados
+      onSubmit(validatedData)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const formErrors = error.errors.reduce((acc, err) => {
+          acc[err.path[0]] = err.message
+          return acc
+        }, {})
+        setErrors(formErrors)
+      }
+    }
+  }
+
+  // JSX com exibição de erros...
+}
+```
+
+## Padrões de Validação por Contexto
+
+### 1. Dados de API Externa
+```typescript
+// ✅ Sempre validar respostas de APIs externas
+export async function fetchFromExternalAPI(url: string) {
+  const response = await fetch(url)
+  const data = await response.json()
+  
+  // Schema específico para API externa
+  const ExternalAPISchema = z.object({
+    status: z.string(),
+    data: z.array(z.unknown()),
+    message: z.string().optional()
+  })
+  
+  return ExternalAPISchema.parse(data)
+}
+```
+
+### 2. LocalStorage/SessionStorage
+```typescript
+// ✅ Validar dados do storage
+export function getStoredAgentConfig(): DifyAgent | null {
+  try {
+    const stored = localStorage.getItem('selectedAgent')
+    if (!stored) return null
+    
+    const parsed = JSON.parse(stored)
+    return DifyAgentSchema.parse(parsed)
+  } catch (error) {
+    console.warn('Invalid stored agent config, clearing...', error)
+    localStorage.removeItem('selectedAgent')
+    return null
+  }
+}
+```
+
+### 3. Query Parameters
+```typescript
+// ✅ Validar query parameters
+const SearchParamsSchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).optional().default(1),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default(10),
+  category: z.string().optional(),
+  search: z.string().optional()
+})
+
+export function useSearchParams() {
+  const searchParams = useSearchParams()
+  
+  try {
+    return SearchParamsSchema.parse(Object.fromEntries(searchParams))
+  } catch (error) {
+    console.warn('Invalid search params:', error)
+    return SearchParamsSchema.parse({}) // defaults
+  }
+}
+```
+
+## Utilities de Validação
+
+### 1. Validador Genérico
+```typescript
+// ✅ Função utilitária para validação
+export function validateWithSchema<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown,
+  errorMessage?: string
+): T {
+  try {
+    return schema.parse(data)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new ValidationError(
+        errorMessage || `Validation failed: ${error.message}`
+      )
+    }
+    throw error
+  }
+}
+
+// Uso
+const agent = validateWithSchema(DifyAgentSchema, apiResponse, 'Invalid agent data from API')
+```
+
+### 2. Validação Assíncrona
+```typescript
+// ✅ Para validações que precisam de async (ex: verificar se ID existe)
+const AsyncAgentSchema = DifyAgentSchema.extend({
+  id: z.string().refine(async (id) => {
+    const exists = await checkAgentExists(id)
+    return exists
+  }, 'Agent ID does not exist')
+})
+
+export async function validateAgentWithExistence(data: unknown) {
+  return AsyncAgentSchema.parseAsync(data)
+}
+```
+
+### 3. Validação Condicional
+```typescript
+// ✅ Validação baseada em condições
+const ConditionalSchema = z.object({
+  type: z.enum(['basic', 'advanced']),
+  config: z.unknown()
+}).refine((data) => {
+  if (data.type === 'advanced') {
+    const AdvancedConfigSchema = z.object({
+      model: z.string(),
+      temperature: z.number(),
+      maxTokens: z.number()
+    })
+    return AdvancedConfigSchema.safeParse(data.config).success
+  }
+  return true
+}, 'Invalid config for advanced type')
+```
+
+## Error Handling para Validação
+
+### 1. Classe de Erro Customizada
+```typescript
+export class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field?: string,
+    public value?: unknown
+  ) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+```
+
+### 2. Wrapper para Validação Segura
+```typescript
+// ✅ Validação que não quebra a aplicação
+export function safeValidate<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown,
+  fallback: T
+): T {
+  try {
+    return schema.parse(data)
+  } catch (error) {
+    console.warn('Validation failed, using fallback:', error)
+    return fallback
+  }
+}
+```
+
+## Checklist de Type Safety
+
+### Para cada função/componente, verificar:
+- [ ] Dados externos são validados com schema
+- [ ] Type guards são usados quando apropriado
+- [ ] Props críticas são validadas
+- [ ] Variáveis de ambiente são validadas
+- [ ] Erros de validação são tratados adequadamente
+- [ ] Fallbacks estão definidos para dados inválidos
+- [ ] Schemas são reutilizáveis e bem documentados
+- [ ] Validação assíncrona é usada quando necessário
+
+## Performance de Validação
+
+### 1. Validação Condicional
+```typescript
+// ✅ Só validar em desenvolvimento ou quando necessário
+export function validateInDev<T>(schema: z.ZodSchema<T>, data: T): T {
+  if (process.env.NODE_ENV === 'development') {
+    return schema.parse(data)
+  }
+  return data
+}
+```
+
+### 2. Caching de Schemas
+```typescript
+// ✅ Cache schemas compilados
+const schemaCache = new Map<string, z.ZodSchema>()
+
+export function getCachedSchema(key: string, factory: () => z.ZodSchema) {
+  if (!schemaCache.has(key)) {
+    schemaCache.set(key, factory())
+  }
+  return schemaCache.get(key)!
+}
+```
+
+## Lembre-se
+- TypeScript != Runtime Safety
+- Sempre valide dados externos
+- Schemas são documentação executável
+- Falhe rápido com mensagens claras
+- Performance importa - valide inteligentemente
+- Fallbacks mantêm a aplicação funcionando

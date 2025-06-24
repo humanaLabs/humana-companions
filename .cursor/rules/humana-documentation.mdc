@@ -1,0 +1,432 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Documentação Obrigatória
+
+## Princípio Fundamental
+**TODO código público DEVE ser documentado.** Documentação é parte integral do código, não opcional.
+
+## Regras Obrigatórias
+
+### 📝 SEMPRE Documente
+- Funções e métodos públicos
+- Classes e interfaces
+- Tipos complexos
+- Hooks customizados
+- Componentes React
+- APIs e endpoints
+- Configurações importantes
+
+### ✅ Padrão JSDoc
+
+#### 1. Funções - Documentação Completa
+```typescript
+/**
+ * Busca agentes Dify disponíveis do servidor
+ * 
+ * @description Esta função faz uma requisição para a API de agentes,
+ * valida a resposta e retorna uma lista de agentes disponíveis.
+ * Em caso de erro, loga o problema e re-throw com contexto adicional.
+ * 
+ * @returns Promise que resolve para array de agentes
+ * @throws {APIError} Quando a API retorna erro HTTP
+ * @throws {ValidationError} Quando os dados retornados são inválidos
+ * 
+ * @example
+ * ```typescript
+ * try {
+ *   const agents = await fetchDifyAgents()
+ *   console.log(`Found ${agents.length} agents`)
+ * } catch (error) {
+ *   console.error('Failed to load agents:', error)
+ * }
+ * ```
+ * 
+ * @since 1.0.0
+ * @author Humana Team
+ */
+export async function fetchDifyAgents(): Promise<DifyAgent[]> {
+  // implementação...
+}
+```
+
+#### 2. Interfaces - Documentação Detalhada
+```typescript
+/**
+ * Configuração de um agente Dify
+ * 
+ * @description Interface que define a estrutura de configuração
+ * para agentes Dify, incluindo credenciais e parâmetros de execução.
+ * 
+ * @interface DifyAgentConfig
+ * @since 1.0.0
+ */
+export interface DifyAgentConfig {
+  /** Identificador único do agente (formato: app-uuid) */
+  id: string
+  
+  /** Nome amigável do agente (exibido na UI) */
+  name: string
+  
+  /** 
+   * Descrição detalhada do agente
+   * @example "Especialista em desenvolvimento TypeScript e React"
+   */
+  description: string
+  
+  /** 
+   * Categoria do agente para agrupamento
+   * @default "general"
+   */
+  category?: string
+  
+  /** 
+   * URL base da API Dify
+   * @example "https://api.dify.ai"
+   */
+  baseUrl: string
+  
+  /** 
+   * Chave de API para autenticação
+   * @format "app-{uuid}"
+   */
+  apiKey: string
+  
+  /** 
+   * Timeout em milissegundos para requisições
+   * @default 30000
+   * @minimum 1000
+   * @maximum 120000
+   */
+  timeout?: number
+  
+  /** 
+   * Se o agente está habilitado
+   * @default true
+   */
+  enabled?: boolean
+}
+```
+
+#### 3. Componentes React - Props e Comportamento
+```typescript
+/**
+ * Seletor de agentes Dify com agrupamento por categoria
+ * 
+ * @description Componente que renderiza um dropdown para seleção
+ * de agentes Dify, com agrupamento automático por categoria,
+ * estados de loading e tratamento de erros.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <DifyAgentSelector
+ *   agents={agents}
+ *   selectedAgent="app-123"
+ *   onAgentChange={(id) => setSelectedAgent(id)}
+ *   loading={isLoading}
+ * />
+ * ```
+ * 
+ * @param props - Propriedades do componente
+ * @returns JSX Element
+ * 
+ * @since 1.0.0
+ * @author Humana Team
+ */
+export function DifyAgentSelector({
+  /** Lista de agentes disponíveis */
+  agents,
+  
+  /** ID do agente atualmente selecionado */
+  selectedAgent,
+  
+  /** 
+   * Callback executado quando agente é alterado
+   * @param agentId - ID do novo agente selecionado
+   */
+  onAgentChange,
+  
+  /** 
+   * Estado de carregamento
+   * @default false
+   */
+  loading = false,
+  
+  /** 
+   * Se o seletor está desabilitado
+   * @default false
+   */
+  disabled = false
+}: DifyAgentSelectorProps) {
+  // implementação...
+}
+```
+
+#### 4. Hooks Customizados - Estado e Efeitos
+```typescript
+/**
+ * Hook para gerenciamento de agentes Dify
+ * 
+ * @description Hook customizado que gerencia o estado de agentes Dify,
+ * incluindo carregamento, seleção, e tratamento de erros.
+ * Fornece funções para carregar, selecionar e resetar agentes.
+ * 
+ * @hook
+ * @returns Objeto com estado e funções de controle
+ * 
+ * @example
+ * ```typescript
+ * function MyComponent() {
+ *   const {
+ *     agents,
+ *     selectedAgent,
+ *     loading,
+ *     error,
+ *     loadAgents,
+ *     selectAgent,
+ *     resetSelection
+ *   } = useDifyAgents()
+ * 
+ *   useEffect(() => {
+ *     loadAgents()
+ *   }, [loadAgents])
+ * 
+ *   return (
+ *     <DifyAgentSelector
+ *       agents={agents}
+ *       selectedAgent={selectedAgent}
+ *       onAgentChange={selectAgent}
+ *       loading={loading}
+ *     />
+ *   )
+ * }
+ * ```
+ * 
+ * @since 1.0.0
+ * @author Humana Team
+ */
+export function useDifyAgents() {
+  // implementação...
+  
+  return {
+    /** Lista de agentes carregados */
+    agents,
+    
+    /** ID do agente atualmente selecionado */
+    selectedAgent,
+    
+    /** Estado de carregamento */
+    loading,
+    
+    /** Mensagem de erro, se houver */
+    error,
+    
+    /** 
+     * Carrega lista de agentes do servidor
+     * @async
+     * @throws {APIError} Em caso de falha na API
+     */
+    loadAgents,
+    
+    /** 
+     * Seleciona um agente pelo ID
+     * @param agentId - ID do agente a ser selecionado
+     */
+    selectAgent,
+    
+    /** Limpa a seleção atual */
+    resetSelection
+  }
+}
+```
+
+#### 5. API Routes - Endpoints e Responses
+```typescript
+/**
+ * GET /api/dify/agents
+ * 
+ * @description Endpoint para listar agentes Dify disponíveis.
+ * Retorna lista de agentes com suas configurações básicas.
+ * 
+ * @route GET /api/dify/agents
+ * @access Public
+ * 
+ * @returns {Promise<NextResponse>} Response com lista de agentes
+ * 
+ * @example Response Success (200):
+ * ```json
+ * {
+ *   "success": true,
+ *   "agents": [
+ *     {
+ *       "id": "app-123",
+ *       "name": "Alex",
+ *       "description": "Especialista em desenvolvimento",
+ *       "category": "development"
+ *     }
+ *   ]
+ * }
+ * ```
+ * 
+ * @example Response Error (500):
+ * ```json
+ * {
+ *   "success": false,
+ *   "error": "Failed to fetch agents from Dify API"
+ * }
+ * ```
+ * 
+ * @throws {500} Erro interno do servidor
+ * @throws {503} Serviço Dify indisponível
+ * 
+ * @since 1.0.0
+ * @author Humana Team
+ */
+export async function GET() {
+  // implementação...
+}
+```
+
+#### 6. Utility Functions - Propósito e Uso
+```typescript
+/**
+ * Valida se um ID é um identificador Dify válido
+ * 
+ * @description Verifica se o ID fornecido segue o padrão
+ * de identificadores Dify (app-{uuid}). Usado para
+ * validação antes de fazer requisições à API.
+ * 
+ * @param id - ID a ser validado
+ * @returns true se o ID é válido, false caso contrário
+ * 
+ * @example
+ * ```typescript
+ * isValidDifyId('app-123e4567-e89b-12d3-a456-426614174000') // true
+ * isValidDifyId('invalid-id') // false
+ * isValidDifyId('') // false
+ * ```
+ * 
+ * @since 1.0.0
+ * @author Humana Team
+ */
+export function isValidDifyId(id: string): boolean {
+  return /^app-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(id)
+}
+```
+
+## Tags JSDoc Obrigatórias
+
+### Para Funções
+- `@description` - Descrição detalhada
+- `@param` - Parâmetros (nome, tipo, descrição)
+- `@returns` - Valor de retorno
+- `@throws` - Exceções que podem ser lançadas
+- `@example` - Exemplo de uso
+- `@since` - Versão de introdução
+- `@author` - Autor/time responsável
+
+### Para Interfaces/Types
+- `@description` - Propósito da interface
+- `@interface` ou `@type` - Tipo de definição
+- `@since` - Versão de introdução
+- Comentários inline para cada propriedade
+
+### Para Componentes
+- `@component` - Marca como componente React
+- `@description` - Funcionalidade do componente
+- `@param` - Props do componente
+- `@returns` - JSX Element
+- `@example` - Exemplo de uso
+
+### Para Hooks
+- `@hook` - Marca como hook customizado
+- `@description` - Funcionalidade do hook
+- `@returns` - Objeto retornado com descrição das propriedades
+- `@example` - Exemplo de uso
+
+## Documentação de Configuração
+
+### Variáveis de Ambiente
+```typescript
+/**
+ * Configurações de ambiente para agentes Dify
+ * 
+ * @description Centraliza todas as configurações relacionadas
+ * aos agentes Dify, carregadas de variáveis de ambiente
+ * com fallbacks apropriados.
+ */
+export const difyConfig = {
+  /** 
+   * URL base da API Dify
+   * @env DIFY_BASE_URL
+   * @default "https://api.dify.ai"
+   */
+  baseUrl: process.env.DIFY_BASE_URL || 'https://api.dify.ai',
+  
+  /** 
+   * Chave de API padrão
+   * @env DIFY_API_KEY
+   * @required
+   */
+  apiKey: process.env.DIFY_API_KEY || '',
+  
+  /** 
+   * Timeout para requisições em ms
+   * @env DIFY_TIMEOUT
+   * @default 30000
+   * @minimum 1000
+   */
+  timeout: Number(process.env.DIFY_TIMEOUT) || 30000
+}
+```
+
+## Checklist de Documentação
+
+### Antes de fazer commit, verificar:
+- [ ] Todas as funções públicas têm JSDoc
+- [ ] Todas as interfaces têm descrição
+- [ ] Componentes têm @example
+- [ ] Hooks têm exemplo de uso
+- [ ] API routes têm exemplos de response
+- [ ] Configurações têm @env tags
+- [ ] Erros possíveis estão documentados
+- [ ] @since está preenchido
+- [ ] @author está definido
+
+## Ferramentas de Documentação
+
+### Geração Automática
+```json
+// package.json
+{
+  "scripts": {
+    "docs:generate": "typedoc --out docs/api src/",
+    "docs:serve": "serve docs/api",
+    "docs:validate": "tsc --noEmit && eslint --ext .ts,.tsx src/"
+  }
+}
+```
+
+### Configuração TypeDoc
+```json
+// typedoc.json
+{
+  "entryPoints": ["src/"],
+  "out": "docs/api",
+  "theme": "default",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true
+}
+```
+
+## Lembre-se
+- Documentação é para outros desenvolvedores (e você no futuro)
+- Exemplos valem mais que descrições longas
+- Mantenha documentação atualizada com o código
+- Use linguagem clara e objetiva
+- Documente o "porquê", não apenas o "o que"

@@ -15,7 +15,13 @@ export async function GET(request: NextRequest) {
 
     // Mock data devido a problemas de compatibilidade do Drizzle
     // TODO: Implementar busca real no banco quando resolver conflitos de versão
-    const isMasterAdmin = session.user.email === 'admin@humana.com.br' || false;
+    const masterAdminEmails = ['admin@humana.com.br', 'eduibrahim@yahoo.com.br'];
+    const isMasterAdmin = masterAdminEmails.includes(session.user.email || '') || false;
+    
+    // DEBUG: Log para verificar a detecção de Master Admin
+    console.log('🔍 DEBUG API - Email:', session.user.email);
+    console.log('🔍 DEBUG API - Master Admin Emails:', masterAdminEmails);
+    console.log('🔍 DEBUG API - É Master Admin?', isMasterAdmin);
     const canCreateOrganization = session.user.type === 'regular';
 
     // Determinar role baseado no tipo de usuário

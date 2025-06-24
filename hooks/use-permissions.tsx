@@ -56,6 +56,11 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
       if (response.ok) {
         const data = await response.json();
         
+        // DEBUG: Log dos dados recebidos
+        console.log('🔐 DEBUG - Dados da API de permissões:', data);
+        console.log('📧 Email do usuário:', session.user.email);
+        console.log('👑 É Master Admin?', data.isMasterAdmin);
+        
         // Transformar resposta da API em UserPermissions
         const permissions: UserPermissions = {
           userId: session.user.id,
@@ -71,6 +76,10 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
             data.isMasterAdmin
           )
         };
+        
+        // DEBUG: Log das permissões computadas
+        console.log('🎯 Permissões computadas:', permissions.computedPermissions);
+        console.log('🔑 Role ID:', permissions.roleId);
         
         setUserPermissions(permissions);
       } else {
@@ -92,7 +101,14 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
 
   const checkPermission = (permission: string, context?: PermissionContext): boolean => {
     if (!userPermissions) return false;
-    return hasPermission(userPermissions, permission, context);
+    
+    const result = hasPermission(userPermissions, permission, context);
+    
+    // DEBUG: Log da verificação de permissão específica
+    console.log(`🔍 Verificando permissão "${permission}":`, result);
+    console.log('👤 UserPermissions:', userPermissions);
+    
+    return result;
   };
 
   const checkAnyPermission = (permissions: string[], context?: PermissionContext): boolean => {

@@ -1,0 +1,272 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Humana Companions - Sistema de Planejamento
+
+## 📋 Visão Geral
+Esta regra define o uso do sistema de planejamento evolutivo para mudanças arquiteturais complexas. **SEMPRE planejar antes de implementar** mudanças significativas.
+
+## 🚨 Regra Fundamental
+
+### NUNCA implemente diretamente se a mudança:
+- [ ] Afeta **múltiplos módulos** da aplicação
+- [ ] Introduz **novas dependências** externas  
+- [ ] Modifica **padrões arquiteturais** existentes
+- [ ] Impacta **performance** ou **escalabilidade**
+- [ ] Requer **migração de dados** ou **breaking changes**
+- [ ] Envolve **integrações complexas** (MCP, RAG, orquestradores)
+
+### SEMPRE crie planejamento em `docs/planejamento/`
+
+## 🗂️ Estrutura de Planejamento
+
+### Template Obrigatório
+```
+📁 docs/planejamento/[nome-mudanca]/
+├── analise-impacto.md       # Análise completa de impacto
+├── arquitetura-proposta.md  # Arquitetura detalhada
+├── diagramas.md            # Diagramas C4 e fluxos
+├── implementacao-fases.md   # Fases de implementação
+└── validacao-testes.md     # Estratégia de testes
+```
+
+## 📊 Planejamentos Atuais
+
+### 🟡 Em Andamento
+- **MCP Integration** - Context-aware AI (Alta prioridade)
+- **RAG Data Room** - Base de conhecimento (Alta prioridade)
+
+### 📋 Pendentes
+- **UI Chat Generative (ReAct)** - Interface com raciocínio
+- **Agentes Companions** - Sistema de companions
+- **Novas Telas** - Designer interfaces
+- **Apps Internos** - Apps plugáveis
+- **Marketplace Companions** - Marketplace de companions
+
+## 🎯 Processo de Planejamento
+
+### Fase 1: Análise de Impacto (OBRIGATÓRIA)
+```markdown
+# Análise de Impacto - [Nome da Mudança]
+
+## Contexto Atual
+- Estado atual do sistema
+- Limitações identificadas
+- Motivação para mudança
+
+## Componentes Afetados
+- [ ] Frontend (React/Next.js)
+- [ ] Backend (API Routes)
+- [ ] Banco de dados (Schema)
+- [ ] Integrações externas
+- [ ] Sistema de autenticação
+- [ ] Sistema de artifacts
+- [ ] Agentes Dify
+
+## Riscos Identificados
+- Riscos técnicos
+- Riscos de performance
+- Riscos de segurança
+- Riscos de UX
+
+## Critérios de Sucesso
+- Métricas funcionais
+- Métricas de performance
+- Métricas de qualidade
+```
+
+### Fase 2: Arquitetura Proposta (OBRIGATÓRIA)
+```markdown
+# Arquitetura Proposta - [Nome da Mudança]
+
+## Decisões Arquiteturais
+1. **Tecnologias escolhidas** e justificativa
+2. **Padrões de integração** a seguir
+3. **Estrutura de dados** necessária
+4. **APIs e endpoints** a criar
+
+## Alternativas Consideradas
+- Opção A: Prós e contras
+- Opção B: Prós e contras
+- **Opção escolhida**: Justificativa detalhada
+```
+
+### Fase 3: Implementação em Fases (OBRIGATÓRIA)
+```markdown
+# Implementação em Fases - [Nome da Mudança]
+
+## Fase 1: Fundação (Semana 1-2)
+- [ ] Setup inicial
+- [ ] Estrutura básica
+- [ ] Proof of concept
+
+## Fase 2: Core Features (Semana 3-4)
+- [ ] Funcionalidades principais
+- [ ] Integrações básicas
+- [ ] Testes unitários
+
+## Fase 3: Integração (Semana 5-6)
+- [ ] Integração com sistema existente
+- [ ] Testes de integração
+- [ ] Performance tuning
+
+## Fase 4: Polimento (Semana 7-8)
+- [ ] UI/UX refinements
+- [ ] Documentação completa
+- [ ] Testes E2E
+```
+
+## 🚨 Red Flags - Pare e Planeje
+
+Se a IA sugerir qualquer um destes, PARE e crie planejamento:
+
+- **"Vamos implementar MCP"** → Requer planejamento MCP
+- **"Vamos adicionar RAG"** → Requer planejamento RAG
+- **"Vamos criar sistema de agentes"** → Requer planejamento Companions
+- **"Vamos fazer um marketplace"** → Requer planejamento Marketplace
+- **"Vamos integrar com [API complexa]"** → Requer planejamento de integração
+- **"Vamos refatorar a arquitetura"** → Requer planejamento arquitetural
+
+## ✅ Exemplos de Mudanças Simples (Não Requerem Planejamento)
+
+- Adicionar novo componente UI simples
+- Corrigir bug específico
+- Adicionar nova rota simples
+- Modificar estilo CSS
+- Adicionar validação de formulário
+- Atualizar texto ou tradução
+
+## 🎯 Templates por Tipo
+
+### Nova Integração Externa
+```markdown
+## Análise da API/Serviço
+- Documentação da API
+- Rate limits e pricing
+- Autenticação e segurança
+
+## Integração Proposta
+- Padrão de integração (PADRAO_INTEGRACAO.md)
+- Error handling específico
+- Caching strategy
+
+## Impacto no Sistema
+- Mudanças no schema
+- Novos endpoints necessários
+- Modificações em componentes
+```
+
+### Nova Funcionalidade UI
+```markdown
+## UX/UI Design
+- Wireframes e mockups
+- User journey mapping
+- Responsive design
+
+## Componentes Necessários
+- Novos componentes a criar
+- Componentes existentes a modificar
+- Dependências do shadcn/ui
+
+## Integração com Backend
+- APIs necessárias
+- Estrutura de dados
+- Real-time requirements
+```
+
+### Mudança Arquitetural
+```markdown
+## Arquitetura Atual vs Proposta
+- Diagrama do estado atual
+- Diagrama da arquitetura proposta
+- Comparação de trade-offs
+
+## Migração
+- Estratégia de migração
+- Downtime necessário
+- Rollback plan
+
+## Impacto em Performance
+- Benchmarks atuais
+- Performance esperada
+- Pontos de monitoramento
+```
+
+## 📈 Priorização de Planejamentos
+
+### Matriz de Priorização
+```
+Alto Impacto + Baixa Complexidade = 🟢 Prioridade Máxima
+Alto Impacto + Alta Complexidade  = 🟡 Prioridade Alta  
+Baixo Impacto + Baixa Complexidade = 🟡 Prioridade Média
+Baixo Impacto + Alta Complexidade  = 🔴 Prioridade Baixa
+```
+
+### Critérios de Priorização
+1. **Impacto no negócio** - Benefício direto para usuários
+2. **Dependências** - Outros planejamentos dependem desta mudança
+3. **Complexidade** - Risco técnico e esforço necessário
+4. **Recursos disponíveis** - Capacidade da equipe
+5. **Timeline** - Urgência e deadlines
+
+## 🛠️ Ferramentas de Planejamento
+
+### Diagramas Obrigatórios
+Para mudanças complexas, SEMPRE criar:
+1. **Diagrama C4** - Contexto e containers
+2. **Diagrama de fluxo** - Fluxo de dados
+3. **Diagrama de sequência** - Interações temporais
+4. **Diagrama de componentes** - Estrutura interna
+
+### Validação Técnica
+```bash
+# Scripts de validação (quando aplicável)
+npm run validate:architecture  # Validar arquitetura
+npm run test:integration      # Testes de integração
+npm run benchmark:performance # Benchmark de performance
+npm run analyze:dependencies  # Análise de dependências
+```
+
+## 📚 Documentação de Referência
+
+### Planejamento
+- `docs/arquitetura_geral/PLANEJAMENTO_EVOLUTIVO.md` - Processo completo
+- `docs/planejamento/README.md` - Índice de planejamentos
+
+### Implementação
+- `docs/arquitetura_geral/PADRAO_INTEGRACAO.md` - Padrões de integração
+- `docs/arquitetura_geral/CHECKLIST_INTEGRACAO.md` - Checklist de validação
+- `docs/arquitetura_geral/BOAS_PRATICAS_CODIGO.md` - Padrões de código
+
+## 🎯 Workflow Recomendado
+
+### Para Mudança Complexa
+1. **Identificar complexidade** - Usar critérios acima
+2. **Criar diretório** - `docs/planejamento/[nome]/`
+3. **Análise de impacto** - Documento completo
+4. **Arquitetura proposta** - Solução técnica
+5. **Diagramas** - Visualização da solução
+6. **Fases de implementação** - Quebra em etapas
+7. **Validação** - Estratégia de testes
+8. **Aprovação** - Review antes de implementar
+9. **Implementação** - Seguir fases planejadas
+10. **Retrospectiva** - Aprender para próximos planejamentos
+
+### Para Mudança Simples
+1. **Confirmar simplicidade** - Não atende critérios de complexidade
+2. **Implementar diretamente** - Seguindo padrões existentes
+3. **Documentar se necessário** - Updates em documentação existente
+
+## ⚠️ Lembre-se
+
+**O objetivo não é burocratizar**, mas sim:
+- **Evitar retrabalho** por decisões arquiteturais ruins
+- **Minimizar riscos** de mudanças complexas
+- **Garantir qualidade** através de planejamento adequado
+- **Facilitar manutenção** com arquitetura bem pensada
+- **Acelerar desenvolvimento** futuro com base sólida
+
+**Planejamento é investimento, não custo!**
+

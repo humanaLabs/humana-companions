@@ -1,0 +1,10 @@
+---
+description: When you want to use the LLMs and the AI SDK use this guide
+globs: 
+alwaysApply: false
+---
+# Documentations for AI SDK 
+
+- Find the Documentations for using the AI SDK in `.cursor/docs/ai-sdk-docs`
+- You can find the cookbook for the AI SDK in `.cursor/cookbook`
+- For the AI Providers you can find them at `.cursor/providers` 

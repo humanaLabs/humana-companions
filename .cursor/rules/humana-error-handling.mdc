@@ -1,0 +1,362 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Tratamento de Erros Obrigatório
+
+## Princípio Fundamental
+**TODO código que pode falhar DEVE ter tratamento de erro adequado.** Nunca deixe erros não tratados.
+
+## Regras Obrigatórias
+
+### 🚨 SEMPRE Trate Erros
+- Todas as chamadas de API
+- Operações de arquivo/banco de dados
+- Parsing de JSON
+- Validações de entrada
+- Operações assíncronas
+- Integrações externas
+
+### ✅ Padrões de Tratamento
+
+#### 1. API Calls - Sempre com Try/Catch
+```typescript
+// ❌ RUIM - Sem tratamento
+export async function fetchAgents() {
+  const response = await fetch('/api/agents')
+  return response.json()
+}
+
+// ✅ BOM - Tratamento completo
+export async function fetchAgents(): Promise<Agent[]> {
+  try {
+    const response = await fetch('/api/agents')
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    
+    // Validação dos dados
+    if (!Array.isArray(data.agents)) {
+      throw new Error('Invalid response format: agents must be an array')
+    }
+    
+    return data.agents
+  } catch (error) {
+    console.error('Error fetching agents:', error)
+    
+    // Re-throw com contexto
+    throw new Error(
+      `Failed to fetch agents: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+}
+```
+
+#### 2. Componentes React - Error Boundaries
+```typescript
+// ✅ Sempre wrap componentes críticos
+export function AgentSelector({ onSelect }: Props) {
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [error, setError] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+
+  const loadAgents = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      const data = await fetchAgents()
+      setAgents(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load agents'
+      setError(message)
+      console.error('AgentSelector error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  if (error) {
+    return (
+      <div className="error-state">
+        <p>❌ {error}</p>
+        <button onClick={loadAgents}>Tentar Novamente</button>
+      </div>
+    )
+  }
+
+  // ... resto do componente
+}
+```
+
+#### 3. API Routes - Status Codes Corretos
+```typescript
+// ✅ Tratamento completo em API routes
+export async function GET() {
+  try {
+    const agents = await fetchAgentsFromDB()
+    
+    return NextResponse.json({ 
+      success: true,
+      agents 
+    })
+  } catch (error) {
+    console.error('API Error:', error)
+    
+    // Diferentes tipos de erro
+    if (error instanceof ValidationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      )
+    }
+    
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
+    // Erro genérico
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+#### 4. Validação de Entrada
+```typescript
+// ✅ Sempre valide entradas
+export function validateAgentConfig(config: unknown): AgentConfig {
+  if (!config || typeof config !== 'object') {
+    throw new Error('Agent config must be an object')
+  }
+  
+  const { name, model, apiKey } = config as any
+  
+  if (!name || typeof name !== 'string') {
+    throw new Error('Agent name is required and must be a string')
+  }
+  
+  if (!model || typeof model !== 'string') {
+    throw new Error('Agent model is required and must be a string')
+  }
+  
+  if (!apiKey || typeof apiKey !== 'string') {
+    throw new Error('Agent API key is required and must be a string')
+  }
+  
+  return { name, model, apiKey }
+}
+```
+
+#### 5. Parsing Seguro
+```typescript
+// ❌ RUIM - Parsing sem tratamento
+const config = JSON.parse(process.env.AGENT_CONFIG)
+
+// ✅ BOM - Parsing seguro
+function parseAgentConfig(configString: string): AgentConfig[] {
+  try {
+    const parsed = JSON.parse(configString)
+    
+    if (!Array.isArray(parsed)) {
+      throw new Error('Config must be an array')
+    }
+    
+    return parsed.map(validateAgentConfig)
+  } catch (error) {
+    console.error('Failed to parse agent config:', error)
+    
+    // Fallback para configuração padrão
+    return getDefaultAgentConfig()
+  }
+}
+```
+
+## Tipos de Erro Padronizados
+
+### Hierarquia de Erros Customizados
+```typescript
+// Base error class
+export class HumanaError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number = 500
+  ) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
+
+// Erros específicos
+export class ValidationError extends HumanaError {
+  constructor(message: string) {
+    super(message, 'VALIDATION_ERROR', 400)
+  }
+}
+
+export class AuthenticationError extends HumanaError {
+  constructor(message: string = 'Authentication required') {
+    super(message, 'AUTH_ERROR', 401)
+  }
+}
+
+export class APIError extends HumanaError {
+  constructor(message: string, statusCode: number = 500) {
+    super(message, 'API_ERROR', statusCode)
+  }
+}
+
+export class ConfigurationError extends HumanaError {
+  constructor(message: string) {
+    super(message, 'CONFIG_ERROR', 500)
+  }
+}
+```
+
+## Logging de Erros
+
+### Estrutura Padrão
+```typescript
+// ✅ Log estruturado
+export function logError(error: Error, context: Record<string, any> = {}) {
+  const errorInfo = {
+    timestamp: new Date().toISOString(),
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+    ...context
+  }
+  
+  console.error('🚨 Error:', JSON.stringify(errorInfo, null, 2))
+  
+  // Em produção, enviar para serviço de monitoramento
+  if (process.env.NODE_ENV === 'production') {
+    // sendToMonitoringService(errorInfo)
+  }
+}
+
+// Uso
+try {
+  await riskyOperation()
+} catch (error) {
+  logError(error, {
+    operation: 'fetchAgents',
+    userId: user.id,
+    timestamp: Date.now()
+  })
+  throw error
+}
+```
+
+## Error Boundaries React
+
+### Componente Padrão
+```typescript
+// components/error-boundary.tsx
+interface ErrorBoundaryState {
+  hasError: boolean
+  error?: Error
+}
+
+export class ErrorBoundary extends Component<
+  PropsWithChildren<{}>,
+  ErrorBoundaryState
+> {
+  constructor(props: PropsWithChildren<{}>) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    logError(error, { errorInfo })
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-boundary">
+          <h2>🚨 Algo deu errado</h2>
+          <p>Ocorreu um erro inesperado. Nossa equipe foi notificada.</p>
+          <button onClick={() => window.location.reload()}>
+            Recarregar Página
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+```
+
+## Checklist de Tratamento de Erros
+
+### Para cada função/componente, verificar:
+- [ ] Todas as operações assíncronas têm try/catch
+- [ ] Status HTTP verificados em chamadas de API
+- [ ] Validação de entrada implementada
+- [ ] Mensagens de erro são informativas
+- [ ] Logs estruturados estão sendo gerados
+- [ ] Fallbacks estão definidos quando possível
+- [ ] Error boundaries envolvem componentes críticos
+- [ ] Erros são re-thrown com contexto adicional
+
+## Padrões por Tipo de Código
+
+### Hooks Customizados
+```typescript
+export function useAgents() {
+  const [state, setState] = useState({
+    agents: [],
+    loading: false,
+    error: null
+  })
+
+  const fetchAgents = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }))
+      const agents = await fetchAgentsAPI()
+      setState(prev => ({ ...prev, agents, loading: false }))
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setState(prev => ({ ...prev, error: errorMessage, loading: false }))
+      logError(error, { hook: 'useAgents' })
+    }
+  }, [])
+
+  return { ...state, fetchAgents }
+}
+```
+
+### Utility Functions
+```typescript
+export function safeParseJSON<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json)
+  } catch (error) {
+    logError(error, { json, fallback })
+    return fallback
+  }
+}
+```
+
+## Lembre-se
+- Erros não tratados quebram a experiência do usuário
+- Sempre forneça feedback visual para erros
+- Logs estruturados facilitam debugging
+- Fallbacks mantêm a aplicação funcionando
+- Nunca falhe silenciosamente

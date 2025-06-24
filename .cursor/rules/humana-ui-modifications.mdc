@@ -1,0 +1,305 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Humana Companions - Modificações de UI
+
+## 📋 Visão Geral
+Esta regra define como fazer modificações seguras na interface, evitando que a IA "estrague o código" ao alterar telas, menus, componentes ou controles.
+
+## 🎯 Estrutura de Componentes
+
+### Mapa de Localização
+```
+📁 components/
+├── ui/                      # shadcn/ui base components
+│   ├── button.tsx          # Botões padronizados
+│   ├── input.tsx           # Inputs de formulário
+│   ├── select.tsx          # Dropdowns e seletores
+│   └── sidebar.tsx         # Sidebar principal
+├── chat.tsx                # Interface principal de chat
+├── chat-header.tsx         # Header do chat
+├── sidebar-toggle.tsx      # Toggle da sidebar
+├── sidebar-history.tsx     # Histórico na sidebar
+├── model-selector.tsx      # Seletor de modelos IA
+├── dify-agent-selector.tsx # Seletor agentes Dify
+├── multimodal-input.tsx    # Input com anexos
+├── artifact.tsx            # Container de artifacts
+└── message.tsx             # Componente de mensagem
+```
+
+### Hierarquia de Modificação
+1. **components/ui/** - Base components (cuidado extremo)
+2. **components/** - Specific components (modificação segura)
+3. **app/** - Pages e layouts (estrutura definida)
+
+## 🚨 Regras de Segurança
+
+### ⛔ NUNCA Modifique Diretamente:
+- `components/ui/*` - São componentes base do shadcn/ui
+- `components/chat.tsx` - Componente complexo central
+- `app/layout.tsx` - Layout principal da aplicação
+- `middleware.ts` - Lógica de autenticação
+
+### ✅ SEMPRE Faça Antes de Modificar:
+1. **Identifique o componente correto** usando o mapa acima
+2. **Leia o arquivo completo** antes de fazer mudanças
+3. **Entenda as props e dependências** existentes
+4. **Preserve a estrutura** de classes CSS existente
+5. **Teste a modificação** em contexto
+
+## 🎨 Padrões de Modificação
+
+### Adicionando Novo Botão
+```typescript
+// ✅ CORRETO - Use componente base
+import { Button } from '@/components/ui/button';
+
+// Adicione ao componente existente
+<Button 
+  variant="outline" 
+  size="sm"
+  onClick={handleAction}
+  className="ml-2" // Use classes de espaçamento
+>
+  Nova Ação
+</Button>
+```
+
+### Modificando Sidebar
+```typescript
+// ✅ CORRETO - Adicione item mantendo estrutura
+<SidebarGroup>
+  <SidebarGroupLabel>Nova Seção</SidebarGroupLabel>
+  <SidebarGroupContent>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild>
+          <Link href="/nova-rota">
+            <Icon />
+            Nova Funcionalidade
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  </SidebarGroupContent>
+</SidebarGroup>
+```
+
+### Adicionando Input Complexo
+```typescript
+// ✅ CORRETO - Use estrutura de formulário
+<div className="space-y-4">
+  <div className="space-y-2">
+    <Label htmlFor="campo">Rótulo do Campo</Label>
+    <Input
+      id="campo"
+      type="text"
+      placeholder="Placeholder descritivo"
+      value={valor}
+      onChange={(e) => setValor(e.target.value)}
+      className="w-full"
+    />
+  </div>
+</div>
+```
+
+## 🎭 Classes CSS Aprovadas
+
+### Layout e Espaçamento
+```css
+/* Containers */
+.container, .max-w-*, .mx-auto
+
+/* Spacing */
+.p-*, .px-*, .py-*, .m-*, .mx-*, .my-*
+.space-x-*, .space-y-*, .gap-*
+
+/* Flexbox */
+.flex, .inline-flex, .flex-col, .flex-row
+.items-*, .justify-*, .self-*
+
+/* Grid */
+.grid, .grid-cols-*, .col-span-*
+```
+
+### Cores e Estados
+```css
+/* Background */
+.bg-background, .bg-card, .bg-muted
+.bg-primary, .bg-secondary, .bg-accent
+
+/* Text */
+.text-foreground, .text-muted-foreground
+.text-primary, .text-secondary
+
+/* Borders */
+.border, .border-border, .border-input
+.rounded-*, .shadow-*
+
+/* States */
+.hover:*, .focus:*, .active:*
+.disabled:*, .data-[state=*]:*
+```
+
+### Responsividade
+```css
+/* Breakpoints */
+.sm:*, .md:*, .lg:*, .xl:*, .2xl:*
+
+/* Hide/Show */
+.hidden, .block, .inline, .inline-block
+.sm:hidden, .md:block, etc.
+```
+
+## 🔧 Componentes Específicos
+
+### Chat Interface
+```typescript
+// Estrutura do chat - NÃO MODIFIQUE diretamente
+<div className="flex h-screen">
+  <Sidebar /> {/* Sidebar principal */}
+  <div className="flex-1 flex flex-col">
+    <ChatHeader /> {/* Header fixo */}
+    <Messages /> {/* Área de mensagens */}
+    <MultimodalInput /> {/* Input na parte inferior */}
+  </div>
+</div>
+```
+
+### Artifacts Container
+```typescript
+// Para modificar artifacts - USE esta estrutura
+<div className="artifact-container border rounded-lg p-4">
+  <div className="artifact-header flex items-center justify-between mb-4">
+    <h3 className="font-semibold">{title}</h3>
+    <ArtifactActions />
+  </div>
+  <div className="artifact-content">
+    {/* Conteúdo específico do tipo */}
+  </div>
+</div>
+```
+
+## 🎯 Prompts Seguros para IA
+
+### ✅ Prompt Correto
+```
+"Adicione um novo botão 'Exportar' ao componente ArtifactActions.
+- Use o componente Button do shadcn/ui
+- Posicione após o botão 'Editar' existente  
+- Use ícone Download do lucide-react
+- Mantenha as classes CSS existentes
+- Preserve toda a funcionalidade atual"
+```
+
+### ❌ Prompt Perigoso
+```
+"Melhore a interface do chat"
+"Reorganize os componentes"
+"Atualize o design"
+```
+
+## 🚨 Red Flags - Pare Imediatamente Se:
+
+- IA sugerir remover `use client` ou `use server`
+- IA quiser modificar imports de `@/components/ui/`
+- IA sugerir alterar estrutura de pastas
+- IA quiser mudar configuração do Tailwind
+- IA sugerir modificar `globals.css` drasticamente
+- IA quiser alterar `components.json`
+
+## 🛠️ Debugging de UI
+
+### Problemas Comuns
+1. **Componente não renderiza** → Verifique imports
+2. **Estilos não aplicam** → Verifique classes CSS
+3. **Funcionalidade quebrada** → Verifique props/handlers
+4. **Layout quebrado** → Verifique estrutura flex/grid
+
+### Tools de Debug
+```typescript
+// Adicione temporariamente para debug
+<div className="border-2 border-red-500"> {/* Visual debug */}
+  {JSON.stringify(props, null, 2)} {/* Props debug */}
+</div>
+```
+
+## 📋 Checklist de Modificação
+
+Antes de aplicar qualquer mudança de UI:
+
+- [ ] Identifiquei o componente correto no mapa
+- [ ] Li o arquivo completo do componente
+- [ ] Entendi as props e dependências
+- [ ] Verifiquei se não é um componente base (ui/)
+- [ ] Planejei a modificação mantendo estrutura
+- [ ] Usei classes CSS aprovadas
+- [ ] Preservei funcionalidade existente
+- [ ] Testei em diferentes tamanhos de tela
+- [ ] Verifiquei se não quebrei outros componentes
+
+## 🎯 Exemplos de Modificações Seguras
+
+### 1. Adicionar Item ao Menu
+```typescript
+// Em sidebar-history.tsx - ADICIONE após item existente
+<SidebarMenuItem>
+  <SidebarMenuButton asChild>
+    <Link href="/nova-funcionalidade">
+      <NewIcon />
+      Nova Funcionalidade
+    </Link>
+  </SidebarMenuButton>
+</SidebarMenuItem>
+```
+
+### 2. Novo Seletor de Opções
+```typescript
+// Crie novo componente seguindo padrão
+export function NovoSeletor() {
+  return (
+    <Select value={valor} onValueChange={setValor}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Selecione..." />
+      </SelectTrigger>
+      <SelectContent>
+        {opcoes.map((opcao) => (
+          <SelectItem key={opcao.id} value={opcao.id}>
+            {opcao.nome}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+```
+
+### 3. Modal/Dialog Novo
+```typescript
+// Use componente base AlertDialog
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="outline">Abrir Modal</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Título</AlertDialogTitle>
+      <AlertDialogDescription>Descrição</AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+      <AlertDialogAction>Confirmar</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## 📚 Documentação de Referência
+
+Para modificações complexas, consulte:
+- `docs/arquitetura_geral/GUIA_MODIFICACOES_UI.md` - Guia completo
+- `docs/arquitetura_geral/REFERENCIA_RAPIDA_UI.md` - Consulta rápida
+- `docs/arquitetura_geral/REGRAS_INTERACAO_IA.md` - Como comunicar com IA
+

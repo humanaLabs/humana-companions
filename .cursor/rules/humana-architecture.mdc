@@ -1,0 +1,241 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Humana Companions - Arquitetura e Padrões
+
+## 📋 Visão Geral
+Esta regra define os padrões arquiteturais específicos do projeto Humana Companions, baseada na documentação em `docs/arquitetura_geral/`.
+
+## 🏗️ Estrutura da Aplicação
+
+### Organização de Diretórios
+```
+📁 lib/ai/                    # IA e modelos
+├── models.ts                 # Configuração de modelos
+├── providers.ts              # Providers (OpenAI, Anthropic)
+├── dify-agents.ts           # Integração Dify
+├── prompts.ts               # Templates de prompts
+└── tools/                   # Function calling tools
+
+📁 artifacts/                 # Sistema de artifacts
+├── actions.ts               # Server actions
+├── text/client.tsx          # Editor de texto
+├── code/client.tsx          # Editor de código
+├── image/client.tsx         # Editor de imagem
+└── sheet/client.tsx         # Editor de planilha
+
+📁 components/               # Componentes UI
+├── ui/                      # shadcn/ui components
+├── chat.tsx                 # Interface principal de chat
+├── artifact.tsx            # Container de artifacts
+└── dify-agent-selector.tsx  # Seletor de agentes Dify
+```
+
+## 🤖 Padrões de IA
+
+### Configuração de Modelos
+```typescript
+// SEMPRE use esta estrutura para novos modelos
+export interface ModelConfig {
+  id: string;
+  provider: 'openai' | 'anthropic';
+  name: string;
+  description: string;
+  maxTokens: number;
+  supportsTools: boolean;
+  supportsVision: boolean;
+}
+```
+
+### Tools Implementation
+```typescript
+// SEMPRE use esta estrutura para novas tools
+export const toolName = tool({
+  description: 'Descrição clara da funcionalidade',
+  parameters: z.object({
+    // Parâmetros com validação Zod
+  }),
+  execute: async (params) => {
+    // Implementação da tool
+    return {
+      success: boolean,
+      message: string,
+      data?: any
+    };
+  },
+});
+```
+
+### Streaming Pattern
+```typescript
+// SEMPRE use este padrão para streaming
+const result = await streamText({
+  model: providers[selectedProvider][selectedModel],
+  messages,
+  tools: {
+    createDocument,
+    updateDocument,
+    getWeather,
+    requestSuggestions,
+  },
+  onFinish: async ({ text, usage }) => {
+    await saveChatMessage({ content: text, tokens: usage.totalTokens });
+  },
+});
+```
+
+## 📄 Sistema de Artifacts
+
+### Tipos Suportados
+- `text` - Documentos de texto com Markdown
+- `code` - Código com syntax highlighting e execução
+- `image` - Imagens geradas ou editadas pela IA
+- `sheet` - Planilhas e dados tabulares
+
+### Padrão de Criação
+```typescript
+// SEMPRE use createDocument tool para artifacts
+const document = await db.insert(documents).values({
+  title,
+  content,
+  kind: type, // 'text' | 'code' | 'image' | 'sheet'
+  userId: getCurrentUserId(),
+}).returning();
+```
+
+## 🗄️ Estratégia de Dados
+
+### SQL (PostgreSQL) - Use para:
+- Usuários e autenticação
+- Metadados de chats e documentos
+- Relacionamentos estruturados
+- Auditoria e versionamento
+
+### NoSQL (MongoDB) - Use para:
+- Conteúdo flexível de artifacts
+- Configurações complexas de usuário
+- Logs e analytics variáveis
+- Cache de sessão estruturado
+
+### Decisão Rápida:
+- **Estrutura rígida + relacionamentos** → SQL
+- **Flexibilidade + escalabilidade** → NoSQL
+- **Ambos os benefícios** → Arquitetura híbrida
+
+## 🎨 Padrões de UI
+
+### shadcn/ui Components
+```bash
+# SEMPRE use este comando para instalar componentes
+pnpm dlx shadcn@canary add <component>
+```
+
+### Estrutura de Componentes
+```typescript
+// SEMPRE siga esta estrutura para novos componentes
+export interface ComponentProps {
+  // Props tipadas
+}
+
+export function Component({ ...props }: ComponentProps) {
+  // Hooks no topo
+  // Handlers
+  // Render
+  return (
+    <div className="component-container">
+      {/* Conteúdo */}
+    </div>
+  );
+}
+```
+
+### Classes CSS Aprovadas
+- Use `cn()` para combinar classes condicionais
+- Prefira utility classes do Tailwind
+- Use variáveis CSS para theming: `hsl(var(--background))`
+
+## 🔧 Integração Dify
+
+### Configuração de Agentes
+```typescript
+// SEMPRE use esta estrutura para agentes Dify
+export interface DifyAgent {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  endpoint: string;
+  apiKey: string;
+}
+```
+
+### Chamada de Agentes
+```typescript
+// SEMPRE use este padrão para chamar agentes Dify
+const response = await fetch(`${DIFY_API_BASE}/chat-messages`, {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${DIFY_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    inputs: {},
+    query: message,
+    response_mode: 'streaming',
+    user: getCurrentUserId(),
+  }),
+});
+```
+
+## ⚠️ Regras Importantes
+
+### Do's:
+- SEMPRE use streaming para melhor UX
+- SEMPRE valide inputs antes de enviar para IA
+- SEMPRE implemente error handling gracioso
+- SEMPRE documente novas tools e componentes
+- SEMPRE use TypeScript com tipagem forte
+- SEMPRE teste artifacts antes de deploy
+
+### Don'ts:
+- NUNCA exponha API keys no frontend
+- NUNCA confie cegamente nas respostas da IA
+- NUNCA ignore rate limits dos providers
+- NUNCA salve artifacts a cada keystroke
+- NUNCA carregue artifacts desnecessários
+- NUNCA processe dados sensíveis sem validação
+
+## 📚 Documentação de Referência
+
+Para implementações específicas, consulte:
+- `docs/arquitetura_geral/FUNDAMENTOS_AI_SDK.md` - Implementação AI SDK
+- `docs/arquitetura_geral/CHAT_TEMPLATE_ARTIFACTS.md` - Sistema de artifacts
+- `docs/arquitetura_geral/ESTRATEGIA_DADOS_SQL_JSON.md` - Decisões de dados
+- `docs/arquitetura_geral/GUIA_MODIFICACOES_UI.md` - Modificações de interface
+- `docs/arquitetura_geral/PADRAO_INTEGRACAO.md` - Padrão de integrações
+
+## 🎯 Exemplos Práticos
+
+### Criando Nova Tool
+1. Defina interface clara com Zod
+2. Implemente lógica de negócio
+3. Adicione error handling
+4. Teste com diferentes inputs
+5. Documente uso e limitações
+
+### Adicionando Novo Tipo de Artifact
+1. Crie estrutura em `artifacts/tipo/`
+2. Implemente client.tsx e server.ts
+3. Adicione ao enum ArtifactType
+4. Crie testes específicos
+5. Atualize documentação
+
+### Integrando Nova API Externa
+1. Siga padrão em `docs/arquitetura_geral/PADRAO_INTEGRACAO.md`
+2. Use checklist em `docs/arquitetura_geral/CHECKLIST_INTEGRACAO.md`
+3. Implemente error handling robusto
+4. Adicione monitoramento e logs
+5. Crie scripts de teste e diagnóstico
+

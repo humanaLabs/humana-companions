@@ -1,0 +1,670 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Humana Companions - Logging Estruturado Obrigatório
+
+## Princípio Fundamental
+**TODO sistema DEVE ter logging estruturado e observabilidade.** Logs são essenciais para debugging, monitoramento e auditoria.
+
+## Regras Obrigatórias
+
+### 📊 SEMPRE Registre
+- Início e fim de operações críticas
+- Erros e exceções
+- Mudanças de estado importantes
+- Requisições de API (entrada/saída)
+- Autenticação e autorização
+- Performance de operações lentas
+- Eventos de negócio importantes
+
+### ✅ Estrutura de Logging Padrão
+
+#### 1. Logger Centralizado
+```typescript
+// lib/logger/index.ts
+export interface LogContext {
+  userId?: string
+  sessionId?: string
+  requestId?: string
+  agentId?: string
+  operation?: string
+  duration?: number
+  [key: string]: any
+}
+
+export interface LogEntry {
+  timestamp: string
+  level: 'debug' | 'info' | 'warn' | 'error'
+  message: string
+  context: LogContext
+  error?: {
+    name: string
+    message: string
+    stack?: string
+  }
+}
+
+class Logger {
+  private isDevelopment = process.env.NODE_ENV === 'development'
+  private isProduction = process.env.NODE_ENV === 'production'
+
+  private formatLog(entry: LogEntry): string {
+    if (this.isDevelopment) {
+      // Formato legível para desenvolvimento
+      const emoji = {
+        debug: '🔍',
+        info: 'ℹ️',
+        warn: '⚠️',
+        error: '🚨'
+      }
+      
+      return `${emoji[entry.level]} [${entry.timestamp}] ${entry.message} ${
+        Object.keys(entry.context).length > 0 
+          ? JSON.stringify(entry.context, null, 2) 
+          : ''
+      }`
+    }
+    
+    // Formato estruturado para produção
+    return JSON.stringify(entry)
+  }
+
+  private createEntry(
+    level: LogEntry['level'],
+    message: string,
+    context: LogContext = {},
+    error?: Error
+  ): LogEntry {
+    return {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      context: {
+        ...context,
+        environment: process.env.NODE_ENV,
+        service: 'humana-companions'
+      },
+      ...(error && {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        }
+      })
+    }
+  }
+
+  debug(message: string, context?: LogContext) {
+    if (!this.isDevelopment) return
+    
+    const entry = this.createEntry('debug', message, context)
+    console.debug(this.formatLog(entry))
+  }
+
+  info(message: string, context?: LogContext) {
+    const entry = this.createEntry('info', message, context)
+    console.info(this.formatLog(entry))
+    
+    if (this.isProduction) {
+      // Enviar para serviço de logging
+      this.sendToLoggingService(entry)
+    }
+  }
+
+  warn(message: string, context?: LogContext, error?: Error) {
+    const entry = this.createEntry('warn', message, context, error)
+    console.warn(this.formatLog(entry))
+    
+    if (this.isProduction) {
+      this.sendToLoggingService(entry)
+    }
+  }
+
+  error(message: string, context?: LogContext, error?: Error) {
+    const entry = this.createEntry('error', message, context, error)
+    console.error(this.formatLog(entry))
+    
+    if (this.isProduction) {
+      this.sendToLoggingService(entry)
+      // Alertar equipe em erros críticos
+      this.sendAlert(entry)
+    }
+  }
+
+  private async sendToLoggingService(entry: LogEntry) {
+    // Implementar integração com serviço de logging
+    // Ex: Winston, Pino, DataDog, etc.
+  }
+
+  private async sendAlert(entry: LogEntry) {
+    // Implementar alertas para erros críticos
+    // Ex: Slack, Email, PagerDuty, etc.
+  }
+}
+
+export const logger = new Logger()
+```
+
+#### 2. Logging de API Calls
+```typescript
+// lib/api/client.ts
+import { logger } from '../logger'
+
+export async function apiCall<T>(
+  url: string,
+  options: RequestInit = {},
+  context: LogContext = {}
+): Promise<T> {
+  const requestId = crypto.randomUUID()
+  const startTime = Date.now()
+  
+  logger.info('API request started', {
+    ...context,
+    requestId,
+    method: options.method || 'GET',
+    url,
+    headers: options.headers
+  })
+
+  try {
+    const response = await fetch(url, options)
+    const duration = Date.now() - startTime
+    
+    if (!response.ok) {
+      logger.warn('API request failed', {
+        ...context,
+        requestId,
+        status: response.status,
+        statusText: response.statusText,
+        duration
+      })
+      
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    logger.info('API request completed', {
+      ...context,
+      requestId,
+      status: response.status,
+      duration,
+      responseSize: JSON.stringify(data).length
+    })
+
+    return data
+  } catch (error) {
+    const duration = Date.now() - startTime
+    
+    logger.error('API request error', {
+      ...context,
+      requestId,
+      duration
+    }, error as Error)
+    
+    throw error
+  }
+}
+```
+
+#### 3. Logging de Componentes React
+```typescript
+// hooks/use-logger.ts
+import { useEffect, useRef } from 'react'
+import { logger, LogContext } from '../lib/logger'
+
+export function useLogger(componentName: string, context?: LogContext) {
+  const renderCount = useRef(0)
+  
+  useEffect(() => {
+    renderCount.current += 1
+    
+    logger.debug(`Component ${componentName} rendered`, {
+      ...context,
+      component: componentName,
+      renderCount: renderCount.current
+    })
+  })
+
+  const logEvent = (event: string, eventContext?: LogContext) => {
+    logger.info(`Component event: ${event}`, {
+      ...context,
+      ...eventContext,
+      component: componentName,
+      event
+    })
+  }
+
+  const logError = (error: Error, errorContext?: LogContext) => {
+    logger.error(`Component error in ${componentName}`, {
+      ...context,
+      ...errorContext,
+      component: componentName
+    }, error)
+  }
+
+  return { logEvent, logError }
+}
+
+// Uso em componentes
+export function DifyAgentSelector({ agents, onAgentChange }: Props) {
+  const { logEvent, logError } = useLogger('DifyAgentSelector', {
+    agentCount: agents.length
+  })
+
+  const handleAgentSelect = (agentId: string) => {
+    logEvent('agent_selected', { agentId })
+    onAgentChange(agentId)
+  }
+
+  const handleError = (error: Error) => {
+    logError(error, { operation: 'agent_selection' })
+  }
+
+  // resto do componente...
+}
+```
+
+#### 4. Logging de API Routes
+```typescript
+// lib/middleware/logging.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '../logger'
+
+export function withLogging(
+  handler: (req: NextRequest) => Promise<NextResponse>
+) {
+  return async (req: NextRequest) => {
+    const requestId = crypto.randomUUID()
+    const startTime = Date.now()
+    const method = req.method
+    const url = req.url
+    
+    logger.info('API request received', {
+      requestId,
+      method,
+      url,
+      userAgent: req.headers.get('user-agent'),
+      ip: req.ip
+    })
+
+    try {
+      const response = await handler(req)
+      const duration = Date.now() - startTime
+      
+      logger.info('API request completed', {
+        requestId,
+        method,
+        url,
+        status: response.status,
+        duration
+      })
+
+      return response
+    } catch (error) {
+      const duration = Date.now() - startTime
+      
+      logger.error('API request error', {
+        requestId,
+        method,
+        url,
+        duration
+      }, error as Error)
+
+      return NextResponse.json(
+        { success: false, error: 'Internal server error' },
+        { status: 500 }
+      )
+    }
+  }
+}
+
+// Uso em API routes
+export const GET = withLogging(async (req: NextRequest) => {
+  // lógica da API...
+})
+```
+
+#### 5. Logging de Operações de Negócio
+```typescript
+// lib/ai/dify/agents.ts
+import { logger } from '../../logger'
+
+export async function fetchDifyAgents(context: LogContext = {}): Promise<DifyAgent[]> {
+  const operation = 'fetch_dify_agents'
+  const startTime = Date.now()
+  
+  logger.info('Starting Dify agents fetch', {
+    ...context,
+    operation
+  })
+
+  try {
+    const agents = await apiCall('/api/dify/agents', {}, { ...context, operation })
+    const duration = Date.now() - startTime
+    
+    logger.info('Dify agents fetched successfully', {
+      ...context,
+      operation,
+      duration,
+      agentCount: agents.length,
+      agentIds: agents.map(a => a.id)
+    })
+
+    return agents
+  } catch (error) {
+    const duration = Date.now() - startTime
+    
+    logger.error('Failed to fetch Dify agents', {
+      ...context,
+      operation,
+      duration
+    }, error as Error)
+    
+    throw error
+  }
+}
+
+export async function selectDifyAgent(
+  agentId: string, 
+  userId: string,
+  context: LogContext = {}
+): Promise<void> {
+  logger.info('Agent selection started', {
+    ...context,
+    operation: 'select_agent',
+    agentId,
+    userId
+  })
+
+  try {
+    // Validar agente
+    if (!isValidDifyId(agentId)) {
+      throw new Error('Invalid agent ID format')
+    }
+
+    // Salvar seleção
+    await saveUserAgentSelection(userId, agentId)
+    
+    logger.info('Agent selected successfully', {
+      ...context,
+      operation: 'select_agent',
+      agentId,
+      userId
+    })
+  } catch (error) {
+    logger.error('Agent selection failed', {
+      ...context,
+      operation: 'select_agent',
+      agentId,
+      userId
+    }, error as Error)
+    
+    throw error
+  }
+}
+```
+
+#### 6. Performance Logging
+```typescript
+// lib/performance/monitor.ts
+import { logger } from '../logger'
+
+export function measurePerformance<T>(
+  operation: string,
+  fn: () => Promise<T>,
+  context: LogContext = {}
+): Promise<T> {
+  return new Promise(async (resolve, reject) => {
+    const startTime = performance.now()
+    const startMemory = process.memoryUsage()
+    
+    logger.debug('Performance measurement started', {
+      ...context,
+      operation,
+      startMemory: startMemory.heapUsed
+    })
+
+    try {
+      const result = await fn()
+      const endTime = performance.now()
+      const endMemory = process.memoryUsage()
+      const duration = endTime - startTime
+      const memoryDelta = endMemory.heapUsed - startMemory.heapUsed
+      
+      const level = duration > 1000 ? 'warn' : 'info'
+      
+      logger[level]('Performance measurement completed', {
+        ...context,
+        operation,
+        duration: Math.round(duration),
+        memoryDelta,
+        endMemory: endMemory.heapUsed
+      })
+
+      resolve(result)
+    } catch (error) {
+      const endTime = performance.now()
+      const duration = endTime - startTime
+      
+      logger.error('Performance measurement failed', {
+        ...context,
+        operation,
+        duration: Math.round(duration)
+      }, error as Error)
+
+      reject(error)
+    }
+  })
+}
+
+// Uso
+export async function heavyOperation() {
+  return measurePerformance('heavy_operation', async () => {
+    // operação pesada...
+    return result
+  }, { category: 'data_processing' })
+}
+```
+
+## Padrões de Logging por Contexto
+
+### 1. Autenticação
+```typescript
+// lib/auth/logging.ts
+export function logAuthEvent(
+  event: 'login' | 'logout' | 'register' | 'password_reset',
+  userId: string,
+  context: LogContext = {}
+) {
+  logger.info(`Authentication event: ${event}`, {
+    ...context,
+    userId,
+    event,
+    category: 'authentication'
+  })
+}
+
+export function logAuthError(
+  event: string,
+  error: Error,
+  context: LogContext = {}
+) {
+  logger.error(`Authentication error: ${event}`, {
+    ...context,
+    event,
+    category: 'authentication'
+  }, error)
+}
+```
+
+### 2. Chat e Mensagens
+```typescript
+// lib/chat/logging.ts
+export function logChatEvent(
+  event: 'message_sent' | 'message_received' | 'conversation_started',
+  context: {
+    userId: string
+    conversationId: string
+    agentId?: string
+    messageId?: string
+    messageLength?: number
+  }
+) {
+  logger.info(`Chat event: ${event}`, {
+    ...context,
+    event,
+    category: 'chat'
+  })
+}
+```
+
+### 3. Integrações Externas
+```typescript
+// lib/integrations/logging.ts
+export function logIntegrationEvent(
+  service: 'dify' | 'openai' | 'anthropic',
+  event: string,
+  context: LogContext = {}
+) {
+  logger.info(`Integration event: ${service}.${event}`, {
+    ...context,
+    service,
+    event,
+    category: 'integration'
+  })
+}
+```
+
+## Alertas e Monitoramento
+
+### 1. Alertas Críticos
+```typescript
+// lib/alerts/index.ts
+export function shouldAlert(entry: LogEntry): boolean {
+  // Alertar em erros críticos
+  if (entry.level === 'error') {
+    return true
+  }
+  
+  // Alertar em operações muito lentas
+  if (entry.context.duration && entry.context.duration > 10000) {
+    return true
+  }
+  
+  // Alertar em alta taxa de erro
+  if (entry.context.errorRate && entry.context.errorRate > 0.1) {
+    return true
+  }
+  
+  return false
+}
+```
+
+### 2. Métricas de Negócio
+```typescript
+// lib/metrics/business.ts
+export function trackBusinessMetric(
+  metric: string,
+  value: number,
+  context: LogContext = {}
+) {
+  logger.info(`Business metric: ${metric}`, {
+    ...context,
+    metric,
+    value,
+    category: 'business_metrics'
+  })
+}
+
+// Uso
+trackBusinessMetric('agents_selected_per_day', 150, {
+  date: '2024-01-15'
+})
+
+trackBusinessMetric('average_conversation_length', 12.5, {
+  agentId: 'app-123',
+  period: 'daily'
+})
+```
+
+## Configuração de Logging
+
+### Environment Variables
+```bash
+# .env.local
+LOG_LEVEL=info
+LOG_FORMAT=json
+ENABLE_PERFORMANCE_LOGGING=true
+LOGGING_SERVICE_URL=https://api.datadog.com
+LOGGING_API_KEY=your-api-key
+ALERT_WEBHOOK_URL=https://hooks.slack.com/your-webhook
+```
+
+### Configuração por Ambiente
+```typescript
+// lib/config/logging.ts
+export const loggingConfig = {
+  level: process.env.LOG_LEVEL || 'info',
+  format: process.env.LOG_FORMAT || 'pretty',
+  enablePerformance: process.env.ENABLE_PERFORMANCE_LOGGING === 'true',
+  service: {
+    url: process.env.LOGGING_SERVICE_URL,
+    apiKey: process.env.LOGGING_API_KEY
+  },
+  alerts: {
+    webhookUrl: process.env.ALERT_WEBHOOK_URL,
+    enabled: process.env.NODE_ENV === 'production'
+  }
+}
+```
+
+## Checklist de Logging
+
+### Para cada operação crítica, verificar:
+- [ ] Log de início da operação
+- [ ] Log de conclusão com duração
+- [ ] Log de erro com contexto completo
+- [ ] Contexto relevante incluído (userId, requestId, etc.)
+- [ ] Nível de log apropriado (debug/info/warn/error)
+- [ ] Informações sensíveis mascaradas
+- [ ] Performance medida se relevante
+- [ ] Alertas configurados para erros críticos
+
+## Ferramentas de Análise
+
+### 1. Consultas de Log Úteis
+```typescript
+// Exemplos de queries para análise
+const logQueries = {
+  // Erros por agente
+  errorsByAgent: 'level:error AND agentId:* | stats count by agentId',
+  
+  // Performance por operação
+  slowOperations: 'duration:>5000 | stats avg(duration) by operation',
+  
+  // Taxa de erro por endpoint
+  errorRate: 'category:api | stats count by status, url',
+  
+  // Usuários mais ativos
+  activeUsers: 'category:chat | stats count by userId | sort count desc'
+}
+```
+
+### 2. Dashboards Recomendados
+- Taxa de erro por serviço
+- Latência média por endpoint
+- Volume de requisições por hora
+- Erros críticos em tempo real
+- Performance de operações de IA
+- Métricas de uso por agente
+
+## Lembre-se
+- Logs são para humanos E máquinas
+- Contexto é mais importante que mensagem
+- Performance de logging importa
+- Informações sensíveis devem ser mascaradas
+- Alertas devem ser acionáveis
+- Logs estruturados facilitam análise

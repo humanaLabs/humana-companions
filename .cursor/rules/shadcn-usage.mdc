@@ -1,0 +1,19 @@
+---
+description: When you want to use ShaCN Components and installing
+globs: 
+alwaysApply: false
+---
+
+# ShadCN Guide
+
+- When you want to install a component from shadcn use this command.
+
+````bash
+
+pnpm dlx shadcn@canary add <component>
+
+````
+
+- For the ShadCN Configerations you could find them in [components.json](mdc:components.json).
+
+- Components should Always be build inside the `./components` directory.
