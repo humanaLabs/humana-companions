@@ -18,12 +18,12 @@ function TopLoadingBarInner() {
       setLoading(true);
       setProgress(0);
       startTime = Date.now();
-      
+
       // Progressive loading animation
       intervalId = setInterval(() => {
         setProgress((prev) => {
           const elapsed = Date.now() - startTime;
-          
+
           // Different speeds for different stages
           if (prev >= 95) return prev; // Stop near completion
           if (prev >= 80) return prev + Math.random() * 2; // Slow down near end
@@ -41,7 +41,7 @@ function TopLoadingBarInner() {
     const finishLoading = () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
-      
+
       setProgress(100);
       setTimeout(() => {
         setLoading(false);
@@ -70,18 +70,19 @@ function TopLoadingBarInner() {
   return (
     <>
       {/* Loading bar */}
-      <div className="fixed top-0 left-0 right-0 z-[100] h-0.5 bg-transparent">
+      <div className="fixed top-0 inset-x-0 z-[100] h-0.5 bg-transparent">
         <div
           className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 transition-all duration-200 ease-out"
           style={{
             width: `${progress}%`,
-            boxShadow: '0 0 10px rgba(59, 130, 246, 0.6), 0 0 5px rgba(168, 85, 247, 0.4)',
+            boxShadow:
+              '0 0 10px rgba(59, 130, 246, 0.6), 0 0 5px rgba(168, 85, 247, 0.4)',
           }}
         />
       </div>
-      
+
       {/* Subtle backdrop for better visibility */}
-      <div className="fixed top-0 left-0 right-0 z-[99] h-1 bg-background/80 backdrop-blur-sm" />
+      <div className="fixed top-0 inset-x-0 z-[99] h-1 bg-background/80 backdrop-blur-sm" />
     </>
   );
 }

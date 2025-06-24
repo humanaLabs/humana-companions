@@ -102,7 +102,7 @@ const PureChatItem = ({
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
             showOnHover={!isActive}
           >
-            <MoreHorizontalIcon />
+            <MoreHorizontalIcon size={20} />
             <span className="sr-only">More</span>
           </SidebarMenuAction>
         </DropdownMenuTrigger>
@@ -159,7 +159,9 @@ const PureChatItem = ({
                       className="cursor-pointer"
                       onClick={() => addToFolder(folder.id)}
                     >
-                      <div className={`w-3 h-3 rounded-full ${folder.color} mr-2`} />
+                      <div
+                        className={`size-3 rounded-full ${folder.color} mr-2`}
+                      />
                       <span>{folder.name}</span>
                     </DropdownMenuItem>
                   ))}
