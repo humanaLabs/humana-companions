@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Bot, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CreateOrganizationModal } from '@/components/create-organization-modal';
 
 interface UserPermissions {
   canCreateOrganization: boolean;
@@ -40,7 +41,8 @@ export function OrganizationsHeaderActions() {
   };
 
   const handleNewOrganizationClick = () => {
-    window.dispatchEvent(new CustomEvent('organizations:new'));
+    // Recarregar organizações após criar
+    window.dispatchEvent(new CustomEvent('organizations:reload'));
   };
 
   return (
@@ -61,14 +63,7 @@ export function OrganizationsHeaderActions() {
         Gerar com IA
       </Button>
       {userPermissions.canCreateOrganization && (
-        <Button 
-          variant="outline"
-          onClick={handleNewOrganizationClick}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Organização
-        </Button>
+        <CreateOrganizationModal onCreateSuccess={handleNewOrganizationClick} />
       )}
     </div>
   );

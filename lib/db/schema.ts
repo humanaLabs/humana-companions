@@ -498,3 +498,26 @@ export const auditLog = pgTable('AuditLog', {
 });
 
 export type AuditLog = InferSelectModel<typeof auditLog>;
+
+// Tabela de User Invites para sistema de convites
+export const userInvite = pgTable('UserInvite', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  email: varchar('email', { length: 64 }).notNull(),
+  roleId: uuid('roleId')
+    .notNull()
+    .references(() => role.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  invitedBy: uuid('invitedBy')
+    .notNull()
+    .references(() => user.id),
+  token: varchar('token', { length: 64 }).notNull().unique(),
+  message: text('message'), // Mensagem personalizada do convite
+  status: varchar('status', { 
+    enum: ['pending', 'accepted', 'expired', 'cancelled'] 
+  }).notNull().default('pending'),
+  expiresAt: timestamp('expiresAt').notNull(),
+  acceptedAt: timestamp('acceptedAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type UserInvite = InferSelectModel<typeof userInvite>;

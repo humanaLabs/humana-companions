@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { CreateRoleModal } from '@/components/create-role-modal';
 import { toast } from 'sonner';
 
 // Definir tipos específicos para roles admin
@@ -41,6 +42,7 @@ export default function RolesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+  const [organizations, setOrganizations] = useState<{id: string; name: string}[]>([]);
 
   // Carregar dados reais da API
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function RolesPage() {
 
     checkMasterAdmin().then(() => {
       loadRoles();
+      loadOrganizations();
     });
   }, []);
 
@@ -136,7 +139,38 @@ export default function RolesPage() {
   };
 
   const handleCreateRole = () => {
-    toast.info('Modal de criação de role será implementado');
+    // Recarregar página após criar role
+    loadRoles();
+  };
+
+  const loadRoles = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/roles');
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data.roles || []);
+      } else {
+        toast.error('Erro ao carregar roles');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar roles:', error);
+      toast.error('Erro ao carregar roles');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadOrganizations = async () => {
+    try {
+      const response = await fetch('/api/organizations');
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data.organizations || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar organizações:', error);
+    }
   };
 
   if (loading) {
@@ -185,10 +219,11 @@ export default function RolesPage() {
         badge="Master Admin"
         showBackButton={true}
       >
-        <Button className="flex items-center gap-2" onClick={handleCreateRole}>
-          <PlusIcon size={16} />
-          Nova Role
-        </Button>
+        <CreateRoleModal 
+          organizations={organizations}
+          isMasterAdmin={isMasterAdmin}
+          onCreateSuccess={handleCreateRole}
+        />
       </PageHeader>
       
       <div className="flex-1 overflow-auto p-6">

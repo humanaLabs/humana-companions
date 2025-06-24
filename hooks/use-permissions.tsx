@@ -1,58 +1,193 @@
 'use client';
 
+import { useState, useEffect, useContext, createContext, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
-import { useMemo } from 'react';
-import type { UserContext, Resource, Action } from '@/lib/types/permissions';
-import { canAccessPage, canPerformAction } from '@/lib/auth/permissions';
+import { 
+  UserPermissions, 
+  hasPermission, 
+  hasAnyPermission, 
+  hasAllPermissions,
+  computeUserPermissions,
+  SYSTEM_PERMISSIONS,
+  Permission
+} from '@/lib/permissions/index';
 
-export function usePermissions() {
-  const { data: session } = useSession();
+interface PermissionsContextType {
+  userPermissions: UserPermissions | null;
+  loading: boolean;
+  hasPermission: (permission: string, context?: PermissionContext) => boolean;
+  hasAnyPermission: (permissions: string[], context?: PermissionContext) => boolean;
+  hasAllPermissions: (permissions: string[], context?: PermissionContext) => boolean;
+  canAccess: (resource: string, action: string, context?: PermissionContext) => boolean;
+  isMasterAdmin: boolean;
+  isAdmin: boolean;
+  refresh: () => Promise<void>;
+}
 
-  const userContext: UserContext | null = useMemo(() => {
-    if (!session?.user) return null;
+interface PermissionContext {
+  resourceId?: string;
+  organizationId?: string;
+  teamId?: string;
+  ownerId?: string;
+}
 
-    return {
-      id: session.user.id!,
-      role: (session.user as any).role || 'user', // TODO: Adicionar role na sessão
-      organizationId: (session.user as any).organizationId,
-      teamIds: (session.user as any).teamIds || [],
-    };
-  }, [session]);
+const PermissionsContext = createContext<PermissionsContextType | null>(null);
 
-  const hasPageAccess = (page: Resource): boolean => {
-    if (!userContext) return false;
-    return canAccessPage(userContext, page);
-  };
+interface PermissionsProviderProps {
+  children: ReactNode;
+}
 
-  const hasActionAccess = (
-    resource: Resource,
-    action: Action,
-    targetContext?: {
-      ownerId?: string;
-      organizationId?: string;
-      teamId?: string;
+export function PermissionsProvider({ children }: PermissionsProviderProps) {
+  const { data: session, status } = useSession();
+  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUserPermissions = async () => {
+    if (!session?.user?.id) {
+      setUserPermissions(null);
+      setLoading(false);
+      return;
     }
-  ): boolean => {
-    if (!userContext) return false;
-    return canPerformAction(userContext, resource, action, targetContext);
+
+    try {
+      setLoading(true);
+      const response = await fetch('/api/user/permissions');
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Transformar resposta da API em UserPermissions
+        const permissions: UserPermissions = {
+          userId: session.user.id,
+          roleId: data.roleId || 'user',
+          organizationId: data.organizationId,
+          teamIds: data.teamIds || [],
+          isMasterAdmin: data.isMasterAdmin || false,
+          permissions: SYSTEM_PERMISSIONS.filter((p: Permission) => 
+            data.permissions?.includes(p.id) || data.isMasterAdmin
+          ),
+          computedPermissions: computeUserPermissions(
+            data.permissions || [], 
+            data.isMasterAdmin
+          )
+        };
+        
+        setUserPermissions(permissions);
+      } else {
+        console.error('Erro ao buscar permissões:', response.statusText);
+        setUserPermissions(null);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar permissões:', error);
+      setUserPermissions(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isRole = (role: string): boolean => {
-    return userContext?.role === role;
+  useEffect(() => {
+    if (status === 'loading') return;
+    fetchUserPermissions();
+  }, [session?.user?.id, status]);
+
+  const checkPermission = (permission: string, context?: PermissionContext): boolean => {
+    if (!userPermissions) return false;
+    return hasPermission(userPermissions, permission, context);
   };
 
-  const hasAnyRole = (roles: string[]): boolean => {
-    return userContext ? roles.includes(userContext.role) : false;
+  const checkAnyPermission = (permissions: string[], context?: PermissionContext): boolean => {
+    if (!userPermissions) return false;
+    return hasAnyPermission(userPermissions, permissions, context);
   };
 
+  const checkAllPermissions = (permissions: string[], context?: PermissionContext): boolean => {
+    if (!userPermissions) return false;
+    return hasAllPermissions(userPermissions, permissions, context);
+  };
+
+  const canAccess = (resource: string, action: string, context?: PermissionContext): boolean => {
+    const permissionId = `${resource}.${action}`;
+    return checkPermission(permissionId, context);
+  };
+
+  const isMasterAdmin = userPermissions?.isMasterAdmin || false;
+  const isAdmin = isMasterAdmin || userPermissions?.roleId === 'admin' || false;
+
+  const value: PermissionsContextType = {
+    userPermissions,
+    loading,
+    hasPermission: checkPermission,
+    hasAnyPermission: checkAnyPermission,
+    hasAllPermissions: checkAllPermissions,
+    canAccess,
+    isMasterAdmin,
+    isAdmin,
+    refresh: fetchUserPermissions,
+  };
+
+  return (
+    <PermissionsContext.Provider value={value}>
+      {children}
+    </PermissionsContext.Provider>
+  );
+}
+
+export function usePermissions(): PermissionsContextType {
+  const context = useContext(PermissionsContext);
+  if (!context) {
+    throw new Error('usePermissions must be used within a PermissionsProvider');
+  }
+  return context;
+}
+
+// Hooks específicos para casos comuns
+export function useCanAccess(resource: string, action: string, context?: PermissionContext): boolean {
+  const { canAccess } = usePermissions();
+  return canAccess(resource, action, context);
+}
+
+export function useHasPermission(permission: string, context?: PermissionContext): boolean {
+  const { hasPermission } = usePermissions();
+  return hasPermission(permission, context);
+}
+
+export function useHasAnyPermission(permissions: string[], context?: PermissionContext): boolean {
+  const { hasAnyPermission } = usePermissions();
+  return hasAnyPermission(permissions, context);
+}
+
+export function useHasAllPermissions(permissions: string[], context?: PermissionContext): boolean {
+  const { hasAllPermissions } = usePermissions();
+  return hasAllPermissions(permissions, context);
+}
+
+export function useIsAdmin(): boolean {
+  const { isAdmin } = usePermissions();
+  return isAdmin;
+}
+
+export function useIsMasterAdmin(): boolean {
+  const { isMasterAdmin } = usePermissions();
+  return isMasterAdmin;
+}
+
+// Hook para verificar acesso a rotas administrativas
+export function useAdminAccess(): {
+  canAccessUsers: boolean;
+  canAccessTeams: boolean;
+  canAccessRoles: boolean;
+  canAccessOrganizations: boolean;
+  canAccessAudit: boolean;
+  canAccessSettings: boolean;
+} {
+  const { canAccess } = usePermissions();
+  
   return {
-    userContext,
-    hasPageAccess,
-    hasActionAccess,
-    isRole,
-    hasAnyRole,
-    isAuthenticated: !!session?.user,
-    isAdmin: hasAnyRole(['admin', 'super_admin']),
-    isSuperAdmin: isRole('super_admin'),
+    canAccessUsers: canAccess('users', 'read'),
+    canAccessTeams: canAccess('teams', 'read'),
+    canAccessRoles: canAccess('admin', 'manage_roles'),
+    canAccessOrganizations: canAccess('organizations', 'read'),
+    canAccessAudit: canAccess('admin', 'audit'),
+    canAccessSettings: canAccess('admin', 'settings'),
   };
 } 

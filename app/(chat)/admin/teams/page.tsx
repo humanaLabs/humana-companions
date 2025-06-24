@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { CreateTeamModal } from '@/components/create-team-modal';
 
 interface TeamMember {
   id: string;
@@ -32,6 +33,9 @@ interface Team {
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
+  const [organizations, setOrganizations] = useState<{id: string, name: string}[]>([]);
+  const [users, setUsers] = useState<{id: string, email: string, name?: string}[]>([]);
+  const [currentUser, setCurrentUser] = useState<{isMasterAdmin: boolean} | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -49,12 +53,51 @@ export default function TeamsPage() {
       } catch (error) {
         console.error('Erro ao carregar teams:', error);
         toast.error('Erro ao carregar teams');
+      }
+    }
+
+    async function loadOrganizations() {
+      try {
+        const response = await fetch('/api/organizations');
+        if (response.ok) {
+          const data = await response.json();
+          setOrganizations(data.organizations || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar organizações:', error);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/admin/users');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+      }
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch('/api/user/permissions');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUser({ isMasterAdmin: data.isMasterAdmin || false });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar usuário atual:', error);
       } finally {
         setLoading(false);
       }
     }
 
     loadTeams();
+    loadOrganizations();
+    loadUsers();
+    loadCurrentUser();
   }, []);
 
   const filteredTeams = teams.filter(team =>
@@ -93,10 +136,18 @@ export default function TeamsPage() {
         badge="Administração"
         showBackButton={true}
       >
-        <Button className="flex items-center gap-2">
-          <PlusIcon size={16} />
-          Criar Time
-        </Button>
+        {currentUser && (
+          <CreateTeamModal
+            organizations={organizations}
+            users={users}
+            teams={teams}
+            isMasterAdmin={currentUser.isMasterAdmin}
+            onCreateSuccess={() => {
+              // Recarregar teams após criação bem-sucedida
+              window.location.reload();
+            }}
+          />
+        )}
       </PageHeader>
       
       <div className="flex-1 overflow-auto p-6">

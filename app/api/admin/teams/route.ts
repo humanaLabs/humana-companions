@@ -122,17 +122,57 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+    const { name, description, organizationId, managerId, parentTeamId, isActive } = body;
+
+    if (!name) {
+      return NextResponse.json({ 
+        error: 'Nome é obrigatório' 
+      }, { status: 400 });
+    }
+
+    // Verificar permissões do usuário atual
+    const isCurrentUserMasterAdmin = session.user.email === 'master@humana.com';
+
+    // Se for Master Admin, organização é obrigatória
+    if (isCurrentUserMasterAdmin && !organizationId) {
+      return NextResponse.json({ 
+        error: 'Organização é obrigatória para Master Admin' 
+      }, { status: 400 });
+    }
+
+    // Mock validações
+    if (organizationId && !['org-1', 'org-2'].includes(organizationId)) {
+      return NextResponse.json({ error: 'Organização não encontrada' }, { status: 400 });
+    }
+
+    if (managerId && !['user-1', 'user-2', 'master-1'].includes(managerId)) {
+      return NextResponse.json({ error: 'Manager não encontrado' }, { status: 400 });
+    }
+
+    if (parentTeamId && !['1', '2', '3'].includes(parentTeamId)) {
+      return NextResponse.json({ error: 'Time pai não encontrado' }, { status: 400 });
+    }
+
     // Mock de criação de team
+    const newTeam = {
+      id: `team-${Date.now()}`,
+      name,
+      description: description || '',
+      organizationId: organizationId || null,
+      managerId: managerId || null,
+      parentTeamId: parentTeamId || null,
+      isActive: isActive !== false,
+      color: 'bg-blue-500',
+      members: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    console.log('Mock: Criando time:', newTeam);
+
     return NextResponse.json({ 
-      message: 'Team criado com sucesso (mock)',
-      team: {
-        id: 'new-team-id',
-        name: body.name,
-        description: body.description || '',
-        color: 'bg-green-500',
-        members: [],
-      }
+      success: true,
+      message: `Time "${name}" criado com sucesso`,
+      team: newTeam
     }, { status: 201 });
 
   } catch (error) {

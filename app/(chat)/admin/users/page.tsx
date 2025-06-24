@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { InviteUserModal } from '@/components/invite-user-modal';
+import { EditUserModal } from '@/components/edit-user-modal';
+import { UsersGuard } from '@/components/auth/permission-guard';
 // Definir tipos específicos para admin que não dependem do schema
 interface AdminRole {
   id: string;
@@ -35,6 +38,8 @@ interface AdminUser {
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<AdminRole[]>([]);
+  const [organizations, setOrganizations] = useState<{id: string, name: string}[]>([]);
+  const [currentUser, setCurrentUser] = useState<{isMasterAdmin: boolean} | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
@@ -59,28 +64,64 @@ export default function UsersPage() {
     }
 
     async function loadRoles() {
-      // Mock roles por enquanto - implementar API depois
-      const mockRoles: AdminRole[] = [
-        {
-          id: '1',
-          name: 'Administrador',
-          displayName: 'Administrador',
-          description: 'Acesso total ao sistema',
-          permissions: ['read', 'write', 'delete', 'admin'],
-        },
-        {
-          id: '2',
-          name: 'Usuário',
-          displayName: 'Usuário',
-          description: 'Usuário padrão',
-          permissions: ['read'],
+      try {
+        const response = await fetch('/api/admin/roles');
+        if (response.ok) {
+          const data = await response.json();
+          setRoles(data.roles || []);
+        } else {
+          // Fallback para roles mock
+          const mockRoles: AdminRole[] = [
+            {
+              id: '1',
+              name: 'admin',
+              displayName: 'Administrador',
+              description: 'Acesso total ao sistema',
+              permissions: ['read', 'write', 'delete', 'admin'],
+            },
+            {
+              id: '2',
+              name: 'user',
+              displayName: 'Usuário',
+              description: 'Usuário padrão',
+              permissions: ['read'],
+            }
+          ];
+          setRoles(mockRoles);
         }
-      ];
-      setRoles(mockRoles);
+      } catch (error) {
+        console.error('Erro ao carregar roles:', error);
+      }
+    }
+
+    async function loadOrganizations() {
+      try {
+        const response = await fetch('/api/organizations');
+        if (response.ok) {
+          const data = await response.json();
+          setOrganizations(data.organizations || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar organizações:', error);
+      }
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch('/api/user/permissions');
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentUser({ isMasterAdmin: data.isMasterAdmin || false });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar usuário atual:', error);
+      }
     }
 
     loadUsers();
     loadRoles();
+    loadOrganizations();
+    loadCurrentUser();
   }, []);
 
   const filteredUsers = users.filter(user => {
@@ -147,17 +188,37 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <UsersGuard fallback={
+      <div className="flex flex-col h-screen">
+        <PageHeader 
+          title="Acesso Negado" 
+          description="Você não tem permissão para acessar esta página"
+          badge="Administração"
+          showBackButton={true}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">Sem permissão para visualizar usuários</div>
+        </div>
+      </div>
+    }>
+      <div className="flex flex-col h-screen">
       <PageHeader 
         title="Gestão de Usuários" 
         description="Gerencie usuários, roles e permissões do sistema"
         badge="Administração"
         showBackButton={true}
       >
-        <Button className="flex items-center gap-2">
-          <PlusIcon size={16} />
-          Convidar Usuário
-        </Button>
+        {currentUser && (
+          <InviteUserModal
+            roles={roles}
+            organizations={organizations}
+            isMasterAdmin={currentUser.isMasterAdmin}
+            onInviteSuccess={() => {
+              // Recarregar usuários após convite bem-sucedido
+              window.location.reload();
+            }}
+          />
+        )}
       </PageHeader>
       
       <div className="flex-1 overflow-auto p-6">
@@ -295,15 +356,18 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleChangePermissions(user.id)}
-                            className="h-8 w-8 p-0"
-                            title="Alterar permissões"
-                          >
-                            <PencilEditIcon size={14} />
-                          </Button>
+                          {currentUser && (
+                            <EditUserModal
+                              user={user}
+                              roles={roles}
+                              organizations={organizations}
+                              isMasterAdmin={currentUser.isMasterAdmin}
+                              onEditSuccess={() => {
+                                // Recarregar usuários após edição bem-sucedida
+                                window.location.reload();
+                              }}
+                            />
+                          )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -353,5 +417,6 @@ export default function UsersPage() {
         </div>
       </div>
     </div>
+    </UsersGuard>
   );
 } 
