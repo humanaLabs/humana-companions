@@ -60,18 +60,18 @@ export default function Page() {
           </p>
         </div>
         <AuthForm action={handleSubmit} defaultEmail={email}>
-          <SubmitButton isSuccessful={isSuccessful}>Cadastrar</SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {'Já tem uma conta? '}
-            <Link
-              href="/login"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
-            >
-              Entre
-            </Link>
-            {' aqui.'}
-          </p>
+          <SubmitButton isSuccessful={isSuccessful}>Criar conta</SubmitButton>
         </AuthForm>
+        <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
+          {'Já tem uma conta? '}
+          <Link
+            href="/login"
+            className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+          >
+            Entre
+          </Link>
+          {' aqui.'}
+        </p>
       </div>
     </div>
   );

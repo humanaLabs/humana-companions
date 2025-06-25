@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 import {
   DropdownMenu,
@@ -52,7 +53,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             ) : (
               <SidebarMenuButton
                 data-testid="user-nav-button"
-                className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-auto py-2"
+                className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-auto py-2 w-[calc(100%-20px)]"
               >
                 <Image
                   src={`https://avatar.vercel.sh/${user.email}`}
@@ -82,7 +83,12 @@ export function SidebarUserNav({ user }: { user: User }) {
           <DropdownMenuContent
             data-testid="user-nav-menu"
             side={state === 'collapsed' ? 'right' : 'top'}
-            className={state === 'expanded' ? 'w-[--radix-popper-anchor-width]' : ''}
+            align="start"
+            className={cn(
+              'w-[calc(var(--sidebar-width-icon)_-_8px)]',
+              'sm:w-[160px]',
+              state === 'expanded' ? 'md:w-[calc(100%-16px)]' : 'md:w-[180px]'
+            )}
           >
             <DropdownMenuItem
               data-testid="user-nav-item-preferences"

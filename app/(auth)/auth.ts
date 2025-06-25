@@ -5,6 +5,7 @@ import { createGuestUser, getUser } from '@/lib/db/queries';
 import { authConfig } from './auth.config';
 import { DUMMY_PASSWORD } from '@/lib/constants';
 import type { DefaultJWT } from 'next-auth/jwt';
+import { guestRegex } from '@/lib/constants';
 
 export type UserType = 'guest' | 'regular';
 
@@ -40,7 +41,16 @@ export const {
   providers: [
     Credentials({
       credentials: {},
-      async authorize({ email, password }: any) {
+      async authorize({ email, password, type }: any) {
+        // Se for um usuário convidado
+        if (type === 'guest' && email && guestRegex.test(email)) {
+          const users = await getUser(email);
+          if (users.length === 0) return null;
+          const [user] = users;
+          return { ...user, type: 'guest' };
+        }
+
+        // Se for um usuário regular
         const users = await getUser(email);
 
         if (users.length === 0) {
@@ -60,14 +70,6 @@ export const {
         if (!passwordsMatch) return null;
 
         return { ...user, type: 'regular' };
-      },
-    }),
-    Credentials({
-      id: 'guest',
-      credentials: {},
-      async authorize() {
-        const [guestUser] = await createGuestUser();
-        return { ...guestUser, type: 'guest' };
       },
     }),
   ],

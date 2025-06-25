@@ -120,3 +120,50 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  segmentData: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    // Verificar se é master admin
+    const isCurrentUserMasterAdmin = session.user.email === 'master@humana.com';
+    if (!isCurrentUserMasterAdmin) {
+      return NextResponse.json(
+        { error: 'Apenas Master Admin pode excluir usuários' },
+        { status: 403 },
+      );
+    }
+
+    const resolvedParams = await segmentData.params;
+    const userId = resolvedParams.id;
+
+    // Não permitir excluir a si mesmo
+    if (userId === session.user.id) {
+      return NextResponse.json(
+        { error: 'Você não pode excluir sua própria conta' },
+        { status: 400 },
+      );
+    }
+
+    console.log('Mock: Excluindo usuário', userId);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Usuário excluído com sucesso',
+    });
+  } catch (error) {
+    console.error('Erro ao excluir usuário:', error);
+    return NextResponse.json(
+      {
+        error: 'Erro interno do servidor',
+      },
+      { status: 500 },
+    );
+  }
+}

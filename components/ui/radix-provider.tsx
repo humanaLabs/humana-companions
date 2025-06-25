@@ -1,0 +1,1 @@
+export { RadixProvider } from '@/components/providers/radix-provider'; 

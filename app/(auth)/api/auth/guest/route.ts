@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
-import { signIn } from '@/app/(auth)/auth';
+import { auth } from '@/app/(auth)/auth';
+import { createGuestUser } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const redirectUrl = searchParams.get('redirectUrl');
 
-    const result = await signIn('guest', {
-      redirect: false,
-    });
+    const [guestUser] = await createGuestUser();
 
-    if (!result?.ok) {
+    if (!guestUser) {
       return NextResponse.json(
         { error: 'Erro ao criar usuário convidado' },
         { status: 500 },
@@ -19,6 +18,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       url: redirectUrl || '/',
+      user: {
+        ...guestUser,
+        type: 'guest',
+      },
     });
   } catch (error) {
     console.error('Erro ao criar usuário convidado:', error);

@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
-import { useFormState } from 'react-dom';
+import { useEffect, useState, Suspense, useActionState } from 'react';
 import { toast } from '@/components/toast';
 
 import { AuthForm } from '@/components/auth-form';
@@ -22,71 +21,43 @@ function LoginContent() {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
-  const [state, formAction] = useFormState(login, {
+  const [state, formAction] = useActionState<LoginActionState, FormData>(login, {
     status: 'idle',
-  } as LoginActionState);
+  });
 
   const { update: updateSession } = useSession();
 
   useEffect(() => {
-    // Verificar erros na URL
-    if (!searchParams) return;
-    const error = searchParams.get('error');
-    if (error === 'GuestSignInFailed') {
-      toast({
-        type: 'error',
-        description:
-          'Falha ao entrar como convidado. Por favor, tente novamente.',
-      });
-      setIsGuestLoading(false);
-    }
-  }, [searchParams]);
+    if (state.status === 'success') {
+      toast({ type: 'success', description: 'Login realizado com sucesso!' });
 
-  useEffect(() => {
-    if (state.status === 'failed') {
-      toast({
-        type: 'error',
-        description: 'Credenciais inválidas!',
-      });
-    } else if (state.status === 'invalid_data') {
-      toast({
-        type: 'error',
-        description: 'Dados inválidos!',
-      });
-    } else if (state.status === 'success') {
       setIsSuccessful(true);
       updateSession();
       router.refresh();
+    } else if (state.status === 'failed') {
+      toast({ type: 'error', description: 'Falha ao fazer login!' });
+    } else if (state.status === 'invalid_data') {
+      toast({
+        type: 'error',
+        description: 'Email ou senha inválidos!',
+      });
     }
-  }, [state.status]);
+  }, [state]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);
     formAction(formData);
   };
 
-  const handleGuestAccess = async () => {
+  const handleGuestLogin = async () => {
     try {
       setIsGuestLoading(true);
-
-      const result = await signIn('guest', {
-        redirect: false,
-      });
-
-      if (result?.error) {
-        throw new Error(result.error);
-      }
-
-      // Atualiza a sessão e redireciona
-      await updateSession();
-      router.push('/');
+      await signIn('guest', { redirect: false });
+      toast({ type: 'success', description: 'Login como convidado realizado!' });
+      router.refresh();
     } catch (error) {
-      console.error('Error accessing as guest:', error);
-      toast({
-        type: 'error',
-        description:
-          'Falha ao entrar como convidado. Por favor, tente novamente.',
-      });
+      toast({ type: 'error', description: 'Falha ao fazer login como convidado!' });
+    } finally {
       setIsGuestLoading(false);
     }
   };
@@ -100,7 +71,7 @@ function LoginContent() {
             Use seu email e senha para entrar
           </p>
         </div>
-        <AuthForm action={formAction} defaultEmail={email}>
+        <AuthForm action={handleSubmit} defaultEmail={email}>
           <SubmitButton isSuccessful={isSuccessful}>Entrar</SubmitButton>
           <div className="mt-4 flex flex-col gap-4 items-center">
             <div className="relative w-full">
@@ -116,7 +87,7 @@ function LoginContent() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={handleGuestAccess}
+              onClick={handleGuestLogin}
               disabled={isGuestLoading}
             >
               {isGuestLoading ? (

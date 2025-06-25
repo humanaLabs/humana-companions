@@ -3,6 +3,7 @@
 import cx from 'classnames';
 import { format, isWithinInterval } from 'date-fns';
 import { useEffect, useState } from 'react';
+import React from 'react';
 
 interface WeatherAtLocation {
   latitude: number;
@@ -206,6 +207,16 @@ export function Weather({
 }: {
   weatherAtLocation?: WeatherAtLocation;
 }) {
+  const [currentTime, setCurrentTime] = React.useState(() => new Date());
+  
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
+
   const currentHigh = Math.max(
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
   );
@@ -213,7 +224,7 @@ export function Weather({
     ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
   );
 
-  const isDay = isWithinInterval(new Date(weatherAtLocation.current.time), {
+  const isDay = isWithinInterval(currentTime, {
     start: new Date(weatherAtLocation.daily.sunrise[0]),
     end: new Date(weatherAtLocation.daily.sunset[0]),
   });
@@ -221,21 +232,20 @@ export function Weather({
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
+    const mql = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mql.matches);
+    
+    onChange(); // Set initial value
+    mql.addEventListener('change', onChange);
+    
+    return () => mql.removeEventListener('change', onChange);
   }, []);
 
   const hoursToShow = isMobile ? 5 : 6;
 
   // Find the index of the current time or the next closest time
   const currentTimeIndex = weatherAtLocation.hourly.time.findIndex(
-    (time) => new Date(time) >= new Date(weatherAtLocation.current.time),
+    (time) => new Date(time) >= currentTime,
   );
 
   // Slice the arrays to get the desired number of items
