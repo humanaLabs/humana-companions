@@ -71,21 +71,20 @@ export function EditUserModal({
     isMasterAdminFlag: user.isMasterAdmin || false,
   });
 
-  // Carregar organização atual do usuário quando abrir o modal
   useEffect(() => {
-    if (open && user.id) {
+    if (open && isMasterAdmin) {
       loadUserOrganization();
     }
-  }, [open, user.id]);
+  }, [open, isMasterAdmin]);
 
   const loadUserOrganization = async () => {
     try {
       const response = await fetch(`/api/admin/users/${user.id}`);
       if (response.ok) {
-        const data = await response.json();
+        const userData = await response.json();
         setFormData(prev => ({
           ...prev,
-          organizationId: data.organizationId || '',
+          organizationId: userData.organizationId || '',
         }));
       }
     } catch (error) {
@@ -200,10 +199,8 @@ export function EditUserModal({
             <Select
               value={formData.roleId}
               onValueChange={(value) => setFormData(prev => ({ ...prev, roleId: value }))}
-              disabled={loading}
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue placeholder="Selecione uma role" />
               </SelectTrigger>
               <SelectContent>
@@ -224,13 +221,11 @@ export function EditUserModal({
             <Label htmlFor="status">Status</Label>
             <Select
               value={formData.status}
-              onValueChange={(value: 'active' | 'invited' | 'suspended') => 
-                setFormData(prev => ({ ...prev, status: value }))
+              onValueChange={(value) => 
+                setFormData(prev => ({ ...prev, status: value as 'active' | 'invited' | 'suspended' }))
               }
-              disabled={loading}
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue placeholder="Selecione um status" />
               </SelectTrigger>
               <SelectContent>
@@ -252,9 +247,8 @@ export function EditUserModal({
                     ...prev, 
                     organizationId: value === "none" ? "" : value 
                   }))}
-                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger disabled={loading}>
                     <SelectValue placeholder="Selecione uma organização" />
                   </SelectTrigger>
                   <SelectContent>
@@ -275,9 +269,8 @@ export function EditUserModal({
                   onValueChange={(value) => 
                     setFormData(prev => ({ ...prev, isMasterAdminFlag: value === 'true' }))
                   }
-                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger disabled={loading}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

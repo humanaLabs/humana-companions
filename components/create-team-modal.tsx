@@ -69,14 +69,13 @@ export function CreateTeamModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.organizationId) {
-      toast.error('Nome e Organização são obrigatórios');
+    if (!formData.name) {
+      toast.error('Nome do time é obrigatório');
       return;
     }
 
-    // Master Admin deve especificar organização
     if (isMasterAdmin && !formData.organizationId) {
-      toast.error('Organização é obrigatória para Master Admin');
+      toast.error('Organização é obrigatória');
       return;
     }
 
@@ -91,7 +90,7 @@ export function CreateTeamModal({
         body: JSON.stringify({
           name: formData.name,
           description: formData.description || undefined,
-          organizationId: formData.organizationId,
+          organizationId: formData.organizationId || undefined,
           managerId: formData.managerId || undefined,
           parentTeamId: formData.parentTeamId || undefined,
           isActive: formData.isActive,
@@ -99,15 +98,14 @@ export function CreateTeamModal({
       });
 
       if (response.ok) {
-        const result = await response.json();
         toast.success(`Time "${formData.name}" criado com sucesso!`);
-        setFormData({ 
-          name: '', 
-          description: '', 
-          organizationId: '', 
-          managerId: '', 
-          parentTeamId: '', 
-          isActive: true 
+        setFormData({
+          name: '',
+          description: '',
+          organizationId: '',
+          managerId: '',
+          parentTeamId: '',
+          isActive: true,
         });
         setOpen(false);
         onCreateSuccess();
@@ -205,10 +203,8 @@ export function CreateTeamModal({
               <Select
                 value={formData.organizationId}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, organizationId: value }))}
-                disabled={loading}
-                required
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={loading}>
                   <SelectValue placeholder="Selecione uma organização" />
                 </SelectTrigger>
                 <SelectContent>
@@ -231,9 +227,8 @@ export function CreateTeamModal({
                 ...prev, 
                 managerId: value === "none" ? "" : value 
               }))}
-              disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue placeholder="Selecione um manager (opcional)" />
               </SelectTrigger>
               <SelectContent>
@@ -259,9 +254,8 @@ export function CreateTeamModal({
                 ...prev, 
                 parentTeamId: value === "none" ? "" : value 
               }))}
-              disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue placeholder="Selecione um time pai (opcional)" />
               </SelectTrigger>
               <SelectContent>
@@ -288,9 +282,8 @@ export function CreateTeamModal({
               onValueChange={(value) => 
                 setFormData(prev => ({ ...prev, isActive: value === 'active' }))
               }
-              disabled={loading}
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

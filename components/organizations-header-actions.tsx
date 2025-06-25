@@ -63,7 +63,7 @@ export function OrganizationsHeaderActions() {
         Gerar com IA
       </Button>
       {userPermissions.canCreateOrganization && (
-        <CreateOrganizationModal onCreateSuccess={handleNewOrganizationClick} />
+        <CreateOrganizationModal onCreateSuccessAction={handleNewOrganizationClick} />
       )}
     </div>
   );

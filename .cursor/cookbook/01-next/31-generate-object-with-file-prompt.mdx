@@ -52,7 +52,7 @@ export default function Page() {
           <label>Upload Image</label>
           <input name="pdf" type="file" accept="application/pdf" />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" <SelectTrigger disabled={loading}>>
           Submit{loading && 'ing...'}
         </button>
       </form>

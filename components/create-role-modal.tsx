@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,38 +41,25 @@ interface CreateRoleModalProps {
   onCreateSuccess: () => void;
 }
 
-// Permissões disponíveis organizadas por categoria
+// Permissões disponíveis (simplificado para o exemplo)
 const AVAILABLE_PERMISSIONS: Permission[] = [
-  // Gestão de Usuários
-  { id: 'users.read', name: 'Visualizar Usuários', category: 'Usuários', description: 'Ver lista de usuários' },
-  { id: 'users.create', name: 'Criar Usuários', category: 'Usuários', description: 'Convidar novos usuários' },
-  { id: 'users.update', name: 'Editar Usuários', category: 'Usuários', description: 'Alterar dados de usuários' },
-  { id: 'users.delete', name: 'Remover Usuários', category: 'Usuários', description: 'Excluir usuários do sistema' },
-  
-  // Gestão de Times
-  { id: 'teams.read', name: 'Visualizar Times', category: 'Times', description: 'Ver lista de times' },
-  { id: 'teams.create', name: 'Criar Times', category: 'Times', description: 'Criar novos times' },
-  { id: 'teams.update', name: 'Editar Times', category: 'Times', description: 'Alterar configurações de times' },
-  { id: 'teams.delete', name: 'Remover Times', category: 'Times', description: 'Excluir times' },
-  { id: 'teams.manage_members', name: 'Gerenciar Membros', category: 'Times', description: 'Adicionar/remover membros' },
-  
-  // Gestão de Companions
-  { id: 'companions.read', name: 'Visualizar Companions', category: 'Companions', description: 'Ver lista de companions' },
-  { id: 'companions.create', name: 'Criar Companions', category: 'Companions', description: 'Criar novos companions' },
-  { id: 'companions.update', name: 'Editar Companions', category: 'Companions', description: 'Alterar companions' },
-  { id: 'companions.delete', name: 'Remover Companions', category: 'Companions', description: 'Excluir companions' },
-  
-  // Gestão de Organizações
-  { id: 'organizations.read', name: 'Visualizar Organizações', category: 'Organizações', description: 'Ver organizações' },
-  { id: 'organizations.create', name: 'Criar Organizações', category: 'Organizações', description: 'Criar organizações' },
-  { id: 'organizations.update', name: 'Editar Organizações', category: 'Organizações', description: 'Alterar organizações' },
-  { id: 'organizations.delete', name: 'Remover Organizações', category: 'Organizações', description: 'Excluir organizações' },
-  
   // Administração
-  { id: 'admin.roles', name: 'Gerenciar Roles', category: 'Administração', description: 'Criar e editar roles' },
-  { id: 'admin.permissions', name: 'Gerenciar Permissões', category: 'Administração', description: 'Atribuir permissões' },
-  { id: 'admin.audit', name: 'Visualizar Auditoria', category: 'Administração', description: 'Ver logs de auditoria' },
-  { id: 'admin.settings', name: 'Configurações', category: 'Administração', description: 'Alterar configurações do sistema' },
+  { id: 'admin.users.view', name: 'Visualizar Usuários', category: 'Administração', description: 'Ver lista de usuários' },
+  { id: 'admin.users.create', name: 'Criar Usuários', category: 'Administração', description: 'Criar novos usuários' },
+  { id: 'admin.users.edit', name: 'Editar Usuários', category: 'Administração', description: 'Editar informações de usuários' },
+  { id: 'admin.users.delete', name: 'Excluir Usuários', category: 'Administração', description: 'Excluir usuários do sistema' },
+  
+  // Companions
+  { id: 'companions.view', name: 'Visualizar Companions', category: 'Companions', description: 'Ver companions disponíveis' },
+  { id: 'companions.create', name: 'Criar Companions', category: 'Companions', description: 'Criar novos companions' },
+  { id: 'companions.edit', name: 'Editar Companions', category: 'Companions', description: 'Editar companions existentes' },
+  { id: 'companions.delete', name: 'Excluir Companions', category: 'Companions', description: 'Excluir companions' },
+  
+  // Organizações
+  { id: 'organizations.view', name: 'Visualizar Organizações', category: 'Organizações', description: 'Ver organizações' },
+  { id: 'organizations.create', name: 'Criar Organizações', category: 'Organizações', description: 'Criar novas organizações' },
+  { id: 'organizations.edit', name: 'Editar Organizações', category: 'Organizações', description: 'Editar organizações' },
+  { id: 'organizations.delete', name: 'Excluir Organizações', category: 'Organizações', description: 'Excluir organizações' },
 ];
 
 export function CreateRoleModal({ 
@@ -115,20 +102,19 @@ export function CreateRoleModal({
           name: formData.name,
           displayName: formData.displayName,
           description: formData.description || undefined,
-          organizationId: formData.organizationId || null,
+          organizationId: formData.organizationId || undefined,
           permissions: formData.permissions,
         }),
       });
 
       if (response.ok) {
-        const result = await response.json();
         toast.success(`Role "${formData.displayName}" criada com sucesso!`);
-        setFormData({ 
-          name: '', 
-          displayName: '', 
-          description: '', 
-          organizationId: '', 
-          permissions: [] 
+        setFormData({
+          name: '',
+          displayName: '',
+          description: '',
+          organizationId: '',
+          permissions: [],
         });
         setOpen(false);
         onCreateSuccess();
@@ -147,13 +133,6 @@ export function CreateRoleModal({
   const handleClose = () => {
     if (!loading) {
       setOpen(false);
-      setFormData({ 
-        name: '', 
-        displayName: '', 
-        description: '', 
-        organizationId: '', 
-        permissions: [] 
-      });
     }
   };
 
@@ -269,9 +248,8 @@ export function CreateRoleModal({
                   ...prev, 
                   organizationId: value === 'global' ? '' : value 
                 }))}
-                disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={loading}>
                   <SelectValue placeholder="Selecione o escopo" />
                 </SelectTrigger>
                 <SelectContent>

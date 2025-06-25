@@ -52,12 +52,11 @@ function LoginContent() {
   const handleGuestLogin = async () => {
     try {
       setIsGuestLoading(true);
-      await signIn('guest', { redirect: false });
-      toast({ type: 'success', description: 'Login como convidado realizado!' });
-      router.refresh();
+      // Redirecionar para a API de guest que faz login automático
+      const callbackUrl = searchParams?.get('callbackUrl') || '/';
+      window.location.href = `/api/auth/guest?redirectUrl=${encodeURIComponent(callbackUrl)}`;
     } catch (error) {
       toast({ type: 'error', description: 'Falha ao fazer login como convidado!' });
-    } finally {
       setIsGuestLoading(false);
     }
   };

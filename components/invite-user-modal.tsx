@@ -151,10 +151,8 @@ export function InviteUserModal({
             <Select
               value={formData.roleId}
               onValueChange={(value) => setFormData(prev => ({ ...prev, roleId: value }))}
-              disabled={loading}
-              required
             >
-              <SelectTrigger>
+              <SelectTrigger disabled={loading}>
                 <SelectValue placeholder="Selecione uma role" />
               </SelectTrigger>
               <SelectContent>
@@ -177,10 +175,8 @@ export function InviteUserModal({
               <Select
                 value={formData.organizationId}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, organizationId: value }))}
-                disabled={loading}
-                required
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={loading}>
                   <SelectValue placeholder="Selecione uma organização" />
                 </SelectTrigger>
                 <SelectContent>

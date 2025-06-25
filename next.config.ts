@@ -4,16 +4,16 @@ const nextConfig: NextConfig = {
   experimental: {
     ppr: true,
   },
-  devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
-  },
   images: {
     remotePatterns: [
       {
         hostname: 'avatar.vercel.sh',
       },
     ],
+  },
+  // Força o uso do Webpack ao invés do Turbopack
+  webpack: (config, { isServer }) => {
+    return config;
   },
 };
 

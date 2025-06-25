@@ -25,10 +25,10 @@ import { PlusIcon } from '@/components/icons';
 import { toast } from 'sonner';
 
 interface CreateOrganizationModalProps {
-  onCreateSuccess: () => void;
+  onCreateSuccessAction: () => void;
 }
 
-export function CreateOrganizationModal({ onCreateSuccess }: CreateOrganizationModalProps) {
+export function CreateOrganizationModal({ onCreateSuccessAction }: CreateOrganizationModalProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -107,7 +107,7 @@ export function CreateOrganizationModal({ onCreateSuccess }: CreateOrganizationM
           }
         });
         setOpen(false);
-        onCreateSuccess();
+        onCreateSuccessAction();
       } else {
         const error = await response.json();
         toast.error(error.error || 'Erro ao criar organização');
@@ -205,9 +205,8 @@ export function CreateOrganizationModal({ onCreateSuccess }: CreateOrganizationM
               <Select
                 value={formData.industry}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, industry: value }))}
-                disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={loading}>
                   <SelectValue placeholder="Selecione o setor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -228,9 +227,8 @@ export function CreateOrganizationModal({ onCreateSuccess }: CreateOrganizationM
               <Select
                 value={formData.size}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, size: value }))}
-                disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={loading}>
                   <SelectValue placeholder="Selecione o tamanho" />
                 </SelectTrigger>
                 <SelectContent>

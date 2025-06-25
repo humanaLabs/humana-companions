@@ -44,7 +44,7 @@
     "@radix-ui/react-dialog": "1.0.0",
     "@radix-ui/react-label": "1.0.0",
     "@radix-ui/react-popper": "1.0.0",
-    "@radix-ui/react-primitive": "1.0.0",
+    "@radix-ui/react-primitive": "1.0.3",
     "@radix-ui/react-progress": "1.0.0",
     "@radix-ui/react-separator": "1.0.0",
     "@radix-ui/react-slot": "1.0.0",
