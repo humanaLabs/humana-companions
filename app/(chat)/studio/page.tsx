@@ -22,7 +22,9 @@ export default function StudioPage() {
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="text-muted-foreground">
-                  <BoxIcon size={48} />
+                  <div className="w-12 h-12 flex items-center justify-center">
+                    <BoxIcon size={48} />
+                  </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
                   Organization Designer
@@ -50,17 +52,20 @@ export default function StudioPage() {
             {/* Companions Designer */}
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="text-muted-foreground flex justify-center">
-                  <div className="scale-[3]">
-                    <BotIcon />
+                <div className="text-muted-foreground">
+                  <div className="w-12 h-12 flex items-center justify-center">
+                    <div className="scale-[3]">
+                      <BotIcon />
+                    </div>
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">
                   Companions Designer
                 </h3>
                 <p className="text-muted-foreground">
-                  Desenvolva assistentes IA especializados com personalidades, 
-                  conhecimentos e habilidades específicas para sua organização.
+                  Desenvolva assistentes IA especializados com 
+                  personalidades, conhecimentos e habilidades 
+                  específicas para sua organização.
                 </p>
                 <div className="flex flex-col space-y-2 w-full">
                   <div className="text-sm text-muted-foreground">
