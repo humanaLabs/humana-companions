@@ -233,6 +233,9 @@ lib/config/
 ### 🛠️ **Ferramentas de Debug**
 **[`SCRIPTS_UTILITARIOS.md`](./arquitetura_geral/SCRIPTS_UTILITARIOS.md)**
 
+### 🧹 **Sistema de Limpeza de Usuários**
+**[`SISTEMA_LIMPEZA_USUARIOS.md`](./arquitetura_geral/SISTEMA_LIMPEZA_USUARIOS.md)** - Manutenção e limpeza automática de usuários convidados 
+
 ---
 
 ## 📝 Documentação Obrigatória
