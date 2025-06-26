@@ -20,6 +20,7 @@ export const login = async (
   formData: FormData | null,
 ): Promise<LoginActionState> => {
   if (!formData) return prevState;
+  if (prevState.status === 'success') return prevState;
 
   try {
     const validatedData = authFormSchema.parse({

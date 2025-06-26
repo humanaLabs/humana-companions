@@ -21,40 +21,52 @@ function LoginContent() {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(login, {
-    status: 'idle',
-  });
+  const [state, formAction] = useActionState<LoginActionState, FormData>(
+    login,
+    {
+      status: 'idle',
+    },
+  );
 
   const { data: session, update: updateSession, status } = useSession();
 
   // Se o usuário já está logado como usuário regular, redirecionar para home
   useEffect(() => {
-    if (status === 'authenticated' && session?.user && !session.user.email?.includes('guest-')) {
-      router.push('/');
-    }
-  }, [status, session, router]);
+    const handleAuthenticatedUser = async () => {
+      if (
+        status === 'authenticated' &&
+        session?.user &&
+        !session.user.email?.includes('guest-')
+      ) {
+        const callbackUrl = searchParams?.get('callbackUrl') || '/';
+        router.push(callbackUrl);
+      }
+    };
+
+    handleAuthenticatedUser();
+  }, [status, session, router, searchParams]);
 
   useEffect(() => {
-    if (state.status === 'success') {
-      toast({ type: 'success', description: 'Login realizado com sucesso!' });
+    const handleLoginState = async () => {
+      if (state.status === 'success' && !isSuccessful) {
+        setIsSuccessful(true);
+        toast({ type: 'success', description: 'Login realizado com sucesso!' });
+        await updateSession();
+      } else if (state.status === 'failed') {
+        toast({ type: 'error', description: 'Falha ao fazer login!' });
+      } else if (state.status === 'invalid_data') {
+        toast({
+          type: 'error',
+          description: 'Email ou senha inválidos!',
+        });
+      }
+    };
 
-      setIsSuccessful(true);
-      updateSession();
-      
-      // Redirecionar para a página principal ou callback URL
-      const callbackUrl = searchParams?.get('callbackUrl') || '/';
-      router.push(callbackUrl);
-    } else if (state.status === 'failed') {
-      toast({ type: 'error', description: 'Falha ao fazer login!' });
-    } else if (state.status === 'invalid_data') {
-      toast({
-        type: 'error',
-        description: 'Email ou senha inválidos!',
-      });
-    }
-  }, [state, router, searchParams, updateSession]);
+    handleLoginState();
+  }, [state, isSuccessful, updateSession]);
 
-  const handleSubmit = (formData: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
+    if (isSuccessful) return; // Previne múltiplos submits
     setEmail(formData.get('email') as string);
     formAction(formData);
   };
@@ -66,7 +78,10 @@ function LoginContent() {
       const callbackUrl = searchParams?.get('callbackUrl') || '/';
       window.location.href = `/api/auth/guest?redirectUrl=${encodeURIComponent(callbackUrl)}`;
     } catch (error) {
-      toast({ type: 'error', description: 'Falha ao fazer login como convidado!' });
+      toast({
+        type: 'error',
+        description: 'Falha ao fazer login como convidado!',
+      });
       setIsGuestLoading(false);
     }
   };
