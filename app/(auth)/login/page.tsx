@@ -25,7 +25,14 @@ function LoginContent() {
     status: 'idle',
   });
 
-  const { update: updateSession } = useSession();
+  const { data: session, update: updateSession, status } = useSession();
+
+  // Se o usuário já está logado como usuário regular, redirecionar para home
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user && !session.user.email?.includes('guest-')) {
+      router.push('/');
+    }
+  }, [status, session, router]);
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -33,7 +40,10 @@ function LoginContent() {
 
       setIsSuccessful(true);
       updateSession();
-      router.refresh();
+      
+      // Redirecionar para a página principal ou callback URL
+      const callbackUrl = searchParams?.get('callbackUrl') || '/';
+      router.push(callbackUrl);
     } else if (state.status === 'failed') {
       toast({ type: 'error', description: 'Falha ao fazer login!' });
     } else if (state.status === 'invalid_data') {
@@ -42,7 +52,7 @@ function LoginContent() {
         description: 'Email ou senha inválidos!',
       });
     }
-  }, [state]);
+  }, [state, router, searchParams, updateSession]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);

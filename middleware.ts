@@ -29,17 +29,20 @@ export async function middleware(request: NextRequest) {
   });
 
   if (!token) {
-    const redirectUrl = encodeURIComponent(request.url);
-
-    return NextResponse.redirect(
-      new URL(`/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
-    );
+    // Se estiver tentando acessar login ou register, permitir
+    if (['/login', '/register'].includes(pathname)) {
+      return NextResponse.next();
+    }
+    
+    // Para outras rotas, redirecionar para login
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   const isGuest = guestRegex.test(token?.email ?? '');
 
-  if (token && ['/login', '/register'].includes(pathname)) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // Permitir acesso ao login/register mesmo se logado (para trocar de conta)
+  if (['/login', '/register'].includes(pathname)) {
+    return NextResponse.next();
   }
 
   // Auto-create organization for first-time users (except guests)
@@ -87,18 +90,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
-    '/chat/:id',
-    '/api/:path*',
-    '/login',
-    '/register',
-
     /*
      * Match all request paths except for the ones starting with:
+     * - api/auth (authentication routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 };

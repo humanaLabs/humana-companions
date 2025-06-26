@@ -151,7 +151,10 @@ export function SidebarUserNav({ user }: { user: User }) {
                   }
 
                   if (isGuest) {
-                    router.push('/login');
+                    // Fazer logout do guest e redirecionar para login
+                    signOut({
+                      redirectTo: '/login',
+                    });
                   } else {
                     signOut({
                       redirectTo: '/',
