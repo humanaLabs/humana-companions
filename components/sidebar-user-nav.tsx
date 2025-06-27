@@ -6,6 +6,8 @@ import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import React from 'react';
 
 import {
   DropdownMenu,
@@ -32,6 +34,20 @@ export function SidebarUserNav({ user }: { user: User }) {
   const { state } = useSidebar();
 
   const isGuest = guestRegex.test(data?.user?.email ?? '');
+  const [userPlan, setUserPlan] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function fetchPlan() {
+      try {
+        const res = await fetch('/api/user/permissions');
+        if (res.ok) {
+          const data = await res.json();
+          setUserPlan(data.plan);
+        }
+      } catch {}
+    }
+    fetchPlan();
+  }, []);
 
   return (
     <SidebarMenu>
@@ -65,7 +81,27 @@ export function SidebarUserNav({ user }: { user: User }) {
                 {state === 'expanded' && (
                   <>
                     <div className="flex flex-col items-start flex-1 min-w-0">
-                      <span data-testid="user-email" className="truncate text-sm">
+                      {userPlan === 'pro' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.href = '/pricing';
+                          }}
+                          className="focus:outline-none mb-1"
+                          title="Gerenciar plano"
+                        >
+                          <Badge
+                            variant="default"
+                            className="px-3 py-1 text-xs cursor-pointer"
+                          >
+                            Plano Pro
+                          </Badge>
+                        </button>
+                      )}
+                      <span
+                        data-testid="user-email"
+                        className="truncate text-sm"
+                      >
                         {isGuest ? 'Guest' : user?.email}
                       </span>
                       {isGuest && (
@@ -87,7 +123,7 @@ export function SidebarUserNav({ user }: { user: User }) {
             className={cn(
               'w-[calc(var(--sidebar-width-icon)_-_8px)]',
               'sm:w-[160px]',
-              state === 'expanded' ? 'md:w-[calc(100%-16px)]' : 'md:w-[180px]'
+              state === 'expanded' ? 'md:w-[calc(100%-16px)]' : 'md:w-[180px]',
             )}
           >
             <DropdownMenuItem
@@ -130,7 +166,9 @@ export function SidebarUserNav({ user }: { user: User }) {
             <DropdownMenuItem
               data-testid="user-nav-item-theme"
               className="cursor-pointer"
-              onSelect={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              onSelect={() =>
+                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+              }
             >
               {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>

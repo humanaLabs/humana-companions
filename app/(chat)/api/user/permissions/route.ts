@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
       teamIds: [], // TODO: Buscar times do usuário
       permissions: computedPermissions,
       rawPermissions: rolePermissions,
+      plan: dbUser.plan,
+      messagesSent: dbUser.messagesSent,
     });
   } catch (error) {
     console.error('Error fetching user permissions:', error);

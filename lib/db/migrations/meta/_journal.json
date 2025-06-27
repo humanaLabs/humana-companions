@@ -127,6 +127,13 @@
       "when": 1750729625064,
       "tag": "0017_gray_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1751018295633,
+      "tag": "0018_graceful_nick_fury",
+      "breakpoints": true
     }
   ]
 }

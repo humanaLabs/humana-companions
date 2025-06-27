@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -16,6 +17,10 @@ export const user = pgTable('User', {
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
   isMasterAdmin: boolean('isMasterAdmin').notNull().default(false),
+  plan: varchar('plan', { enum: ['free', 'pro', 'guest'] })
+    .notNull()
+    .default('free'),
+  messagesSent: integer('messagesSent').notNull().default(0),
 });
 
 export type User = InferSelectModel<typeof user>;
@@ -46,19 +51,23 @@ export const projectFolder = pgTable('ProjectFolder', {
 
 export type ProjectFolder = InferSelectModel<typeof projectFolder>;
 
-export const chatFolder = pgTable('ChatFolder', {
-  chatId: uuid('chatId')
-    .notNull()
-    .references(() => chat.id),
-  folderId: uuid('folderId')
-    .notNull()
-    .references(() => projectFolder.id),
-  addedAt: timestamp('addedAt').notNull().defaultNow(),
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.chatId, table.folderId] }),
-  };
-});
+export const chatFolder = pgTable(
+  'ChatFolder',
+  {
+    chatId: uuid('chatId')
+      .notNull()
+      .references(() => chat.id),
+    folderId: uuid('folderId')
+      .notNull()
+      .references(() => projectFolder.id),
+    addedAt: timestamp('addedAt').notNull().defaultNow(),
+  },
+  (table) => {
+    return {
+      pk: primaryKey({ columns: [table.chatId, table.folderId] }),
+    };
+  },
+);
 
 export type ChatFolder = InferSelectModel<typeof chatFolder>;
 
@@ -228,11 +237,15 @@ export const mcpServer = pgTable('McpServer', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
   url: text('url').notNull(),
-  transport: varchar('transport', { enum: ['sse', 'stdio'] }).notNull().default('sse'),
+  transport: varchar('transport', { enum: ['sse', 'stdio'] })
+    .notNull()
+    .default('sse'),
   description: text('description'),
   isActive: boolean('isActive').notNull().default(true),
   // Campos de autenticação
-  authType: varchar('authType', { enum: ['none', 'bearer', 'basic', 'apikey'] }).notNull().default('none'),
+  authType: varchar('authType', { enum: ['none', 'bearer', 'basic', 'apikey'] })
+    .notNull()
+    .default('none'),
   authToken: text('authToken'), // Para Bearer Token ou API Key
   authUsername: varchar('authUsername', { length: 100 }), // Para Basic Auth
   authPassword: varchar('authPassword', { length: 100 }), // Para Basic Auth
@@ -277,9 +290,11 @@ export const companionFeedback = pgTable('CompanionFeedback', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
-  type: varchar('type', { enum: ['positive', 'negative', 'suggestion'] }).notNull(),
-  category: varchar('category', { 
-    enum: ['accuracy', 'helpfulness', 'relevance', 'tone', 'completeness'] 
+  type: varchar('type', {
+    enum: ['positive', 'negative', 'suggestion'],
+  }).notNull(),
+  category: varchar('category', {
+    enum: ['accuracy', 'helpfulness', 'relevance', 'tone', 'completeness'],
   }).notNull(),
   rating: varchar('rating', { length: 1 }).notNull(), // 1-5
   comment: text('comment').notNull(),
@@ -301,8 +316,8 @@ export const companionInteraction = pgTable('CompanionInteraction', {
     .references(() => user.id),
   chatId: uuid('chatId').references(() => chat.id),
   messageId: uuid('messageId').references(() => message.id),
-  type: varchar('type', { 
-    enum: ['question', 'task', 'consultation', 'feedback_request'] 
+  type: varchar('type', {
+    enum: ['question', 'task', 'consultation', 'feedback_request'],
   }).notNull(),
   context: json('context'), // Contexto da interação
   response: json('response'), // Resposta do companion
@@ -312,7 +327,9 @@ export const companionInteraction = pgTable('CompanionInteraction', {
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
 
-export type CompanionInteraction = InferSelectModel<typeof companionInteraction>;
+export type CompanionInteraction = InferSelectModel<
+  typeof companionInteraction
+>;
 
 // Tabela para relatórios do ciclo MCP
 export const mcpCycleReport = pgTable('McpCycleReport', {
@@ -326,9 +343,11 @@ export const mcpCycleReport = pgTable('McpCycleReport', {
   recommendations: json('recommendations').notNull(), // Recomendações de melhoria
   nextSteps: json('nextSteps').notNull(), // Próximos passos
   improvementSuggestions: json('improvementSuggestions'), // Sugestões de melhoria específicas
-  status: varchar('status', { 
-    enum: ['pending', 'in_progress', 'completed', 'failed'] 
-  }).notNull().default('pending'),
+  status: varchar('status', {
+    enum: ['pending', 'in_progress', 'completed', 'failed'],
+  })
+    .notNull()
+    .default('pending'),
   executedBy: uuid('executedBy').references(() => user.id), // Quem executou o ciclo
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
@@ -355,15 +374,17 @@ export const companionPerformance = pgTable('CompanionPerformance', {
   // Métricas de MCP
   lastMcpCycleAt: timestamp('lastMcpCycleAt'),
   mcpScore: varchar('mcpScore', { length: 4 }), // Score de 1-10
-  improvementTrend: varchar('improvementTrend', { 
-    enum: ['improving', 'stable', 'declining', 'unknown'] 
+  improvementTrend: varchar('improvementTrend', {
+    enum: ['improving', 'stable', 'declining', 'unknown'],
   }).default('unknown'),
   // Timestamps
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
-export type CompanionPerformance = InferSelectModel<typeof companionPerformance>;
+export type CompanionPerformance = InferSelectModel<
+  typeof companionPerformance
+>;
 
 // ============================================================================
 // SISTEMA DE ADMINISTRAÇÃO - FASE 2
@@ -425,56 +446,70 @@ export const userRole = pgTable('UserRole', {
 export type UserRole = InferSelectModel<typeof userRole>;
 
 // Tabela de Team Members
-export const teamMember = pgTable('TeamMember', {
-  teamId: uuid('teamId')
-    .notNull()
-    .references(() => team.id),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  roleInTeam: varchar('roleInTeam', { 
-    enum: ['member', 'lead', 'manager', 'admin'] 
-  }).notNull().default('member'),
-  joinedAt: timestamp('joinedAt').notNull().defaultNow(),
-  addedBy: uuid('addedBy')
-    .notNull()
-    .references(() => user.id),
-  isActive: boolean('isActive').notNull().default(true),
-  permissions: json('permissions'), // Permissões específicas no time
-}, (table) => {
-  return {
-    // Chave primária composta para evitar duplicatas
-    pk: primaryKey({ columns: [table.teamId, table.userId] }),
-  };
-});
+export const teamMember = pgTable(
+  'TeamMember',
+  {
+    teamId: uuid('teamId')
+      .notNull()
+      .references(() => team.id),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => user.id),
+    roleInTeam: varchar('roleInTeam', {
+      enum: ['member', 'lead', 'manager', 'admin'],
+    })
+      .notNull()
+      .default('member'),
+    joinedAt: timestamp('joinedAt').notNull().defaultNow(),
+    addedBy: uuid('addedBy')
+      .notNull()
+      .references(() => user.id),
+    isActive: boolean('isActive').notNull().default(true),
+    permissions: json('permissions'), // Permissões específicas no time
+  },
+  (table) => {
+    return {
+      // Chave primária composta para evitar duplicatas
+      pk: primaryKey({ columns: [table.teamId, table.userId] }),
+    };
+  },
+);
 
 export type TeamMember = InferSelectModel<typeof teamMember>;
 
 // Tabela de User-Organization assignments
-export const userOrganization = pgTable('UserOrganization', {
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  organizationId: uuid('organizationId')
-    .notNull()
-    .references(() => organization.id),
-  roleInOrganization: varchar('roleInOrganization', { 
-    enum: ['owner', 'admin', 'manager', 'member', 'guest'] 
-  }).notNull().default('member'),
-  invitedBy: uuid('invitedBy').references(() => user.id),
-  joinedAt: timestamp('joinedAt').notNull().defaultNow(),
-  invitedAt: timestamp('invitedAt'),
-  lastActiveAt: timestamp('lastActiveAt'),
-  status: varchar('status', { 
-    enum: ['active', 'inactive', 'pending', 'suspended'] 
-  }).notNull().default('active'),
-  settings: json('settings'), // Configurações específicas do usuário na organização
-}, (table) => {
-  return {
-    // Chave primária composta para evitar duplicatas
-    pk: primaryKey({ columns: [table.userId, table.organizationId] }),
-  };
-});
+export const userOrganization = pgTable(
+  'UserOrganization',
+  {
+    userId: uuid('userId')
+      .notNull()
+      .references(() => user.id),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
+    roleInOrganization: varchar('roleInOrganization', {
+      enum: ['owner', 'admin', 'manager', 'member', 'guest'],
+    })
+      .notNull()
+      .default('member'),
+    invitedBy: uuid('invitedBy').references(() => user.id),
+    joinedAt: timestamp('joinedAt').notNull().defaultNow(),
+    invitedAt: timestamp('invitedAt'),
+    lastActiveAt: timestamp('lastActiveAt'),
+    status: varchar('status', {
+      enum: ['active', 'inactive', 'pending', 'suspended'],
+    })
+      .notNull()
+      .default('active'),
+    settings: json('settings'), // Configurações específicas do usuário na organização
+  },
+  (table) => {
+    return {
+      // Chave primária composta para evitar duplicatas
+      pk: primaryKey({ columns: [table.userId, table.organizationId] }),
+    };
+  },
+);
 
 export type UserOrganization = InferSelectModel<typeof userOrganization>;
 
@@ -512,9 +547,11 @@ export const userInvite = pgTable('UserInvite', {
     .references(() => user.id),
   token: varchar('token', { length: 64 }).notNull().unique(),
   message: text('message'), // Mensagem personalizada do convite
-  status: varchar('status', { 
-    enum: ['pending', 'accepted', 'expired', 'cancelled'] 
-  }).notNull().default('pending'),
+  status: varchar('status', {
+    enum: ['pending', 'accepted', 'expired', 'cancelled'],
+  })
+    .notNull()
+    .default('pending'),
   expiresAt: timestamp('expiresAt').notNull(),
   acceptedAt: timestamp('acceptedAt'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),

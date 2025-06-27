@@ -1,17 +1,7 @@
 // @ts-nocheck - Temporarily disable type checking due to drizzle-orm version conflicts
 import 'server-only';
 
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  lt,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, inArray, lt } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -38,9 +28,7 @@ import {
   companionPerformance,
   mcpCycleReport,
 } from './schema';
-import type { ArtifactKind } from '@/components/artifact';
-import { generateUUID } from '../utils';
-import { generateHashedPassword } from './utils';
+import { generateHashedPassword, generateUUID } from './utils';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { ChatSDKError } from '../errors';
 
@@ -54,7 +42,10 @@ const db = drizzle(client);
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
-    return await db.select().from(user).where(eq(user.email, email) as any);
+    return await db
+      .select()
+      .from(user)
+      .where(eq(user.email, email) as any);
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -78,10 +69,13 @@ export async function createGuestUser() {
   const password = generateHashedPassword(generateUUID());
 
   try {
-    return await db.insert(user).values({ email, password }).returning({
-      id: user.id,
-      email: user.email,
-    });
+    return await db
+      .insert(user)
+      .values({ email, password, plan: 'guest' })
+      .returning({
+        id: user.id,
+        email: user.email,
+      });
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -153,7 +147,7 @@ export async function getChatsByUserId({
         .from(chat)
         .where(
           whereCondition
-            ? and(whereCondition, eq(chat.userId, id) as any) as any
+            ? (and(whereCondition, eq(chat.userId, id) as any) as any)
             : (eq(chat.userId, id) as any),
         )
         .orderBy(desc(chat.createdAt) as any)
@@ -509,9 +503,11 @@ export async function getMessageCountByUserId({
   differenceInHours,
 }: { id: string; differenceInHours: number }) {
   try {
-    const twentyFourHoursAgo = new Date(
-      Date.now() - differenceInHours * 60 * 60 * 1000,
-    );
+    const hours =
+      typeof differenceInHours === 'string'
+        ? Number.parseInt(differenceInHours)
+        : differenceInHours;
+    const twentyFourHoursAgo = new Date(Date.now() - hours * 60 * 60 * 1000);
 
     const [stats] = await db
       .select({ count: count(message.id) })
@@ -1562,8 +1558,10 @@ export async function getCompanionAnalytics(companionId: string) {
         totalFeedback: recentFeedback.length,
         averageRating:
           recentFeedback.length > 0
-            ? recentFeedback.reduce((sum, f) => sum + parseInt(f.rating), 0) /
-              recentFeedback.length
+            ? recentFeedback.reduce(
+                (sum, f) => sum + Number.parseInt(f.rating),
+                0,
+              ) / recentFeedback.length
             : 0,
         totalInteractions: recentInteractions.length,
         lastActivity: recentInteractions[0]?.createdAt || null,
@@ -1573,6 +1571,44 @@ export async function getCompanionAnalytics(companionId: string) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get companion analytics',
+    );
+  }
+}
+
+export async function getUserPlanAndMessagesSent(
+  userId: string,
+): Promise<{ plan: string; messagesSent: number }> {
+  try {
+    const [result] = await db
+      .select({ plan: user.plan, messagesSent: user.messagesSent })
+      .from(user)
+      .where(eq(user.id, userId));
+    if (!result) throw new Error('Usuário não encontrado');
+    return result;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get user plan/messagesSent',
+    );
+  }
+}
+
+export async function incrementUserMessagesSent(userId: string): Promise<void> {
+  try {
+    // Buscar valor atual
+    const [result] = await db
+      .select({ messagesSent: user.messagesSent })
+      .from(user)
+      .where(eq(user.id, userId));
+    const current = result?.messagesSent ?? 0;
+    await db
+      .update(user)
+      .set({ messagesSent: current + 1 })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to increment user messagesSent',
     );
   }
 }

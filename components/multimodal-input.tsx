@@ -42,6 +42,7 @@ function PureMultimodalInput({
   handleSubmit,
   className,
   selectedVisibilityType,
+  disabled = false,
 }: {
   chatId: string;
   input: UseChatHelpers['input'];
@@ -56,6 +57,7 @@ function PureMultimodalInput({
   handleSubmit: UseChatHelpers['handleSubmit'];
   className?: string;
   selectedVisibilityType: VisibilityType;
+  disabled?: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -289,6 +291,7 @@ function PureMultimodalInput({
             }
           }
         }}
+        disabled={disabled}
       />
 
       <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
@@ -303,6 +306,7 @@ function PureMultimodalInput({
             input={input}
             submitForm={submitForm}
             uploadQueue={uploadQueue}
+            disabled={disabled}
           />
         )}
       </div>
@@ -376,10 +380,12 @@ function PureSendButton({
   submitForm,
   input,
   uploadQueue,
+  disabled = false,
 }: {
   submitForm: () => void;
   input: string;
   uploadQueue: Array<string>;
+  disabled?: boolean;
 }) {
   return (
     <Button
@@ -389,7 +395,7 @@ function PureSendButton({
         event.preventDefault();
         submitForm();
       }}
-      disabled={input.length === 0 || uploadQueue.length > 0}
+      disabled={disabled || input.length === 0 || uploadQueue.length > 0}
     >
       <ArrowUpIcon size={14} />
     </Button>
