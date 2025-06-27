@@ -33,7 +33,6 @@ import {
   setMcpToolsContext,
 } from '@/lib/ai/tools/list-mcp-tools';
 import { getMcpToolsFromServers } from '@/lib/ai/mcp-client';
-import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
 import { postRequestBodySchema, type PostRequestBody } from './schema';
