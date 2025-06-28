@@ -1,8 +1,32 @@
-# 03. Data Room - Sistema de Gestão de Conhecimento
+# 03. Data Room - Sistema RAG & Contexto Inteligente
 
-## 🎯 **Visão Geral**
+## 🎯 **Visão Geral: RAG Foundation**
 
-O **Data Room** é o sistema centralizado de gestão de conhecimento e documentos do Humana AI Companions, permitindo que usuários e organizações organizem, compartilhem e utilizem informações para alimentar seus companions com conhecimento relevante e atualizado.
+O **Data Room** é o **sistema RAG (Retrieval-Augmented Generation)** central da plataforma Humana AI Companions, servindo como **fonte primária de contexto** para conversações inteligentes.
+
+**Fundação Arquitetural:**
+- **RAG Core:** Vector database + semantic search para contexto de conversações
+- **BYOC Integration:** Conecta diretamente com bases de dados do cliente via endpoints
+- **Intelligent Context:** Injeta conhecimento relevante automaticamente nos companions
+- **Direct Conversation:** Permite conversar diretamente com os dados ("Chat with your data")
+
+### **🎯 Estratégia por Plano**
+
+#### **☁️ SaaS Plans (Free, Pro, Business)**
+**Managed RAG - Humana Infrastructure:**
+- **Shared Vector Database:** Embeddings gerenciados pela Humana
+- **Standard Data Sources:** Upload, URLs, integrações básicas
+- **Humana Models:** Embeddings via OpenAI/Azure da Humana
+- **Managed Processing:** Chunking, indexing, retrieval automático
+
+#### **🏢 BYOC Plans (Enterprise Custom)**
+**Customer RAG - Client Infrastructure:**
+- **Customer Vector Database:** Pinecone, Weaviate, ou vector DB do cliente
+- **Customer Data Sources:** Integração direta com sistemas enterprise
+- **Customer Models:** Embeddings via modelos próprios do cliente
+- **Customer Processing:** Pipeline RAG na infraestrutura do cliente
+
+**Dados NUNCA saem do ambiente do cliente, RAG roda localmente**
 
 ---
 
@@ -30,26 +54,55 @@ O **Data Room** é o sistema centralizado de gestão de conhecimento e documento
 
 ---
 
-## 📋 **Tipos de Documentos Suportados**
+## 📋 **Tipos de Conteúdo RAG**
 
-### **📄 Documentos de Texto**
-- **PDF**: Relatórios, manuais, contratos
-- **Word (DOCX)**: Documentos editáveis, propostas
-- **Markdown (MD)**: Documentação técnica, wikis
-- **Texto Simples (TXT)**: Logs, dados estruturados
-- **HTML**: Páginas web, documentação online
+### **🎯 Artefatos de IA**
+- **AI-Generated Content:** Documentos, códigos, planilhas criados por companions
+- **Conversation Exports:** Conversações importantes exportadas como contexto
+- **Generated Templates:** Templates criados automaticamente baseados em padrões
+- **AI Insights:** Análises e insights gerados pela IA sobre os dados
+- **Refined Prompts:** Prompts otimizados e templates de instrução
 
-### **📊 Planilhas e Dados**
-- **Excel (XLSX)**: Planilhas, relatórios financeiros
-- **CSV**: Dados tabulares, exports
-- **JSON**: Dados estruturados, configurações
-- **XML**: Dados estruturados, integrações
+### **📄 Documentos Tradicionais**
+- **PDF**: Relatórios, manuais, contratos, documentação técnica
+- **Word (DOCX)**: Documentos editáveis, propostas, procedimentos
+- **Markdown (MD)**: Documentação técnica, wikis, knowledge bases
+- **Texto Simples (TXT)**: Logs, dados estruturados, configurações
+- **HTML**: Páginas web, documentação online, wikis corporativos
 
-### **🎨 Multimídia**
-- **Imagens**: PNG, JPG, SVG para OCR e análise
-- **Apresentações**: PowerPoint, slides
-- **Vídeos**: MP4 para transcrição e análise
-- **Áudios**: MP3, WAV para transcrição
+### **📊 Dados & Planilhas**
+- **Excel (XLSX)**: Planilhas, relatórios financeiros, datasets
+- **CSV**: Dados tabulares, exports de sistemas, analytics
+- **JSON**: Dados estruturados, configurações, API responses
+- **XML**: Dados estruturados, integrações, configurações
+
+### **🔗 Dados de Integrações**
+- **CRM Data:** Leads, oportunidades, clientes (Salesforce, HubSpot)
+- **ERP Data:** Produtos, inventário, financeiro (SAP, Oracle)
+- **Project Data:** Tasks, timelines, recursos (Jira, Asana)
+- **Communication Data:** Mensagens relevantes (Slack, Teams, email)
+- **Analytics Data:** Métricas, KPIs, dashboards (Google Analytics, Mixpanel)
+
+### **📋 Templates & Padrões**
+- **Document Templates:** Modelos de propostas, contratos, relatórios
+- **Email Templates:** Templates de comunicação padronizada
+- **Process Templates:** Workflows, procedimentos, checklists
+- **Prompt Templates:** Prompts otimizados para diferentes casos de uso
+- **Response Templates:** Respostas padrão para FAQ e suporte
+
+### **🔍 Pesquisas & Análises**
+- **Market Research:** Pesquisas de mercado, análises competitivas
+- **Internal Surveys:** Pesquisas internas, feedback de clientes
+- **Data Analysis:** Análises estatísticas, reports de performance
+- **Trend Analysis:** Análises de tendências, forecasting
+- **Benchmarking:** Comparações de mercado, melhores práticas
+
+### **🎨 Multimídia & Rica**
+- **Imagens**: PNG, JPG, SVG para OCR e análise visual
+- **Apresentações**: PowerPoint, slides, pitch decks
+- **Vídeos**: MP4 para transcrição e análise de conteúdo
+- **Áudios**: MP3, WAV para transcrição e análise
+- **Diagramas**: Fluxogramas, mindmaps, arquiteturas
 
 ---
 
@@ -167,31 +220,100 @@ O **Data Room** é o sistema centralizado de gestão de conhecimento e documento
 
 ---
 
-## 🔗 **Integrações Externas**
+## 🔗 **Integrações com Bases do Cliente (BYOC)**
 
-### **☁️ Storage Providers**
+### **🏢 BYOC Enterprise Data Sources**
 
-#### **🏢 Enterprise Storage**
-- **SharePoint**: Sincronização bidirecional
-- **Google Drive**: Import/export automático
-- **OneDrive**: Integração nativa
-- **Box**: Conectores empresariais
-- **Dropbox Business**: Sync seletivo
+#### **🗄️ Enterprise Databases**
+- **SQL Databases:** PostgreSQL, MySQL, SQL Server, Oracle
+- **Data Warehouses:** Snowflake, BigQuery, Redshift, Azure Synapse
+- **Document Stores:** MongoDB, Elasticsearch, CosmosDB
+- **Vector Databases:** Pinecone, Weaviate, Qdrant, Chroma (client-hosted)
+- **Search Engines:** Solr, Elasticsearch, OpenSearch (client infra)
 
-#### **🗄️ Document Management**
-- **Confluence**: Import de páginas e espaços
-- **Notion**: Sincronização de databases
-- **Obsidian**: Import de vaults
-- **Roam Research**: Sync de graphs
+#### **☁️ Customer Cloud Storage**
+- **AWS S3:** Buckets do cliente com credenciais próprias
+- **Azure Blob Storage:** Storage accounts do cliente
+- **Google Cloud Storage:** Buckets gerenciados pelo cliente
+- **MinIO:** Object storage on-premises do cliente
+- **NFS/SMB:** File systems corporativos do cliente
 
-### **📊 Data Sources**
+#### **🏢 Enterprise Systems Integration**
+- **CRM:** Salesforce, HubSpot, Microsoft Dynamics (via customer API keys)
+- **ERP:** SAP, Oracle, NetSuite (direct database ou API connection)
+- **ITSM:** ServiceNow, Jira Service Management (via customer webhooks)
+- **HR Systems:** Workday, BambooHR, ADP (compliance-aware integration)
+- **Finance:** QuickBooks, Sage, Oracle Financials (secure data sync)
 
-#### **🔗 APIs e Conectores**
-- **CRM Systems**: Salesforce, HubSpot
-- **ERP Systems**: SAP, Oracle
-- **Project Management**: Jira, Asana, Monday
-- **Communication**: Slack, Teams, Discord
-- **Documentation**: GitBook, Gitiles, Wiki.js
+### **📊 Real-time Data Pipelines**
+
+#### **🔄 Streaming Integration**
+- **Apache Kafka:** Cliente configura streams para real-time data
+- **Azure Event Hubs:** Streaming de dados via customer infrastructure
+- **AWS Kinesis:** Data streams gerenciados pelo cliente
+- **Redis Streams:** Cache layers do cliente para performance
+- **Custom Webhooks:** Endpoints configurados pelo cliente
+
+### **🔐 Secure Data Access**
+
+#### **🛡️ Customer-Controlled Security**
+- **VPN Connections:** Site-to-site VPN para acesso seguro
+- **Private Endpoints:** Azure Private Link, AWS PrivateLink
+- **API Key Management:** Cliente controla e rotaciona API keys
+- **OAuth Integration:** Customer OAuth providers (Azure AD, Okta)
+- **Network Policies:** Cliente define network access rules
+
+---
+
+## 🧠 **RAG & Contexto para Conversações**
+
+### **🎯 Sistema RAG Inteligente**
+
+#### **🔍 Semantic Retrieval Process**
+- **Query Understanding:** Análise semântica da pergunta do usuário
+- **Context Expansion:** Expansão de query com sinônimos e conceitos relacionados
+- **Vector Search:** Busca por similaridade semântica no vector database
+- **Relevance Ranking:** Classificação de chunks por relevância e recência
+- **Context Assembly:** Montagem de contexto otimizado para o LLM
+
+#### **💬 Chat with Your Data**
+- **Direct Data Conversation:** "Mostre as vendas de Q3" → busca automática nos dados
+- **Multi-source Queries:** Combina dados de diferentes fontes em uma resposta
+- **Drill-down Questions:** Permite fazer perguntas sequenciais sobre os dados
+- **Data Visualization:** Gera gráficos e tabelas automaticamente quando relevante
+- **Source Attribution:** Sempre mostra de onde vem cada informação
+
+### **⚡ Context Injection para Companions**
+
+#### **🤖 Automatic Context Loading**
+- **Conversation Awareness:** Analisa histórico da conversa para context relevante
+- **Real-time Retrieval:** Busca dados frescos durante a conversa
+- **Context Optimization:** Optimiza tamanho do contexto para token limits
+- **Multi-modal Context:** Inclui texto, imagens, tabelas conforme necessário
+- **Context Caching:** Cache inteligente para performance
+
+#### **🎛️ Context Configuration**
+- **Source Prioritization:** Cliente define quais fontes têm prioridade
+- **Recency Weighting:** Dados mais recentes têm weight maior
+- **Relevance Thresholds:** Configura thresholds de relevância semântica
+- **Context Size Limits:** Controla quantidade máxima de contexto por query
+- **Domain Filtering:** Filtra contexto por domínio/área específica
+
+### **🔄 Feedback Loop & Learning**
+
+#### **📊 Context Quality Feedback**
+- **User Feedback:** "Esta informação foi útil?" para melhorar retrieval
+- **Implicit Feedback:** Analisa ações do usuário (cliques, tempo, follow-ups)
+- **Companion Feedback:** Companions reportam qualidade do contexto recebido
+- **Auto-evaluation:** Avaliação automática de relevância contexto vs resposta
+- **Continuous Improvement:** Sistema aprende e melhora retrieval over time
+
+#### **🎯 Adaptive Retrieval**
+- **User Patterns:** Aprende padrões de busca específicos do usuário
+- **Organizational Context:** Contexto específico da organização
+- **Time-based Relevance:** Ajusta relevância baseado em timing
+- **Domain Expertise:** Detecta área de expertise e ajusta context accordingly
+- **Context Evolution:** Contexto evolui conforme conversa se desenvolve
 
 ---
 
@@ -245,37 +367,60 @@ O **Data Room** é o sistema centralizado de gestão de conhecimento e documento
 
 ---
 
-## 🔮 **Funcionalidades Futuras**
+## 🚨 **STATUS ATUAL vs RAG BLUEPRINT**
 
-### **🎯 Roadmap de Evolução**
+### **📊 Gap Analysis: RAG System**
 
-#### **Q1 2025 - Fundação**
-- Sistema básico de upload e processamento
-- Busca full-text e semântica
-- Permissões básicas
-- Integração com companions
+**🔴 Implementação Atual: 5% (apenas mockup)**
+- ✅ Interface básica mockada (visual apenas)
+- ❌ Vector database infrastructure (0%)
+- ❌ RAG pipeline completo (0%)
+- ❌ Context injection system (0%)
+- ❌ BYOC data source integration (0%)
+- ❌ Semantic search functional (0%)
+- ❌ Chat with data capability (0%)
 
-#### **Q2 2025 - Inteligência**
-- Classificação automática avançada
-- Sugestões de conteúdo
-- Analytics básico
-- Integrações externas iniciais
+**🎯 Gap Crítico:** Sistema RAG é **foundation** para conversações inteligentes
 
-#### **Q3 2025 - Colaboração**
-- Workflows de aprovação
-- Colaboração em tempo real
-- Versionamento avançado
-- Mobile app
+### **🏗️ Roadmap RAG Implementation**
 
-#### **Q4 2025 - Inovação**
-- AI-powered content generation
-- Multi-modal processing
-- Advanced analytics
-- Enterprise integrations
+#### **⚠️ DEPENDÊNCIAS CRÍTICAS (P0)**
+**Data Room RAG requer foundation enterprise:**
+- ✅ Multi-tenancy strategy (isolamento por cliente)
+- ✅ BYOC parametrization (endpoints de dados do cliente)
+- ✅ LLM provider abstraction (embeddings flexíveis)
+
+#### **🎯 Fase 1: RAG MVP (4-6 semanas)**
+- **Vector Database Setup:** Pinecone/Weaviate para SaaS, customer vector DB para BYOC
+- **Basic Document Upload:** Upload API com chunking e embedding
+- **Simple Retrieval:** Busca semântica básica
+- **Context Injection:** Injeção de contexto nos companions
+- **Chat with Data:** Interface básica para conversar com documentos
+
+#### **⚡ Fase 2: Enhanced RAG (4-6 semanas)**
+- **Multi-source Integration:** CRM, ERP, storage integrations
+- **Advanced Retrieval:** Re-ranking, query expansion, hybrid search
+- **Real-time Processing:** Streaming data pipelines
+- **Context Optimization:** Token limit optimization, relevance tuning
+- **BYOC Integration:** Customer database direct integration
+
+#### **🏢 Fase 3: Enterprise RAG (6-8 semanas)**
+- **Advanced Analytics:** RAG performance metrics, context quality
+- **Enterprise Security:** Encryption, audit trails, compliance
+- **Multi-modal RAG:** Images, videos, complex documents
+- **Workflow Integration:** Approval workflows, collaborative editing
+- **AI-powered Content:** Auto-generation, summarization, insights
+
+#### **🚀 Fase 4: Intelligent RAG (8+ semanas)**
+- **Adaptive Learning:** System learns user patterns and preferences
+- **Predictive Context:** Anticipates information needs
+- **Cross-organizational Insights:** Secure insights across tenants
+- **Advanced Visualization:** Interactive data exploration
+- **Autonomous Knowledge Management:** Self-organizing knowledge base
 
 ---
 
-**Status:** 🟢 Documento Vivo  
-**Última Atualização:** Janeiro 2025  
-**Próxima Revisão:** Março 2025  
-**Owner:** Data Engineering Team 
+**Status:** 🔴 **95% Gap** - Sistema RAG é bloqueador crítico para value proposition  
+**Critical Path:** BYOC Foundation → RAG MVP → Context Injection → Enhanced Retrieval  
+**Owner:** AI/Data Team (high priority allocation required)  
+**Business Impact:** Sem RAG funcional, companions têm **zero contexto real** dos dados do cliente 

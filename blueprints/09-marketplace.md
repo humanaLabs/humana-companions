@@ -1,10 +1,38 @@
 # 🛍️ Blueprint: Marketplace & Ecosystem
 
-## 🎯 Visão Geral do Marketplace
+## 🚨 **STATUS & PRIORIZAÇÃO**
 
-O **Humana Marketplace** é o ecossistema central que conecta criadores de conteúdo, desenvolvedores e organizações, oferecendo **templates pré-configurados**, **aplicativos especializados** e **componentes reutilizáveis** para acelerar a implementação de soluções de IA conversacional.
+### **📊 Gap Analysis**
 
-### Proposta de Valor
+**🔴 Implementação Atual: Básica**
+- ✅ Interface básica mockada (visual apenas)
+- ❌ Sistema de upload de templates
+- ❌ Monetização funcional  
+- ❌ Revenue sharing
+- ❌ Catalog browsing real
+
+### **⚖️ Priorização vs Outros Módulos**
+**Prioridade: 🟡 MEDIUM**
+
+**Módulos com Prioridade Maior:**
+- 🔴 **CRITICAL**: Sistema de Comandos /slash
+- 🔴 **CRITICAL**: Data Room Pipeline  
+- 🟠 **HIGH**: Studio Workspace
+- 🟠 **HIGH**: BYOC Integration
+- 🟡 **MEDIUM**: **Marketplace** ← Este módulo
+
+### **⚠️ DEPENDÊNCIAS**
+**Marketplace requer elementos fundamentais implementados primeiro:**
+- ✅ Foundation (Database, Multi-tenancy, LLM Abstraction) 
+- ✅ Data Room MVP (templates need storage/search)
+- ✅ Organization Designer (templates são organizations)
+- ✅ Billing System (revenue sharing requires payments)
+
+## 🎯 Visão Geral do Marketplace (Future Vision)
+
+O **Humana Marketplace** será o ecossistema central que conecta criadores de conteúdo, desenvolvedores e organizações, oferecendo **templates pré-configurados**, **aplicativos especializados** e **componentes reutilizáveis** para acelerar a implementação de soluções de IA conversacional.
+
+### Proposta de Valor (When Implemented)
 
 1. **🚀 Time-to-Market Reduzido**
    - Templates prontos para uso imediato
@@ -26,43 +54,7 @@ O **Humana Marketplace** é o ecossistema central que conecta criadores de conte
 ### 1. **🏢 Templates de Organização**
 
 #### **Por Setor**
-```typescript
-interface OrganizationTemplate {
-  id: string
-  name: string
-  category: 'healthcare' | 'finance' | 'ecommerce' | 'education' | 'manufacturing' | 'government'
-  subcategory: string
-  
-  // Configuração completa
-  defaultSettings: {
-    llmProviders: LLMProvider[]
-    databaseSchema: DatabaseSchema
-    userRoles: Role[]
-    workflows: Workflow[]
-  }
-  
-  // Companions inclusos
-  includedCompanions: CompanionTemplate[]
-  
-  // Integrações pré-configuradas
-  integrations: Integration[]
-  
-  // Compliance e regulamentações
-  complianceFeatures: ComplianceFeature[]
-  
-  // Marketplace metadata
-  author: 'humana' | 'partner'
-  price: number
-  currency: 'BRL' | 'USD'
-  licensing: 'per-organization' | 'per-user' | 'one-time'
-  
-  // Analytics
-  downloadCount: number
-  rating: number
-  reviews: Review[]
-  lastUpdated: Date
-}
-```
+**Templates organizados por categoria de negócio:**
 
 #### **Templates Destacados**
 - **🏥 Saúde & Pharma**
@@ -92,42 +84,7 @@ interface OrganizationTemplate {
 ### 2. **🤖 Templates de Companions**
 
 #### **Por Especialização**
-```typescript
-interface CompanionTemplate {
-  id: string
-  name: string
-  specialization: 'customer-service' | 'sales' | 'hr' | 'technical' | 'finance' | 'legal'
-  expertise: string[]
-  
-  // Configuração base
-  basePrompt: string
-  systemInstructions: string
-  personality: PersonalityConfig
-  
-  // Capacidades
-  suggestedTools: Tool[]
-  mcpServers: MCPServer[]
-  knowledgeRequirements: KnowledgeRequirement[]
-  
-  // Configuração LLM
-  recommendedModels: Model[]
-  temperature: number
-  maxTokens: number
-  
-  // Customização
-  configurableFields: ConfigurableField[]
-  personalizationOptions: PersonalizationOption[]
-  
-  // Training data
-  sampleConversations: Conversation[]
-  trainingDatasets: Dataset[]
-  
-  // Marketplace
-  compatibility: string[] // Versões suportadas
-  requirements: Requirement[]
-  documentation: Documentation
-}
-```
+**Templates de companions organizados por área de atuação:**
 
 #### **Companions Populares**
 - **👥 Atendimento ao Cliente**
@@ -157,34 +114,7 @@ interface CompanionTemplate {
 ### 3. **📱 Aplicativos & Integrações**
 
 #### **Tipos de Aplicativos**
-```typescript
-interface Application {
-  id: string
-  name: string
-  type: 'integration' | 'tool' | 'widget' | 'workflow' | 'analytics'
-  category: string
-  
-  // Funcionalidade
-  description: string
-  features: Feature[]
-  apiEndpoints: APIEndpoint[]
-  
-  // Compatibilidade
-  supportedPlatforms: Platform[]
-  dependencies: Dependency[]
-  minimumVersion: string
-  
-  // Configuração
-  installationSteps: InstallationStep[]
-  configurationOptions: ConfigOption[]
-  
-  // Marketplace
-  pricing: PricingModel
-  screenshots: Screenshot[]
-  videos: Video[]
-  changelog: ChangelogEntry[]
-}
-```
+**Aplicativos organizados por categoria e funcionalidade:**
 
 #### **Categorias de Apps**
 - **🔗 Integrações CRM**
@@ -216,411 +146,299 @@ interface Application {
 ### Estrutura de Receita
 
 #### **1. Para a Humana**
-```typescript
-interface HumanaRevenue {
-  // Comissão marketplace
-  marketplaceCommission: {
-    templates: 30, // 30% sobre vendas de templates
-    applications: 25, // 25% sobre apps
-    subscriptions: 20 // 20% sobre assinaturas
-  }
-  
-  // Templates próprios
-  humanaPremiumTemplates: {
-    pricing: 'tier-based',
-    starter: 0, // Gratuitos
-    business: 'R$ 500-2000',
-    enterprise: 'R$ 5000+'
-  }
-  
-  // Certificação e suporte
-  partnerProgram: {
-    certificationFee: 'R$ 1000',
-    annualFee: 'R$ 5000',
-    supportTier: 'premium'
-  }
-}
-```
+**Comissão marketplace:**
+- Templates: 30% sobre vendas
+- Aplicações: 25% sobre apps
+- Assinaturas: 20% sobre subscriptions
+
+**Templates próprios Humana:**
+- Starter: Gratuitos
+- Business: Modelo premium
+- Enterprise: Customizados
+
+**Programa de parceiros:**
+- Certification fee
+- Annual fee
+- Support tier premium
 
 #### **2. Para Parceiros**
-```typescript
-interface PartnerRevenue {
-  // Revenue share
-  revenueShare: {
-    templates: 70, // 70% para o criador
-    applications: 75, // 75% para o desenvolvedor
-    subscriptions: 80 // 80% para SaaS integrations
-  }
-  
-  // Modelos de pricing
-  pricingModels: [
-    'one-time-purchase',
-    'subscription-monthly',
-    'subscription-annual',
-    'per-usage',
-    'freemium'
-  ]
-  
-  // Incentivos
-  incentives: {
-    topRated: 'bonus 5%',
-    volume: 'tier bonuses',
-    exclusivity: 'premium placement'
-  }
-}
-```
+**Revenue share:**
+- Templates: 70% para o criador
+- Aplicações: 75% para o desenvolvedor
+- Assinaturas: 80% para SaaS integrations
+
+**Modelos de pricing:**
+- One-time purchase
+- Subscription monthly/annual
+- Per-usage
+- Freemium
+
+**Incentivos:**
+- Top rated: bonus 5%
+- Volume: tier bonuses
+- Exclusivity: premium placement
 
 ### Programa de Parceiros
 
 #### **Níveis de Certificação**
-```typescript
-interface PartnerTiers {
-  bronze: {
-    requirements: ['1 template aprovado', 'rating > 4.0'],
-    benefits: ['listing básico', 'suporte standard']
-  }
-  
-  silver: {
-    requirements: ['5 templates', 'rating > 4.3', '100+ downloads'],
-    benefits: ['featured placement', 'marketing support']
-  }
-  
-  gold: {
-    requirements: ['10+ templates', 'rating > 4.5', '1000+ downloads'],
-    benefits: ['premium placement', 'co-marketing', 'early access']
-  }
-  
-  platinum: {
-    requirements: ['enterprise templates', 'custom integration'],
-    benefits: ['exclusive partnership', 'revenue guarantees']
-  }
-}
-```
+**Bronze:**
+- Requisitos: 1 template aprovado, rating > 4.0
+- Benefícios: listing básico, suporte standard
+
+**Silver:**
+- Requisitos: 5 templates, rating > 4.3, 100+ downloads
+- Benefícios: featured placement, marketing support
+
+**Gold:**
+- Requisitos: 10+ templates, rating > 4.5, 1000+ downloads
+- Benefícios: premium placement, co-marketing, early access
+
+**Platinum:**
+- Requisitos: enterprise templates, custom integration
+- Benefícios: exclusive partnership, revenue guarantees
 
 ## 🔄 Fluxos de Operação
 
 ### 1. **Submissão de Templates**
-
-```mermaid
-graph TD
-    A[Partner Submits Template] --> B[Automated Testing]
-    B --> C{Quality Check Passed?}
-    C -->|No| D[Feedback & Rejection]
-    C -->|Yes| E[Manual Review]
-    E --> F{Compliance Check?}
-    F -->|No| G[Compliance Issues]
-    F -->|Yes| H[Security Audit]
-    H --> I{Security Approved?}
-    I -->|No| J[Security Issues]
-    I -->|Yes| K[Approve & Publish]
-    K --> L[Marketplace Listing]
-    L --> M[Partner Notification]
-    
-    D --> N[Partner Revision]
-    G --> N
-    J --> N
-    N --> B
-```
+**Processo de aprovação:**
+1. Partner submits template
+2. Automated testing
+3. Quality check
+4. Manual review
+5. Compliance check
+6. Security audit
+7. Approve & publish
+8. Marketplace listing
 
 ### 2. **Instalação de Templates**
-
-```mermaid
-graph TD
-    A[Customer Selects Template] --> B[License Verification]
-    B --> C[Compatibility Check]
-    C --> D{Requirements Met?}
-    D -->|No| E[Show Requirements]
-    D -->|Yes| F[Payment Processing]
-    F --> G[Template Download]
-    G --> H[Installation Wizard]
-    H --> I[Configuration Setup]
-    I --> J[Data Migration]
-    J --> K[Testing & Validation]
-    K --> L{Installation Success?}
-    L -->|No| M[Rollback & Support]
-    L -->|Yes| N[Go Live]
-    N --> O[Usage Analytics]
-```
+**Processo de instalação:**
+1. Customer selects template
+2. License verification
+3. Compatibility check
+4. Payment processing
+5. Template download
+6. Installation wizard
+7. Configuration setup
+8. Testing & validation
+9. Go live
 
 ### 3. **Gestão de Atualizações**
-
-```mermaid
-graph TD
-    A[Partner Releases Update] --> B[Version Compatibility]
-    B --> C[Auto-notification to Users]
-    C --> D{Breaking Changes?}
-    D -->|Yes| E[Manual Approval Required]
-    D -->|No| F[Auto-update Available]
-    E --> G[User Chooses Update Time]
-    F --> H[Scheduled Update]
-    G --> H
-    H --> I[Backup Current Config]
-    I --> J[Apply Updates]
-    J --> K[Validation Tests]
-    K --> L{Update Successful?}
-    L -->|No| M[Rollback]
-    L -->|Yes| N[Confirm Update]
-```
+**Processo de atualização:**
+1. Partner releases update
+2. Version compatibility check
+3. Auto-notification to users
+4. Breaking changes evaluation
+5. Manual/automatic approval
+6. Scheduled update
+7. Backup current config
+8. Apply updates
+9. Validation tests
 
 ## 📊 Sistema de Avaliação
 
 ### Métricas de Qualidade
 
-```typescript
-interface QualityMetrics {
-  // User feedback
-  userRatings: {
-    overall: number // 1-5 stars
-    usability: number
-    documentation: number
-    support: number
-  }
-  
-  // Performance metrics
-  technicalMetrics: {
-    installationSuccess: number // %
-    errorRate: number // %
-    responseTime: number // ms
-    uptime: number // %
-  }
-  
-  // Business metrics
-  businessMetrics: {
-    adoptionRate: number // %
-    retentionRate: number // %
-    revenueGenerated: number
-    supportTickets: number
-  }
-}
-```
+**User feedback:**
+- Overall rating (1-5 stars)
+- Usability rating
+- Documentation quality
+- Support responsiveness
+
+**Performance metrics:**
+- Installation success rate
+- Error rate
+- Response time
+- System uptime
+
+**Business metrics:**
+- Adoption rate
+- Retention rate
+- Revenue generated
+- Support tickets volume
 
 ### Sistema de Reviews
 
-```typescript
-interface ReviewSystem {
-  // Review structure
-  review: {
-    id: string
-    templateId: string
-    userId: string
-    rating: number // 1-5
-    title: string
-    content: string
-    pros: string[]
-    cons: string[]
-    useCase: string
-    companySize: 'startup' | 'sme' | 'enterprise'
-    industry: string
-    verified: boolean
-    helpful: number
-    createdAt: Date
-  }
-  
-  // Moderation
-  moderation: {
-    autoFilter: boolean // Profanity, spam
-    humanReview: boolean // Suspicious content
-    partnerResponse: boolean // Partner can respond
-  }
-}
-```
+**Review structure:**
+- Rating system (1-5 stars)
+- Title and detailed content
+- Pros and cons listing
+- Use case description
+- Company size and industry context
+- Verified reviews badge
+- Helpful votes system
+
+**Moderation features:**
+- Auto-filter for spam/profanity
+- Human review for suspicious content
+- Partner response capability
 
 ## 🔍 Discovery & Search
 
 ### Sistema de Busca
 
-```typescript
-interface SearchSystem {
-  // Search capabilities
-  searchTypes: [
-    'text-search',
-    'category-filter',
-    'tag-based',
-    'similarity-search',
-    'ai-recommendations'
-  ]
-  
-  // Filters
-  filters: {
-    category: string[]
-    price: PriceRange
-    rating: number
-    compatibility: string[]
-    industry: string[]
-    features: string[]
-    lastUpdated: DateRange
-  }
-  
-  // Sorting
-  sortOptions: [
-    'relevance',
-    'rating-desc',
-    'downloads-desc',
-    'price-asc',
-    'updated-desc',
-    'alphabetical'
-  ]
-}
-```
+**Capabilities:**
+- Text search
+- Category filter
+- Tag-based search
+- Similarity search
+- AI recommendations
+
+**Filters:**
+- Category and subcategory
+- Price range
+- Rating threshold
+- Compatibility requirements
+- Industry focus
+- Feature sets
+- Last updated timeframe
+
+**Sorting options:**
+- Relevance
+- Rating (highest first)
+- Downloads (most popular)
+- Price (lowest first)
+- Recently updated
+- Alphabetical
 
 ### Recomendações Inteligentes
 
-```typescript
-interface RecommendationEngine {
-  // Algorithm types
-  algorithms: [
-    'collaborative-filtering',
-    'content-based',
-    'hybrid-approach',
-    'ai-powered'
-  ]
-  
-  // Recommendation sources
-  sources: {
-    userBehavior: 'browsing, downloads, ratings',
-    organizationProfile: 'industry, size, current stack',
-    similarUsers: 'companies with similar needs',
-    contentAnalysis: 'template features and descriptions'
-  }
-  
-  // Personalization
-  personalization: {
-    userPreferences: UserPreferences
-    organizationContext: OrganizationContext
-    usageHistory: UsageHistory
-    industryTrends: IndustryTrends
-  }
-}
-```
+**Algorithm types:**
+- Collaborative filtering
+- Content-based recommendations
+- Hybrid approach
+- AI-powered suggestions
+
+**Recommendation sources:**
+- User behavior analysis
+- Organization profile matching
+- Similar user patterns
+- Content feature analysis
+
+**Personalization factors:**
+- User preferences
+- Organization context
+- Usage history
+- Industry trends
 
 ## 📈 Analytics & Insights
 
 ### Métricas para Parceiros
 
-```typescript
-interface PartnerAnalytics {
-  // Performance metrics
-  performance: {
-    views: number
-    downloads: number
-    conversions: number
-    revenue: number
-    refunds: number
-  }
-  
-  // User engagement
-  engagement: {
-    averageRating: number
-    reviewCount: number
-    supportRequests: number
-    featureRequests: string[]
-  }
-  
-  // Market insights
-  marketInsights: {
-    competitorAnalysis: CompetitorData[]
-    trendsAnalysis: TrendData[]
-    opportunityAreas: OpportunityArea[]
-  }
-}
-```
+**Performance metrics:**
+- Views, downloads, conversions
+- Revenue and refunds tracking
+- Success rate monitoring
+
+**User engagement:**
+- Average rating
+- Review count
+- Support requests volume
+- Feature requests tracking
+
+**Market insights:**
+- Competitor analysis
+- Trends analysis
+- Opportunity identification
 
 ### Métricas para Clientes
 
-```typescript
-interface CustomerInsights {
-  // Usage analytics
-  usage: {
-    activeTemplates: number
-    monthlyInteractions: number
-    topFeatures: Feature[]
-    performanceMetrics: PerformanceData
-  }
-  
-  // ROI tracking
-  roi: {
-    timeToValue: number // days
-    efficiencyGains: number // %
-    costSavings: number // currency
-    userSatisfaction: number // 1-10
-  }
-  
-  // Recommendations
-  recommendations: {
-    additionalTemplates: Template[]
-    optimizationSuggestions: Suggestion[]
-    upgradeOpportunities: Upgrade[]
-  }
-}
-```
+**Usage analytics:**
+- Active templates count
+- Monthly interactions
+- Top features usage
+- Performance data
+
+**ROI tracking:**
+- Time to value
+- Efficiency gains
+- Cost savings
+- User satisfaction scores
+
+**Recommendations:**
+- Additional template suggestions
+- Optimization opportunities
+- Upgrade recommendations
 
 ## 🛡️ Governança & Compliance
 
 ### Processo de Aprovação
 
-```typescript
-interface ApprovalProcess {
-  // Automated checks
-  automatedChecks: [
-    'code-quality-scan',
-    'security-vulnerabilities',
-    'performance-benchmarks',
-    'compatibility-tests',
-    'documentation-completeness'
-  ]
-  
-  // Manual review
-  manualReview: [
-    'business-logic-validation',
-    'user-experience-assessment',
-    'compliance-verification',
-    'intellectual-property-check'
-  ]
-  
-  // Ongoing monitoring
-  ongoingMonitoring: [
-    'performance-monitoring',
-    'security-updates',
-    'user-feedback-analysis',
-    'compliance-audits'
-  ]
-}
-```
+**Automated checks:**
+- Code quality scan
+- Security vulnerabilities
+- Performance benchmarks
+- Compatibility tests
+- Documentation completeness
+
+**Manual review:**
+- Business logic validation
+- User experience assessment
+- Compliance verification
+- Intellectual property check
+
+**Ongoing monitoring:**
+- Performance monitoring
+- Security updates
+- User feedback analysis
+- Compliance audits
 
 ### Políticas de Conteúdo
 
-```typescript
-interface ContentPolicies {
-  // Prohibited content
-  prohibited: [
-    'malicious-code',
-    'copyright-infringement',
-    'misleading-descriptions',
-    'privacy-violations',
-    'discriminatory-content'
-  ]
-  
-  // Quality standards
-  qualityStandards: {
-    codeQuality: 'minimum standards',
-    documentation: 'comprehensive guides',
-    testing: 'automated test coverage',
-    support: 'response time requirements'
-  }
-  
-  // Compliance requirements
-  compliance: {
-    dataProtection: 'LGPD, GDPR compliance',
-    accessibility: 'WCAG 2.1 AA',
-    security: 'OWASP top 10',
-    licensing: 'clear license terms'
-  }
-}
-```
+**Prohibited content:**
+- Malicious code
+- Copyright infringement
+- Misleading descriptions
+- Privacy violations
+- Discriminatory content
+
+**Quality standards:**
+- Code quality minimum standards
+- Comprehensive documentation
+- Automated test coverage
+- Response time requirements
+
+**Compliance requirements:**
+- Data protection (LGPD, GDPR)
+- Accessibility (WCAG 2.1 AA)
+- Security (OWASP top 10)
+- Clear license terms
 
 ---
 
-**Status:** 🟢 Ativo  
-**Owner:** Marketplace Team  
-**Última Review:** Janeiro 2025  
-**Próxima Review:** Março 2025 
+## 🗺️ **ROADMAP CONCEITUAL**
+
+### **📅 Sequência de Implementação**
+
+#### **⚠️ PRÉ-REQUISITOS**
+**Devem ser completados ANTES do desenvolvimento do Marketplace:**
+- ✅ Foundation (Database, Multi-tenancy, LLM Abstraction)
+- ✅ Data Room MVP (templates need storage/search functionality)
+- ✅ Organization Designer (templates são configurations)
+- ✅ Usage Tracking & Billing (revenue sharing requires payment system)
+
+#### **Fase 1: Marketplace Foundation**
+**Funcionalidade básica:**
+- Template upload system (basic)
+- Template browsing (no monetization yet)
+- Basic categorization
+- Simple discovery
+
+#### **Fase 2: Business Features**
+**Capacidades de geração de receita:**
+- Monetization system integration
+- Revenue sharing
+- Billing automation
+- Partner dashboard
+
+#### **Fase 3: Advanced Features**
+**Ecossistema completo do marketplace:**
+- AI-powered recommendations
+- Advanced analytics
+- Quality assurance automation
+- Enterprise features
+
+---
+
+**Status:** 🔴 **Gap Significativo** - Não é prioridade atual conforme análise  
+**Dependencies:** Foundation + Data Room MVP + Organization Designer + Billing  
+**Owner:** Future Marketplace Team (TBD) 

@@ -1,5 +1,36 @@
 # 🔐 Blueprint: Segurança e Governança
 
+## 🎯 Estratégia de Segurança por Plano
+
+### **☁️ SaaS Plans (Free, Pro, Business)**
+**Shared Infrastructure - Humana Managed:**
+- **Shared Security Model:** Humana gerencia toda segurança da infraestrutura
+- **Standard Compliance:** LGPD, GDPR básico, SOC2 Type II
+- **Managed Encryption:** Criptografia gerenciada pela Humana (transport + at-rest)
+- **Shared Monitoring:** Observabilidade centralizada da Humana
+- **Cost-Effective Security:** Economia de escala em security controls
+
+**Target:** SME que priorizam cost-effectiveness e delegam governança
+
+### **🏢 Enterprise Plans (BYOC Custom)**
+**Customer Governance - Full Control:**
+- **Customer-Managed Security:** Cliente controla todas security policies
+- **Custom Compliance:** HIPAA, SOX, PCI DSS, regulamentações específicas
+- **Customer-Managed Keys:** Cliente controla encryption keys (AWS KMS, Azure Key Vault)
+- **Custom Monitoring:** Integração com SOC/SIEM do cliente
+- **Audit Trail Control:** Logs ficam na infraestrutura do cliente
+
+**Target:** Enterprise e setores regulamentados que exigem controle total
+
+### **🔄 Adaptive Security Model**
+**Configuração por Necessidade:**
+- **Plan-Based Security:** Security controls se adaptam automaticamente ao plano
+- **Market-Based Compliance:** Auto-configuração baseada no setor (healthcare, finance)
+- **Gradual Enhancement:** Upgrade de security conforme evolução do plano
+- **Unified Management:** Interface única independente do security model
+
+---
+
 ## 🎯 Visão Geral
 
 Sistema de segurança **adaptável** e **parametrizável** que atende diferentes níveis de compliance conforme o mercado e necessidade do cliente, sem over-engineering.

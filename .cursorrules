@@ -129,4 +129,53 @@ Consulte: `docs/arquitetura_geral/PADRAO_LAYOUT_UI.md` para detalhes completos.
 - Use AI SDK para integrações
 - Prompts bem estruturados
 - Streaming quando possível
-- Error handling robusto 
+- Error handling robusto
+
+### Documentação de Blueprints - OBRIGATÓRIO
+
+**NUNCA inclua código técnico em documentos de blueprints:**
+
+**✅ CORRETO:**
+- Análise estratégica e gaps
+- Priorização por impacto × esforço
+- Roadmap conceitual (sem timelines específicos)
+- Métricas de sucesso (sem ROI financeiro)
+- Decisões arquiteturais conceituais
+- Fluxos e processos de negócio
+- Estruturas organizacionais
+- Requisitos e especificações
+
+**❌ NUNCA inclua:**
+- Código TypeScript, JavaScript, SQL
+- Interfaces de programação
+- Implementações técnicas
+- Exemplos de código
+- Snippets de configuração
+- Schemas de banco detalhados
+- APIs endpoints específicos
+- Análise de ROI financeiro
+- Timelines específicos (datas, semanas)
+
+**Estrutura padrão de blueprint:**
+```
+# Título do Blueprint
+
+## 🎯 Visão Geral
+## 🔍 Análise do Estado Atual
+## 📊 Gap Analysis
+## 🏗️ Arquitetura Conceitual
+## 🚀 Roadmap de Implementação
+## 📈 Métricas de Sucesso
+## 🎯 Próximos Passos
+```
+
+**Foco em:**
+- **Estratégia** sobre implementação
+- **Por quê** antes do **como**
+- **Business value** sobre detalhes técnicos
+- **Decisões** sobre soluções
+- **Impacto** sobre complexidade
+
+Consulte: 
+- `blueprints/00.1-PRIORIZACAO_QUICK_WIN.md` como exemplo de estrutura correta
+- `docs/arquitetura_geral/REGRAS_BLUEPRINTS.md` para regras detalhadas

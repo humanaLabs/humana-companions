@@ -1,5 +1,38 @@
 # 🔧 Blueprint: Arquitetura de Tecnologia
 
+## 🎯 Estratégia de Produto: SaaS vs BYOC
+
+### **☁️ SaaS Strategy (Free, Pro, Business)**
+**Infraestrutura e Modelos Humana:**
+- **Cloud Infrastructure:** Humana gerencia toda infraestrutura (AWS/Azure/GCP)
+- **Shared LLM Models:** Modelos otimizados da Humana disponibilizados para consumo
+- **Multi-tenancy:** Clientes compartilham infraestrutura com isolamento por organização
+- **Managed Services:** Humana gerencia updates, scaling, monitoring, backup
+- **Cost Efficiency:** Economia de escala compartilhada entre clientes
+- **Fast Time-to-Market:** Deploy imediato, configuração mínima
+
+**Target:** SME e organizações que priorizam velocidade e custo-benefício
+
+### **🏢 BYOC Strategy (Enterprise Custom)**
+**Governança e Infraestrutura do Cliente:**
+- **Customer Infrastructure:** Cliente mantém dados em sua própria infra
+- **Custom LLM Endpoints:** Cliente usa seus próprios modelos (Azure OpenAI, local, etc.)
+- **Full Data Sovereignty:** Dados nunca saem do ambiente do cliente
+- **Custom Compliance:** Atende regulamentações específicas (HIPAA, SOX, etc.)
+- **Enterprise Governance:** Controle total sobre access, audit, retention
+- **Configuration over Deployment:** Humana conecta via endpoints, não deploy containers
+
+**Target:** Enterprise e setores altamente regulamentados (healthcare, finance)
+
+### **🔄 Hybrid Approach**
+**Configuração Flexível por Necessidade:**
+- **Gradual Migration:** Cliente pode migrar gradualmente de SaaS para BYOC
+- **Mixed Workloads:** Alguns companions em SaaS, outros em BYOC
+- **Unified Interface:** Mesma experiência independente da infraestrutura
+- **Seamless Management:** Gestão centralizada via Humana platform
+
+---
+
 ## 🎯 Princípios Arquiteturais
 
 ### 1. **🔀 Agnóstico Tecnológico**
@@ -22,6 +55,479 @@
 - **Adapter Pattern Everywhere:** Abstração de todos os providers
 - **BYOC via Endpoints:** Integração com infraestrutura do cliente
 - **Zero Vendor Lock-in:** Cliente escolhe tecnologias e providers
+
+## 🏢 **Arquitetura Multi-Tenant: Segregação Total**
+
+### **🔒 Isolamento de Dados por Organização**
+
+#### **🚨 STATUS ATUAL vs DESEJADO**
+
+**❌ Schema Atual (Parcial Multi-Tenancy):**
+```typescript
+// ✅ Totalmente Multi-Tenant
+Companion: { organizationId: uuid }
+Organization: { /* tenant root */ }
+CompanionFeedback: via companion.organizationId
+CompanionInteraction: via companion.organizationId
+
+// ❌ Problemas de Isolamento (User-Scoped apenas)
+User: { /* NO organizationId */ }
+Chat: { userId, /* NO organizationId */ }
+Document: { userId, /* NO organizationId */ }  
+McpServer: { userId, /* NO organizationId */ }
+ProjectFolder: { userId, /* NO organizationId */ }
+Message: via chat.userId (indirect)
+Vote: via chat.userId (indirect)
+```
+
+**✅ Schema Desejado (Full Multi-Tenancy):**
+```typescript
+// ALL objects MUST have organizationId for complete tenant isolation
+interface MultiTenantEntity {
+  organizationId: uuid  // MANDATORY for ALL entities
+  /* entity-specific fields */
+}
+
+// User belongs to multiple organizations
+User: { 
+  primaryOrganizationId?: uuid  // Default organization
+  /* user profile data */
+}
+
+UserOrganization: {
+  userId: uuid
+  organizationId: uuid
+  role: string
+  permissions: Permission[]
+}
+
+// ALL other entities MUST be organization-scoped
+Chat: { organizationId: uuid, userId: uuid }
+Document: { organizationId: uuid, userId: uuid }
+McpServer: { organizationId: uuid, userId: uuid }
+ProjectFolder: { organizationId: uuid, userId: uuid }
+```
+
+### **🎯 Modelos de Isolamento Multi-Tenant**
+
+#### **🔧 1. Row-Level Security (SaaS Free/Pro)**
+**Implementação atual - adequada para tiers básicos:**
+
+```sql
+-- RLS Policy Example
+CREATE POLICY organization_isolation ON companions
+FOR ALL TO app_user
+USING (organizationId = current_setting('app.current_organization_id')::uuid);
+
+-- Applied to ALL tables
+CREATE POLICY organization_isolation ON chats
+FOR ALL TO app_user  
+USING (organizationId = current_setting('app.current_organization_id')::uuid);
+```
+
+#### **🏗️ 2. Schema-per-Tenant (Business Tier)**
+**Para clientes que exigem isolamento de schema:**
+
+```typescript
+class SchemaPerTenantManager {
+  async createTenantSchema(organizationId: uuid): Promise<void> {
+    const schemaName = `org_${organizationId.replace('-', '_')}`
+    
+    // Create dedicated schema
+    await this.db.execute(`CREATE SCHEMA ${schemaName}`)
+    
+    // Deploy ALL tables to tenant schema
+    await this.deployTenantTables(schemaName)
+    
+    // Configure tenant connection
+    await this.configureTenantConnection(organizationId, schemaName)
+  }
+  
+  async routeToTenantSchema(organizationId: uuid): Promise<DatabaseConnection> {
+    const schemaName = this.getTenantSchema(organizationId)
+    return this.getConnectionForSchema(schemaName)
+  }
+}
+```
+
+#### **🗄️ 3. Database-per-Tenant (Enterprise/BYOC)**
+**Para clientes enterprise com compliance requirements:**
+
+```typescript
+class DatabasePerTenantManager {
+  async provisionTenantDatabase(organizationId: uuid): Promise<TenantDatabase> {
+    const dbName = `humana_${organizationId.replace('-', '_')}`
+    
+    // Create dedicated database
+    const tenantDb = await this.createDatabase(dbName)
+    
+    // Deploy schema and migrations
+    await this.deployFullSchema(tenantDb)
+    
+    // Configure dedicated connection pool
+    const connectionPool = await this.createConnectionPool(tenantDb)
+    
+    return {
+      organizationId,
+      databaseName: dbName,
+      connectionPool,
+      isolationLevel: 'database'
+    }
+  }
+  
+  async routeToTenantDatabase(organizationId: uuid): Promise<DatabaseConnection> {
+    const tenantConfig = await this.getTenantConfig(organizationId)
+    
+    if (tenantConfig.isolationLevel === 'database') {
+      return this.getTenantConnection(organizationId)
+    }
+    
+    throw new Error(`Tenant ${organizationId} not configured for database isolation`)
+  }
+}
+```
+
+### **⚖️ Tenant-Aware Application Layer**
+
+#### **🔒 Middleware de Isolamento**
+**TODAS as requests devem ser tenant-aware:**
+
+```typescript
+class TenantIsolationMiddleware {
+  async middleware(req: Request, res: Response, next: NextFunction) {
+    // Extract organization context
+    const organizationId = this.extractOrganizationId(req)
+    
+    if (!organizationId) {
+      return res.status(401).json({ error: 'Organization context required' })
+    }
+    
+    // Validate user access to organization
+    const hasAccess = await this.validateUserOrganizationAccess(
+      req.user.id, 
+      organizationId
+    )
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Access denied to organization' })
+    }
+    
+    // Set tenant context for all database operations
+    await this.setTenantContext(organizationId)
+    
+    // Continue with tenant-isolated context
+    req.organizationId = organizationId
+    next()
+  }
+  
+  private async setTenantContext(organizationId: uuid): Promise<void> {
+    // Set RLS context
+    await this.db.execute(
+      `SET app.current_organization_id = '${organizationId}'`
+    )
+    
+    // Route to appropriate tenant isolation strategy
+    const tenantConfig = await this.getTenantConfig(organizationId)
+    
+    if (tenantConfig.isolationType === 'schema') {
+      await this.routeToTenantSchema(organizationId)
+    } else if (tenantConfig.isolationType === 'database') {
+      await this.routeToTenantDatabase(organizationId)
+    }
+    // RLS is default
+  }
+}
+```
+
+#### **📊 Tenant-Scoped APIs**
+**TODAS as APIs devem respeitar isolamento organizacional:**
+
+```typescript
+// ❌ WRONG - User-scoped query
+async getChats(userId: uuid) {
+  return await db.select().from(chat).where(eq(chat.userId, userId))
+}
+
+// ✅ CORRECT - Tenant-scoped query  
+async getChats(organizationId: uuid, userId: uuid) {
+  return await db.select().from(chat).where(
+    and(
+      eq(chat.organizationId, organizationId),
+      eq(chat.userId, userId)
+    )
+  )
+}
+
+// ✅ CORRECT - Tenant-aware companion query
+async getCompanions(organizationId: uuid) {
+  return await db.select().from(companion).where(
+    eq(companion.organizationId, organizationId)
+  )
+}
+
+// ✅ CORRECT - Cross-tenant prevention
+async shareDocument(docId: uuid, targetUserId: uuid, requestingUserId: uuid) {
+  const document = await this.getDocument(docId)
+  const targetUser = await this.getUser(targetUserId)
+  
+  // Verify both users belong to same organization
+  const sharedOrganizations = await this.getSharedOrganizations(
+    requestingUserId, 
+    targetUserId
+  )
+  
+  if (!sharedOrganizations.includes(document.organizationId)) {
+    throw new Error('Cross-tenant document sharing not allowed')
+  }
+  
+  // Proceed with sharing...
+}
+```
+
+### **🔍 Audit & Compliance per Tenant**
+
+#### **📋 Tenant-Scoped Audit Trails**
+**Logs e audit trails isolados por organização:**
+
+```typescript
+interface TenantAuditLog {
+  organizationId: uuid
+  userId: uuid
+  action: string
+  resourceType: string
+  resourceId: uuid
+  timestamp: Date
+  ipAddress: string
+  userAgent: string
+  compliance: {
+    regulation: 'LGPD' | 'GDPR' | 'HIPAA' | 'SOX'
+    retentionPeriod: number
+    encryptionRequired: boolean
+  }
+}
+
+class TenantAuditManager {
+  async logAction(
+    organizationId: uuid,
+    userId: uuid,
+    action: AuditAction
+  ): Promise<void> {
+    const organization = await this.getOrganization(organizationId)
+    
+    const auditLog: TenantAuditLog = {
+      organizationId,
+      userId,
+      ...action,
+      timestamp: new Date(),
+      compliance: this.getComplianceConfig(organization)
+    }
+    
+    // Store in tenant-specific audit table/schema
+    await this.storeTenantAuditLog(auditLog)
+  }
+  
+  async getTenantAuditLogs(
+    organizationId: uuid,
+    filters: AuditFilters
+  ): Promise<TenantAuditLog[]> {
+    // NEVER allow cross-tenant audit access
+    return await this.queryTenantAuditLogs(organizationId, filters)
+  }
+}
+```
+
+## 🤖 **Arquitetura Multi-Agent & Organizacional**
+
+### **🏢 Organization-Companion Integration**
+
+#### **🔗 Shared Data Architecture**
+**Database Schema Design para estrutura organizacional compartilhada:**
+
+```typescript
+// Organization schema
+interface Organization {
+  id: uuid
+  values: OrganizationalValues[]          // Valores compartilhados
+  teams: TeamStructure[]                  // Estrutura de equipes
+  positions: PositionHierarchy[]          // Hierarquia de posições
+  policies: CompliancePolicy[]            // Políticas corporativas
+  brandGuidelines: BrandAssets            // Guidelines de marca
+  knowledgeBase: SharedKnowledgeBase      // Base de conhecimento comum
+}
+
+// Companion schema com integração organizacional
+interface Companion {
+  organizationId: uuid                    // Link para organização
+  positionId: string                      // Posição na hierarquia
+  linkedTeamId: string                    // Equipe vinculada
+  inheritedPolicies: PolicyReference[]   // Políticas herdadas
+  sharedCapabilities: CapabilityAccess[]  // Capacidades compartilhadas
+  interCompanionAccess: AccessLevel[]     // Níveis de acesso entre companions
+}
+```
+
+#### **⚙️ Policy Inheritance System**
+**Companions herdam automaticamente políticas organizacionais:**
+
+```typescript
+class CompanionPolicyManager {
+  async generateSystemPrompt(companionId: uuid): Promise<string> {
+    const companion = await getCompanion(companionId)
+    const organization = await getOrganization(companion.organizationId)
+    
+    // Inject organizational values and policies
+    const prompt = this.mergePromptWithOrganizationalPolicies(
+      companion.basePrompt,
+      organization.values,
+      organization.policies,
+      organization.brandGuidelines
+    )
+    
+    return prompt
+  }
+  
+  private mergePromptWithOrganizationalPolicies(
+    basePrompt: string,
+    values: OrganizationalValues[],
+    policies: CompliancePolicy[],
+    brandGuidelines: BrandAssets
+  ): string {
+    // Auto-inject organizational context
+    return `${basePrompt}
+    
+## ORGANIZATIONAL CONTEXT
+### Company Values
+${values.map(v => `- ${v.title}: ${v.description}`).join('\n')}
+
+### Compliance Requirements  
+${policies.map(p => `- ${p.regulation}: ${p.requirements}`).join('\n')}
+
+### Brand Guidelines
+- Voice & Tone: ${brandGuidelines.voiceAndTone}
+- Communication Style: ${brandGuidelines.communicationStyle}
+- Do's and Don'ts: ${brandGuidelines.restrictions.join(', ')}
+`
+  }
+}
+```
+
+### **🔄 Multi-Agent Communication Framework**
+
+#### **📡 Inter-Companion Communication Protocol**
+**Companions se comunicam via message passing system:**
+
+```typescript
+interface CompanionMessage {
+  fromCompanionId: uuid
+  toCompanionId: uuid | 'broadcast'
+  messageType: 'knowledge_share' | 'workflow_handoff' | 'collaboration_request'
+  payload: any
+  organizationId: uuid
+  permissions: MessagePermission[]
+}
+
+class InterCompanionCommunication {
+  async shareKnowledge(fromId: uuid, knowledge: KnowledgeAsset): Promise<void> {
+    const eligibleCompanions = await this.getEligibleCompanions(fromId, knowledge.accessLevel)
+    
+    for (const companion of eligibleCompanions) {
+      await this.sendMessage({
+        fromCompanionId: fromId,
+        toCompanionId: companion.id,
+        messageType: 'knowledge_share',
+        payload: knowledge,
+        organizationId: companion.organizationId,
+        permissions: this.calculatePermissions(fromId, companion.id)
+      })
+    }
+  }
+  
+  async handoffWorkflow(fromId: uuid, toId: uuid, context: WorkflowContext): Promise<void> {
+    const canHandoff = await this.validateHandoffPermissions(fromId, toId, context)
+    
+    if (canHandoff) {
+      await this.transferWorkflowContext(fromId, toId, context)
+      await this.notifyWorkflowTransfer(fromId, toId, context)
+    }
+  }
+}
+```
+
+#### **🧠 Shared Knowledge & Skill Libraries**
+**Sistema de compartilhamento de conhecimento e habilidades:**
+
+```typescript
+interface SharedCapability {
+  id: uuid
+  name: string
+  type: 'skill' | 'knowledge' | 'integration' | 'tool'
+  organizationId: uuid
+  accessLevel: 'public' | 'team' | 'department' | 'restricted'
+  sourceCompanionId: uuid
+  beneficiaryCompanions: uuid[]
+  usageMetrics: CapabilityUsage[]
+}
+
+class SharedCapabilityManager {
+  async shareCapability(companionId: uuid, capability: Capability): Promise<void> {
+    const companion = await getCompanion(companionId)
+    const organization = await getOrganization(companion.organizationId)
+    
+    // Determine access level based on organizational hierarchy
+    const accessLevel = this.determineAccessLevel(companion, capability)
+    
+    // Find eligible companions
+    const eligibleCompanions = await this.findEligibleCompanions(
+      organization.id, 
+      accessLevel, 
+      capability.type
+    )
+    
+    // Create shared capability
+    await this.createSharedCapability({
+      ...capability,
+      organizationId: organization.id,
+      accessLevel,
+      sourceCompanionId: companionId,
+      beneficiaryCompanions: eligibleCompanions.map(c => c.id)
+    })
+  }
+}
+```
+
+### **📊 Organizational Analytics & Intelligence**
+
+#### **🔍 Cross-Companion Analytics**
+**Analytics agregado através de todos os companions organizacionais:**
+
+```typescript
+interface OrganizationalIntelligence {
+  organizationId: uuid
+  totalCompanions: number
+  knowledgeAssets: number
+  sharedCapabilities: number
+  collaborationMetrics: {
+    interCompanionMessages: number
+    workflowHandoffs: number
+    knowledgeSharing: number
+    collaborativeSessions: number
+  }
+  performanceMetrics: {
+    averageResponseTime: number
+    successRate: number
+    userSatisfaction: number
+    knowledgeUtilization: number
+  }
+  insights: {
+    topSharedKnowledge: KnowledgeAsset[]
+    mostActiveCompanions: CompanionMetrics[]
+    collaborationPatterns: CollaborationPattern[]
+    improvementOpportunities: Insight[]
+  }
+}
+```
+
+---
 
 ## 🏗️ Stack Tecnológico
 
@@ -454,78 +960,31 @@ export const authConfig = {
 }
 ```
 
-## 📦 BYOC via Parametrização de Endpoints
+## 📦 BYOC Implementation: Enterprise Governance Strategy
 
-### **🔄 Estratégia: Configuration over Deployment**
+### **🔄 Configuration over Deployment Approach**
 
-Ao invés de deploy de containers na infraestrutura do cliente, utilizamos **configuração de endpoints** para integração total:
+**Para Clientes Enterprise (Custom Plans):**
+BYOC permite que organizações enterprise mantenham controle total de governança através de **configuração de endpoints** da sua própria infraestrutura, ao invés de deployment de containers.
+
+**Diferenciação Fundamental:**
+- **SaaS Clients:** Consomem modelos e infraestrutura da Humana
+- **BYOC Enterprise:** Humana se conecta à infraestrutura do cliente via endpoints
 
 #### **🔌 Endpoint Configuration System**
-```typescript
-interface CustomerInfrastructure {
-  organizationId: string
-  
-  // Database endpoints (cliente configura seus próprios)
-  database: {
-    primary: DatabaseEndpoint
-    replica?: DatabaseEndpoint
-    backup?: DatabaseEndpoint
-  }
-  
-  // Storage endpoints (S3, Azure Blob, GCS do cliente)
-  storage: {
-    documents: StorageEndpoint
-    attachments: StorageEndpoint
-    exports: StorageEndpoint
-  }
-  
-  // LLM endpoints (modelos do cliente ou APIs privadas)
-  llm: {
-    primary: LLMEndpoint
-    fallback?: LLMEndpoint
-    embedding: LLMEndpoint
-  }
-  
-  // Monitoring endpoints (observabilidade do cliente)
-  monitoring: {
-    metrics: MonitoringEndpoint
-    logs: LoggingEndpoint
-    alerts: AlertingEndpoint
-  }
-  
-  // Authentication endpoints (SSO do cliente)
-  authentication: {
-    sso: SSOEndpoint
-    userDirectory: DirectoryEndpoint
-  }
-}
 
-class BYOCManager {
-  constructor(private configResolver: ConfigResolver) {}
-  
-  async validateCustomerInfrastructure(config: CustomerInfrastructure): Promise<ValidationResult> {
-    const results = await Promise.all([
-      this.validateDatabaseEndpoint(config.database.primary),
-      this.validateStorageEndpoint(config.storage.documents),
-      this.validateLLMEndpoint(config.llm.primary),
-      this.validateMonitoringEndpoint(config.monitoring.metrics),
-      this.validateSSOEndpoint(config.authentication.sso)
-    ])
-    
-    return this.aggregateValidationResults(results)
-  }
-  
-  async switchToCustomerInfrastructure(organizationId: string): Promise<void> {
-    const config = this.configResolver.resolve<CustomerInfrastructure>('customerInfra', { organizationId })
-    
-    // Switch adapters para usar endpoints do cliente
-    await this.databaseManager.switchToCustomerDatabase(config.database)
-    await this.storageManager.switchToCustomerStorage(config.storage)
-    await this.llmManager.switchToCustomerLLM(config.llm)
-    await this.monitoringManager.switchToCustomerMonitoring(config.monitoring)
-  }
-}
-```
+**Customer Infrastructure Components:**
+- **Database endpoints:** Cliente configura seus próprios databases (primary, replica, backup)
+- **Storage endpoints:** S3, Azure Blob, GCS do cliente para documents, attachments, exports
+- **LLM endpoints:** Modelos do cliente ou APIs privadas (primary, fallback, embedding)
+- **Monitoring endpoints:** Observabilidade do cliente (metrics, logs, alerts)
+- **Authentication endpoints:** SSO e user directory do cliente
+
+**BYOC Management Process:**
+- Validate customer infrastructure endpoints
+- Switch adapters to use customer endpoints
+- Monitor health of customer infrastructure
+- Handle failover to backup endpoints when needed
 
 #### **✅ Vantagens vs Container Deployment:**
 
