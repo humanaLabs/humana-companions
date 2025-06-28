@@ -1,0 +1,139 @@
+# Humana Companions - Frontend Rules
+
+## Design System - OBRIGATÓRIO
+
+### NUNCA use cores hardcoded para temas dark/light. SEMPRE use as classes do design system:
+
+**✅ CORRETO:**
+- Cards: `bg-card border rounded-lg`
+- Texto principal: `text-foreground`
+- Texto secundário: `text-muted-foreground`
+- Backgrounds internos: `bg-muted` ou `bg-muted/50`
+- Botões primários: `bg-primary hover:bg-primary/90 text-primary-foreground`
+- Inputs: `bg-background text-foreground border`
+
+**❌ NUNCA use:**
+- `bg-white dark:bg-gray-800`
+- `text-gray-900 dark:text-white`
+- `text-gray-600 dark:text-gray-400`
+- `bg-gray-50 dark:bg-gray-700`
+- `border-gray-200 dark:border-gray-700`
+- `bg-blue-600`, `bg-green-600`, etc.
+
+### Padrão de Ícones - OBRIGATÓRIO:
+
+**✅ CORRETO:**
+- **Menus/Sidebar**: Use ASCII/emojis (📄 📋 🔗 💾 💬 ⚡ 🧪 🔍 ⋯ + ↓ ✓)
+- **Telas/Cards**: Use ícones do framework (sobrios e profissionais)
+  - `<FileIcon />`, `<ServerIcon />`, `<MessageIcon />`, `<SparklesIcon />`
+  - `<BoxIcon />`, `<BotIcon />`, `<LineChartIcon />`, `<InvoiceIcon />`
+  - `<CheckIcon />`, `<GlobeIcon />`, `<RouteIcon />`, `<MoreIcon />`
+- **Tamanhos**: 16px (pequenos), 20-24px (médios), 32px (grandes), 48px (principais)
+- **Sem fundos**: NUNCA use `bg-muted rounded-lg` ou `bg-muted rounded-full` nos ícones
+
+**❌ NUNCA use:**
+- SVG coloridos ou ícones com cores hardcoded
+- Fundos atrás dos ícones (`p-3 bg-muted rounded-lg`)
+- Emojis nas telas principais (apenas nos menus)
+- Ícones do framework nos menus (apenas ASCII/emojis)
+
+**Casos especiais:**
+- Pode usar ASCII para destaque específico (ex: 🔍 para busca)
+- MCP Servers pode usar ASCII para diferenciação visual
+
+## Estruturas de Layout
+
+### Estrutura de página padrão:
+```tsx
+<div className="flex flex-col h-screen">
+  <PageHeader 
+    title="Título" 
+    description="Descrição"
+    badge="Seção"
+    showBackButton={true}
+  >
+    {/* Botões de ação */}
+  </PageHeader>
+  <div className="flex-1 overflow-auto p-6">
+    <div className="max-w-6xl w-full mx-auto space-y-6">
+      {/* Conteúdo principal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Cards */}
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+### Padrão de Cards:
+```tsx
+<div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+  <div className="flex items-start justify-between mb-4">
+    <div className="text-muted-foreground">
+      <IconComponent size={32} />
+    </div>
+    <div className="flex items-center gap-2">
+      <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+        Categoria
+      </span>
+    </div>
+  </div>
+  <h3 className="font-semibold text-foreground mb-2">Título</h3>
+  <p className="text-sm text-muted-foreground mb-4">Descrição</p>
+  <div className="flex items-center justify-between">
+    <span className="text-xs text-muted-foreground">Status</span>
+    <Button variant="outline" size="sm">Ação</Button>
+  </div>
+</div>
+```
+
+## Componentes React
+
+### Estrutura de Componentes:
+- Use componentes funcionais sempre
+- Props tipadas com interfaces TypeScript
+- Export nomeado preferencialmente
+- Componentes de presentação separados de lógica
+- Custom hooks para lógica reutilizável
+
+### Estados e Effects:
+- useState para estados locais simples
+- useReducer para estados complexos
+- useEffect com cleanup quando necessário
+- useMemo/useCallback para otimizações
+- Context API para estados globais específicos
+
+### Formulários:
+- React Hook Form para formulários complexos
+- Zod para validação de schemas
+- Controlled components para inputs críticos
+- Uncontrolled para performance quando possível
+
+## UI/UX Guidelines
+
+### Responsividade:
+- Mobile-first approach SEMPRE
+- Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
+- Grid responsivo com classes Tailwind
+- Testes em diferentes dispositivos
+
+### Acessibilidade:
+- Seguir WCAG 2.1 AA
+- Aria-labels em elementos interativos
+- Contraste adequado (automático com design system)
+- Navegação por teclado funcional
+- Screen reader friendly
+
+### Performance:
+- Lazy loading para componentes pesados
+- Virtual scrolling para listas grandes
+- Image optimization com next/image
+- Code splitting por rotas
+- Prefetch de rotas críticas
+
+### Estados de Loading:
+- Skeleton loaders para conteúdo
+- Spinners para ações rápidas
+- Progress bars para uploads/downloads
+- Error boundaries para falhas
+- Empty states amigáveis 

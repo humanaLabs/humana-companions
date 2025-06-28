@@ -1,0 +1,180 @@
+# Humana Companions - Documentation Rules
+
+## Documentação de Blueprints - OBRIGATÓRIO
+
+### NUNCA inclua código técnico em documentos de blueprints:
+
+**✅ CORRETO:**
+- Análise estratégica e gaps
+- Priorização por impacto × esforço
+- Roadmap conceitual (sem timelines específicos)
+- Métricas de sucesso (sem ROI financeiro)
+- Decisões arquiteturais conceituais
+- Fluxos e processos de negócio
+- Estruturas organizacionais
+- Requisitos e especificações
+
+**❌ NUNCA inclua:**
+- Código TypeScript, JavaScript, SQL
+- Interfaces de programação
+- Implementações técnicas
+- Exemplos de código
+- Snippets de configuração
+- Schemas de banco detalhados
+- APIs endpoints específicos
+- Análise de ROI financeiro
+- Timelines específicos (datas, semanas)
+
+### Estrutura padrão de blueprint:
+```
+# Título do Blueprint
+
+## 🎯 Visão Geral
+## 🔍 Análise do Estado Atual
+## 📊 Gap Analysis
+## 🏗️ Arquitetura Conceitual
+## 🚀 Roadmap de Implementação
+## 📈 Métricas de Sucesso
+## 🎯 Próximos Passos
+```
+
+**Foco em:**
+- **Estratégia** sobre implementação
+- **Por quê** antes do **como**
+- **Business value** sobre detalhes técnicos
+- **Decisões** sobre soluções
+- **Impacto** sobre complexidade
+
+## Estrutura de Documentação
+
+### Organização em Diretórios:
+```
+projeto/
+├── blueprints/          # Estratégia e planejamento
+│   ├── 00.x-*          # Priorização e análises
+│   ├── 01-*            # Negócio e produto
+│   ├── 02-*            # Experiência e interface
+│   ├── 03-*            # Data room e gestão
+│   ├── 04-*            # Ferramentas e MCP
+│   ├── 05-*            # Workspace e ambiente
+│   ├── 06-*            # Organizações e hierarquia
+│   ├── 07-*            # Design system
+│   ├── 08-*            # Estrutura tecnológica
+│   ├── 09-*            # Marketplace e aplicativos
+│   ├── 10-*            # Desenvolvimento
+│   ├── 11-*            # Segurança e governança
+│   └── 12-*            # Analytics e insights
+├── diagramas/           # Artefatos visuais
+├── analise_mudancas/    # Análises técnicas
+├── telas/              # Mockups e wireframes
+└── testes/             # Documentação de testes
+```
+
+## Regras de Escrita
+
+### Tom e Linguagem:
+- Use linguagem clara e objetiva
+- Evite jargões técnicos desnecessários
+- Prefira bullet points a parágrafos longos
+- Use emojis para organização visual (📊 🎯 🔍 ⚡)
+- Mantenha consistência terminológica
+
+### Formatação Markdown:
+- Headers hierárquicos (##, ###, ####)
+- Listas ordenadas para sequências
+- Listas não-ordenadas para conjuntos
+- Code blocks apenas para exemplos conceituais
+- Tabelas para comparações
+- Links internos entre documentos relacionados
+
+### Estrutura de Seções:
+```markdown
+# Título Principal
+
+## 🎯 Visão Geral
+Resumo executivo em 2-3 parágrafos
+
+## 🔍 Contexto Atual
+Estado atual do sistema/processo
+
+## 📊 Análise de Gaps
+Lacunas identificadas com priorização
+
+## 🏗️ Solução Proposta
+Abordagem conceitual da solução
+
+## 🚀 Implementação
+Fases e marcos sem timelines específicos
+
+## 📈 Métricas
+Indicadores de sucesso mensuráveis
+
+## 🎯 Próximos Passos
+Ações imediatas e dependências
+```
+
+## Versionamento e Manutenção
+
+### Nomenclatura de Arquivos:
+- Use numeração sequencial (00.1, 00.2, etc.)
+- Nomes descritivos e consistentes
+- Prefixos por categoria/domínio
+- Sem espaços nos nomes de arquivo
+
+### Atualizações:
+- Documente mudanças significativas
+- Mantenha histórico de decisões
+- Remova informações obsoletas
+- Atualize referências cruzadas
+
+### Cross-references:
+- Link para blueprints relacionados
+- Referencie documentos de apoio
+- Mantenha consistência entre documentos
+- Valide links periodicamente
+
+## Documentação Técnica
+
+### Quando Incluir Código:
+- APENAS em documentos técnicos específicos
+- Nunca em blueprints estratégicos
+- Use para exemplos de API/configuração
+- Mantenha código sempre atualizado
+
+### Diagramas e Visualizações:
+- Use Mermaid para fluxos
+- Diagramas C4 para arquitetura
+- Wireframes para interfaces
+- Screenshots para estado atual
+
+### Exemplos Visuais:
+```mermaid
+graph TD
+    A[Usuário] --> B[Interface]
+    B --> C[API]
+    C --> D[Banco de Dados]
+```
+
+## Qualidade e Revisão
+
+### Checklist de Qualidade:
+- [ ] Objetivo claro definido
+- [ ] Audiência identificada
+- [ ] Estrutura lógica seguida
+- [ ] Linguagem consistente
+- [ ] Links funcionais
+- [ ] Formatação adequada
+- [ ] Revisão ortográfica
+- [ ] Validação técnica (se aplicável)
+
+### Processo de Revisão:
+- Auto-revisão antes de commit
+- Peer review para documentos críticos
+- Validação com stakeholders
+- Atualização baseada em feedback
+
+### Manutenção Contínua:
+- Revisão trimestral de blueprints
+- Atualização após implementações
+- Arquivamento de documentos obsoletos
+- Consolidação de informações duplicadas 

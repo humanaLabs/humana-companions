@@ -1,0 +1,364 @@
+# Humana Companions - AI/LLM Rules
+
+## AI SDK (Vercel) - OBRIGATÓRIO
+
+### Core Patterns:
+- Use AI SDK para todas as integrações LLM
+- Streaming quando possível para UX responsiva
+- Error handling robusto para falhas de API
+- Rate limiting e timeout configuration
+- Provider abstraction para flexibilidade
+
+### Basic Implementation:
+```typescript
+import { generateText, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+// ✅ Geração simples com error handling
+async function generateCompanionResponse(prompt: string) {
+  try {
+    const { text } = await generateText({
+      model: openai('gpt-4o'),
+      prompt,
+      maxTokens: 1000,
+      temperature: 0.7,
+    });
+    return text;
+  } catch (error) {
+    logger.error('AI generation failed', { error, prompt });
+    throw new AIGenerationError('Failed to generate response');
+  }
+}
+```
+
+### Streaming Patterns:
+```typescript
+// ✅ Streaming com cleanup adequado
+export async function POST(request: Request) {
+  const { messages } = await request.json();
+  
+  const result = await streamText({
+    model: openai('gpt-4o'),
+    messages,
+    onFinish: async (result) => {
+      await saveConversation(result);
+    },
+  });
+  
+  return result.toDataStreamResponse();
+}
+```
+
+## Provider Management
+
+### Multi-Provider Support:
+- OpenAI (primary): GPT-4o, GPT-4o-mini
+- Anthropic: Claude 3.5 Sonnet, Claude 3 Haiku
+- Azure OpenAI: Enterprise deployments
+- Local models: Ollama for development/testing
+
+### Provider Configuration:
+```typescript
+// ✅ Provider factory pattern
+const providers = {
+  openai: openai('gpt-4o'),
+  anthropic: anthropic('claude-3-5-sonnet-20241022'),
+  azure: createAzure({
+    resourceName: process.env.AZURE_RESOURCE_NAME,
+    apiKey: process.env.AZURE_API_KEY,
+  }),
+};
+
+function getProvider(providerName: keyof typeof providers) {
+  const provider = providers[providerName];
+  if (!provider) {
+    throw new Error(`Provider ${providerName} not configured`);
+  }
+  return provider;
+}
+```
+
+### Fallback Strategy:
+```typescript
+// ✅ Provider fallback com retry
+async function generateWithFallback(prompt: string) {
+  const providerOrder = ['openai', 'anthropic', 'azure'];
+  
+  for (const providerName of providerOrder) {
+    try {
+      const provider = getProvider(providerName);
+      return await generateText({ model: provider, prompt });
+    } catch (error) {
+      logger.warn(`Provider ${providerName} failed`, error);
+      continue;
+    }
+  }
+  
+  throw new Error('All AI providers failed');
+}
+```
+
+## Prompt Engineering
+
+### Prompt Structure:
+```typescript
+// ✅ Structured prompt template
+const companionPrompt = `
+You are a specialized AI Companion for ${organization.name}.
+
+Context:
+- Organization: ${organization.description}
+- User Role: ${user.role}
+- Current Task: ${task.description}
+
+Guidelines:
+- Maintain professional tone
+- Use company-specific terminology
+- Follow brand voice guidelines
+- Provide actionable insights
+
+User Query: ${userQuery}
+`;
+```
+
+### Prompt Templates:
+```typescript
+// ✅ Reusable prompt templates
+interface PromptTemplate {
+  name: string;
+  template: string;
+  variables: string[];
+}
+
+const templates: PromptTemplate[] = [
+  {
+    name: 'companion-response',
+    template: 'You are an AI companion for {{organizationName}}...',
+    variables: ['organizationName', 'userRole', 'context']
+  },
+  {
+    name: 'document-analysis',
+    template: 'Analyze the following document...',
+    variables: ['documentType', 'analysisGoal']
+  }
+];
+```
+
+### Context Management:
+- Include relevant organization data
+- User permissions and role context
+- Recent conversation history (last 10 messages)
+- Document context when available
+- Tool/MCP server context for actions
+
+## Tool Integration
+
+### MCP (Model Context Protocol):
+```typescript
+// ✅ MCP server integration
+import { createMCPClient } from '@modelcontextprotocol/sdk';
+
+async function connectToMCPServer(serverConfig: MCPServerConfig) {
+  const client = createMCPClient({
+    transport: serverConfig.transport,
+    timeout: 30000,
+  });
+  
+  await client.connect();
+  return client;
+}
+
+// ✅ Tool execution with validation
+async function executeTool(toolName: string, params: unknown) {
+  const schema = getToolSchema(toolName);
+  const validatedParams = schema.parse(params);
+  
+  const client = await getMCPClient();
+  return await client.callTool(toolName, validatedParams);
+}
+```
+
+### Built-in Tools:
+```typescript
+// ✅ Tool definition pattern
+const tools = {
+  createDocument: {
+    description: 'Create a new document in the data room',
+    parameters: z.object({
+      title: z.string(),
+      content: z.string(),
+      type: z.enum(['text', 'code', 'image', 'sheet']),
+    }),
+    execute: async (params) => {
+      return await createDocument(params);
+    }
+  },
+  
+  searchDocuments: {
+    description: 'Search for documents in the data room',
+    parameters: z.object({
+      query: z.string(),
+      limit: z.number().max(50).default(10),
+    }),
+    execute: async (params) => {
+      return await searchDocuments(params);
+    }
+  }
+};
+```
+
+## Memory & Context
+
+### Conversation Memory:
+```typescript
+// ✅ Conversation persistence
+interface ConversationMemory {
+  id: string;
+  userId: string;
+  organizationId: string;
+  messages: Message[];
+  context: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+async function saveConversationMemory(
+  conversationId: string,
+  messages: Message[]
+) {
+  await db.insert(conversationMemoryTable).values({
+    id: conversationId,
+    messages: JSON.stringify(messages),
+    context: JSON.stringify(extractContext(messages)),
+    updatedAt: new Date(),
+  });
+}
+```
+
+### Context Injection:
+```typescript
+// ✅ Smart context injection
+function injectRelevantContext(
+  messages: Message[],
+  userContext: UserContext
+): Message[] {
+  const systemMessage: Message = {
+    role: 'system',
+    content: buildSystemPrompt(userContext),
+  };
+  
+  const contextMessages = getRelevantDocuments(
+    messages,
+    userContext.organizationId
+  ).map(doc => ({
+    role: 'system' as const,
+    content: `Document: ${doc.title}\n${doc.content}`
+  }));
+  
+  return [systemMessage, ...contextMessages, ...messages];
+}
+```
+
+## Performance & Optimization
+
+### Token Management:
+```typescript
+// ✅ Token counting and optimization
+import { encode } from 'gpt-tokenizer';
+
+function estimateTokens(text: string): number {
+  return encode(text).length;
+}
+
+function optimizePrompt(prompt: string, maxTokens: number): string {
+  const tokens = estimateTokens(prompt);
+  
+  if (tokens <= maxTokens) {
+    return prompt;
+  }
+  
+  // Truncate less important sections
+  return truncatePrompt(prompt, maxTokens);
+}
+```
+
+### Caching Strategy:
+```typescript
+// ✅ Response caching for expensive operations
+const cache = new Map<string, { response: string; timestamp: number }>();
+
+async function getCachedResponse(
+  prompt: string,
+  ttl: number = 300000 // 5 minutes
+): Promise<string | null> {
+  const hash = createHash('sha256').update(prompt).digest('hex');
+  const cached = cache.get(hash);
+  
+  if (cached && Date.now() - cached.timestamp < ttl) {
+    return cached.response;
+  }
+  
+  return null;
+}
+```
+
+## Error Handling & Monitoring
+
+### AI-Specific Errors:
+```typescript
+// ✅ AI error classification
+class AIError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public retryable: boolean = false
+  ) {
+    super(message);
+  }
+}
+
+class RateLimitError extends AIError {
+  constructor(retryAfter?: number) {
+    super('Rate limit exceeded', 'RATE_LIMIT', true);
+    this.retryAfter = retryAfter;
+  }
+}
+
+class ContextLengthError extends AIError {
+  constructor() {
+    super('Context length exceeded', 'CONTEXT_LENGTH', false);
+  }
+}
+```
+
+### Monitoring:
+```typescript
+// ✅ AI operation monitoring
+async function monitoredAICall<T>(
+  operation: () => Promise<T>,
+  metadata: Record<string, unknown>
+): Promise<T> {
+  const startTime = Date.now();
+  
+  try {
+    const result = await operation();
+    
+    logger.info('AI operation completed', {
+      ...metadata,
+      duration: Date.now() - startTime,
+      success: true,
+    });
+    
+    return result;
+  } catch (error) {
+    logger.error('AI operation failed', {
+      ...metadata,
+      duration: Date.now() - startTime,
+      error: error.message,
+      success: false,
+    });
+    
+    throw error;
+  }
+}
+``` 

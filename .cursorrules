@@ -1,181 +1,78 @@
-# Humana Companions - Cursor Rules
+# Humana Companions - Intelligent Context Rules
 
-## Padrão de Layout UI - OBRIGATÓRIO
+## 🎯 Context-Aware Rule Loading
 
-### NUNCA use cores hardcoded para temas dark/light. SEMPRE use as classes do design system:
+**The AI should automatically load specific context rules based on the file being edited:**
 
-**✅ CORRETO:**
+### Frontend Development
+**When working with UI/Frontend files** (components/, *.tsx, *.css, tailwind.*, ui-related):
+- Load the comprehensive frontend guidelines from `.cursorrules-frontend`
+- Apply design system rules, component patterns, and UI/UX best practices
+- Focus on responsive design, accessibility, and React patterns
+
+### Backend Development  
+**When working with API/Backend files** (app/api/, lib/db/, lib/auth/, *.sql, drizzle.*, middleware.ts):
+- Load the comprehensive backend guidelines from `.cursorrules-backend`
+- Apply database patterns, API design, authentication, and server-side best practices
+- Focus on security, multi-tenancy, and performance
+
+### AI/LLM Development
+**When working with AI files** (lib/ai/, *ai.ts, *tool.ts, *mcp.ts):
+- Load the comprehensive AI guidelines from `.cursorrules-ai`
+- Apply AI SDK patterns, prompt engineering, and provider management
+- Focus on LLM integrations, streaming, and context management
+
+### Documentation
+**When working with documentation** (projeto/, *.md, docs/, README, blueprint):
+- Load the comprehensive documentation guidelines from `.cursorrules-docs`
+- Apply blueprint structure, markdown formatting, and writing standards
+- Focus on strategic documentation without technical implementation details
+
+### Core/Configuration
+**When working with core files** (package.json, tsconfig.*, next.config.*, .env, scripts/):
+- Load the comprehensive core guidelines from `.cursorrules-core`
+- Apply fundamental technologies, project structure, and best practices
+- Focus on Next.js 15, TypeScript, performance, and conventions
+
+## 🔧 Core Technologies (Always Active)
+
+- **Framework**: Next.js 15 App Router with TypeScript strict mode
+- **Styling**: Tailwind CSS v4 with design system tokens
+- **Database**: Drizzle ORM with PostgreSQL and multi-tenancy
+- **AI**: Vercel AI SDK with multiple providers (OpenAI, Anthropic, Azure)
+- **Authentication**: NextAuth.js v5 with RBAC permissions
+
+## 🎨 Design System (Always Active)
+
+**NEVER use hardcoded colors. ALWAYS use design system classes:**
+
+**✅ CORRECT:**
 - Cards: `bg-card border rounded-lg`
-- Texto principal: `text-foreground`
-- Texto secundário: `text-muted-foreground`
-- Backgrounds internos: `bg-muted` ou `bg-muted/50`
-- Botões primários: `bg-primary hover:bg-primary/90 text-primary-foreground`
-- Inputs: `bg-background text-foreground border`
+- Text: `text-foreground` / `text-muted-foreground`  
+- Backgrounds: `bg-muted` / `bg-muted/50`
+- Buttons: `bg-primary hover:bg-primary/90 text-primary-foreground`
 
-**❌ NUNCA use:**
+**❌ NEVER use:**
 - `bg-white dark:bg-gray-800`
 - `text-gray-900 dark:text-white`
-- `text-gray-600 dark:text-gray-400`
-- `bg-gray-50 dark:bg-gray-700`
-- `border-gray-200 dark:border-gray-700`
-- `bg-blue-600`, `bg-green-600`, etc.
+- Direct color values like `bg-blue-600`
 
-### Padrão de Ícones - OBRIGATÓRIO:
+## 🔗 Terminology Standards
 
-**✅ CORRETO:**
-- **Menus/Sidebar**: Use ASCII/emojis (📄 📋 🔗 💾 💬 ⚡ 🧪 🔍 ⋯ + ↓ ✓)
-- **Telas/Cards**: Use ícones do framework (sobrios e profissionais)
-  - `<FileIcon />`, `<ServerIcon />`, `<MessageIcon />`, `<SparklesIcon />`
-  - `<BoxIcon />`, `<BotIcon />`, `<LineChartIcon />`, `<InvoiceIcon />`
-  - `<CheckIcon />`, `<GlobeIcon />`, `<RouteIcon />`, `<MoreIcon />`
-- **Tamanhos**: 16px (pequenos), 20-24px (médios), 32px (grandes), 48px (principais)
-- **Sem fundos**: NUNCA use `bg-muted rounded-lg` ou `bg-muted rounded-full` nos ícones
+- Use "Companion" instead of "Chat"
+- "Companion Super Hero" instead of "Default Chat"
+- "Organization" for organizational structures
+- "Data Room" for document management
+- "MCP Server" for tool servers
+- Maintain consistency across all implementations
 
-**❌ NUNCA use:**
-- SVG coloridos ou ícones com cores hardcoded
-- Fundos atrás dos ícones (`p-3 bg-muted rounded-lg`)
-- Emojis nas telas principais (apenas nos menus)
-- Ícones do framework nos menus (apenas ASCII/emojis)
+## 💡 Context Loading Instructions
 
-**Casos especiais:**
-- Pode usar ASCII para destaque específico (ex: 🔍 para busca)
-- MCP Servers pode usar ASCII para diferenciação visual
+**For maximum effectiveness, the AI should:**
 
-### Estrutura de página padrão:
-```tsx
-<div className="flex flex-col h-screen">
-  <PageHeader 
-    title="Título" 
-    description="Descrição"
-    badge="Seção"
-    showBackButton={true}
-  >
-    {/* Botões de ação */}
-  </PageHeader>
-  <div className="flex-1 overflow-auto p-6">
-    <div className="max-w-6xl w-full mx-auto space-y-6">
-      {/* Conteúdo principal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Cards */}
-      </div>
-    </div>
-  </div>
-</div>
-```
+1. **Automatically detect** the file type being edited
+2. **Load the corresponding context** from the appropriate `.cursorrules-*` file
+3. **Apply the specific guidelines** for that development area
+4. **Maintain awareness** of these core rules throughout the session
 
-### Padrão de Cards:
-```tsx
-<div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
-  <div className="flex items-start justify-between mb-4">
-    <div className="text-muted-foreground">
-      <IconComponent size={32} />
-    </div>
-    <div className="flex items-center gap-2">
-      <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-        Categoria
-      </span>
-    </div>
-  </div>
-  <h3 className="font-semibold text-foreground mb-2">Título</h3>
-  <p className="text-sm text-muted-foreground mb-4">Descrição</p>
-  <div className="flex items-center justify-between">
-    <span className="text-xs text-muted-foreground">Status</span>
-    <Button variant="outline" size="sm">Ação</Button>
-  </div>
-</div>
-```
-
-### Terminologia Padrão:
-- Use "Companion" ao invés de "Chat" 
-- "Companion Super Hero" ao invés de "Chat Padrão"
-- Mantenha consistência em toda a aplicação
-
-Consulte: `docs/arquitetura_geral/PADRAO_LAYOUT_UI.md` para detalhes completos.
-
-## Outras Regras Existentes
-
-### Tecnologias
-- Next.js 15 App Router
-- TypeScript
-- Tailwind CSS v4
-- Drizzle ORM
-- AI SDK (Vercel)
-
-### Estrutura de Arquivos
-- Use convenções do Next.js 15
-- Componentes em `/components`
-- Utilitários em `/lib`
-- Hooks em `/hooks`
-
-### Código
-- TypeScript strict mode
-- Componentes funcionais com hooks
-- Props bem tipadas
-- Comentários em português
-- Nomes de variáveis em inglês
-
-### Banco de Dados
-- Drizzle ORM para queries
-- Schema bem definido
-- Migrations versionadas
-
-### UI/UX
-- Design responsivo (mobile-first)
-- Acessibilidade (WCAG)
-- Performance otimizada
-- Componentes reutilizáveis
-
-### AI/LLM
-- Use AI SDK para integrações
-- Prompts bem estruturados
-- Streaming quando possível
-- Error handling robusto
-
-### Documentação de Blueprints - OBRIGATÓRIO
-
-**NUNCA inclua código técnico em documentos de blueprints:**
-
-**✅ CORRETO:**
-- Análise estratégica e gaps
-- Priorização por impacto × esforço
-- Roadmap conceitual (sem timelines específicos)
-- Métricas de sucesso (sem ROI financeiro)
-- Decisões arquiteturais conceituais
-- Fluxos e processos de negócio
-- Estruturas organizacionais
-- Requisitos e especificações
-
-**❌ NUNCA inclua:**
-- Código TypeScript, JavaScript, SQL
-- Interfaces de programação
-- Implementações técnicas
-- Exemplos de código
-- Snippets de configuração
-- Schemas de banco detalhados
-- APIs endpoints específicos
-- Análise de ROI financeiro
-- Timelines específicos (datas, semanas)
-
-**Estrutura padrão de blueprint:**
-```
-# Título do Blueprint
-
-## 🎯 Visão Geral
-## 🔍 Análise do Estado Atual
-## 📊 Gap Analysis
-## 🏗️ Arquitetura Conceitual
-## 🚀 Roadmap de Implementação
-## 📈 Métricas de Sucesso
-## 🎯 Próximos Passos
-```
-
-**Foco em:**
-- **Estratégia** sobre implementação
-- **Por quê** antes do **como**
-- **Business value** sobre detalhes técnicos
-- **Decisões** sobre soluções
-- **Impacto** sobre complexidade
-
-Consulte: 
-- `blueprints/00.1-PRIORIZACAO_QUICK_WIN.md` como exemplo de estrutura correta
-- `docs/arquitetura_geral/REGRAS_BLUEPRINTS.md` para regras detalhadas
+This creates an intelligent, context-aware development experience that adapts to your current task while maintaining project consistency. 

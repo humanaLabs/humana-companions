@@ -1,0 +1,228 @@
+# Humana Companions - Backend Rules
+
+## Database & ORM
+
+### Drizzle ORM - OBRIGATÓRIO:
+- Use Drizzle ORM para todas as queries
+- Schema bem definido com tipos TypeScript
+- Migrations versionadas e incrementais
+- Relacionamentos explícitos entre tabelas
+- Indexes para consultas frequentes
+- Row Level Security (RLS) para multi-tenancy
+
+### Schema Design:
+- Nomeação consistente (camelCase para campos)
+- Chaves primárias como `id` (UUID preferível)
+- Timestamps: `createdAt`, `updatedAt`
+- Soft deletes: `deletedAt` quando necessário
+- Foreign keys com cascade apropriado
+- Constraints para integridade de dados
+
+### Queries:
+```typescript
+// ✅ CORRETO - Query tipada com Drizzle
+const users = await db
+  .select()
+  .from(usersTable)
+  .where(eq(usersTable.organizationId, orgId))
+  .limit(10);
+
+// ❌ EVITAR - SQL raw desnecessário
+const users = await db.execute(sql`SELECT * FROM users WHERE org_id = ${orgId}`);
+```
+
+## API Design
+
+### Next.js App Router:
+- Route handlers em `/app/api/`
+- Validação de entrada com Zod
+- Response tipado e consistente
+- Status codes apropriados
+- Error handling centralizado
+
+### API Patterns:
+```typescript
+// ✅ Estrutura padrão de API route
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const schema = z.object({
+      limit: z.coerce.number().min(1).max(100).default(10),
+      offset: z.coerce.number().min(0).default(0)
+    });
+    
+    const params = schema.parse(Object.fromEntries(searchParams));
+    const data = await fetchData(params);
+    
+    return Response.json({ data, success: true });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+```
+
+### Response Format:
+```typescript
+// ✅ Formato padrão de resposta
+interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  success: boolean;
+  metadata?: {
+    total?: number;
+    page?: number;
+    limit?: number;
+  };
+}
+```
+
+## Authentication & Authorization
+
+### NextAuth.js v5:
+- Configuração centralizada em `auth.config.ts`
+- Providers: Credentials, OAuth (Google, GitHub)
+- Session strategy: JWT + Database
+- Middleware para proteção de rotas
+- Role-based access control (RBAC)
+
+### Permission System:
+```typescript
+// ✅ Verificação de permissões
+const hasPermission = await checkUserPermission(
+  userId, 
+  'companion:create', 
+  organizationId
+);
+
+if (!hasPermission) {
+  return Response.json(
+    { error: 'Insufficient permissions', success: false },
+    { status: 403 }
+  );
+}
+```
+
+### Security:
+- Input sanitization em todas as entradas
+- Rate limiting para endpoints públicos
+- CORS configurado adequadamente
+- Headers de segurança (CSP, HSTS)
+- Validação de tokens JWT
+- Proteção contra CSRF
+
+## Multi-tenancy
+
+### Organization-based Isolation:
+- Row Level Security no PostgreSQL
+- Filtros automáticos por organizationId
+- Validação de acesso em todas as queries
+- Separação lógica de dados por tenant
+
+### Data Access Patterns:
+```typescript
+// ✅ Sempre incluir organizationId nas queries
+const companions = await db
+  .select()
+  .from(companionsTable)
+  .where(
+    and(
+      eq(companionsTable.organizationId, user.organizationId),
+      eq(companionsTable.userId, user.id)
+    )
+  );
+```
+
+## File Handling
+
+### Upload Strategy:
+- Validação de tipo e tamanho de arquivo
+- Scan de segurança para uploads
+- Storage com Vercel Blob ou S3-compatible
+- Thumbnails automáticos para imagens
+- CDN para distribuição global
+
+### File Processing:
+```typescript
+// ✅ Upload seguro com validação
+const uploadSchema = z.object({
+  file: z.instanceof(File),
+  type: z.enum(['image', 'document', 'video']),
+  maxSize: z.number().max(10_000_000) // 10MB
+});
+```
+
+## Background Jobs
+
+### Processing Strategy:
+- Jobs assíncronos para tarefas pesadas
+- Queue system para reliability
+- Retry logic com backoff exponencial
+- Dead letter queue para falhas persistentes
+- Monitoring de jobs ativos
+
+### Implementation:
+```typescript
+// ✅ Job processing pattern
+export async function processCompanionGeneration(
+  data: CompanionGenerationJob
+) {
+  try {
+    await updateJobStatus(data.id, 'processing');
+    const result = await generateCompanion(data.params);
+    await updateJobStatus(data.id, 'completed', result);
+  } catch (error) {
+    await updateJobStatus(data.id, 'failed', null, error.message);
+    throw error;
+  }
+}
+```
+
+## Monitoring & Logging
+
+### Observability:
+- Structured logging com winston ou similar
+- Request/response tracking
+- Performance metrics por endpoint
+- Error tracking com Sentry
+- Health checks para serviços externos
+
+### Log Patterns:
+```typescript
+// ✅ Log estruturado
+logger.info('Companion created', {
+  companionId: companion.id,
+  userId: user.id,
+  organizationId: user.organizationId,
+  duration: Date.now() - startTime
+});
+```
+
+## Error Handling
+
+### Centralized Error Management:
+```typescript
+// ✅ Error handler centralizado
+export function handleApiError(error: unknown): Response {
+  if (error instanceof z.ZodError) {
+    return Response.json(
+      { error: 'Validation failed', details: error.errors, success: false },
+      { status: 400 }
+    );
+  }
+  
+  if (error instanceof DatabaseError) {
+    logger.error('Database error', error);
+    return Response.json(
+      { error: 'Database error', success: false },
+      { status: 500 }
+    );
+  }
+  
+  // Log unexpected errors
+  logger.error('Unexpected error', error);
+  return Response.json(
+    { error: 'Internal server error', success: false },
+    { status: 500 }
+  );
+}
+``` 

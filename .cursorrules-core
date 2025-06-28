@@ -1,0 +1,61 @@
+# Humana Companions - Core Rules
+
+## Tecnologias Fundamentais
+- Next.js 15 App Router
+- TypeScript strict mode
+- Tailwind CSS v4
+- Drizzle ORM
+- AI SDK (Vercel)
+- React 18+ com Server Components
+
+## Estrutura de Arquivos
+- Use convenções do Next.js 15
+- Componentes em `/components`
+- Utilitários em `/lib`
+- Hooks em `/hooks`
+- Páginas em `/app`
+- Tipos em arquivos separados ou co-localizados
+
+## Código Base
+- TypeScript strict mode SEMPRE
+- Componentes funcionais com hooks
+- Props bem tipadas com interfaces TypeScript
+- Comentários em português para contexto de negócio
+- Nomes de variáveis/funções em inglês
+- Error boundaries para componentes críticos
+- Lazy loading para componentes pesados
+
+## Performance & Best Practices
+- Server Components como padrão
+- Client Components apenas quando necessário ('use client')
+- Streaming quando possível
+- Error handling robusto em todas as operações
+- Evitar re-renders desnecessários
+- Otimização de imagens (next/image)
+- Bundle splitting inteligente
+
+## Estrutura de Projeto
+```
+projeto/
+├── blueprints/          # Documentação estratégica
+├── diagramas/          # Artefatos visuais
+├── analise_mudancas/   # Análises técnicas
+├── telas/              # Mockups e wireframes
+└── testes/             # Documentação de testes
+
+/ (raiz)
+├── app/               # Next.js App Router
+├── components/        # Componentes React
+├── lib/              # Utilitários
+├── hooks/            # React hooks
+├── artifacts/        # Sistema de artifacts
+└── tests/            # Testes automatizados
+```
+
+## Terminologia Padrão
+- Use "Companion" ao invés de "Chat"
+- "Companion Super Hero" ao invés de "Chat Padrão"
+- "Organization" para estruturas organizacionais
+- "Data Room" para gestão de documentos
+- "MCP Server" para servidores de ferramentas
+- Mantenha consistência em toda a aplicação 
