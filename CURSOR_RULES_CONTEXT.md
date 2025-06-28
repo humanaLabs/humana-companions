@@ -69,16 +69,7 @@ chmod +x scripts/switch-rules.sh
 ./scripts/switch-rules.sh full
 ```
 
-### 🔮 Auto-Switch Inteligente
 
-**Windows (PowerShell):**
-```powershell
-# Auto-detecta contexto baseado no arquivo
-.\scripts\auto-switch-rules.ps1 components/ui/button.tsx  # → frontend
-.\scripts\auto-switch-rules.ps1 app/api/chat/route.ts     # → backend
-.\scripts\auto-switch-rules.ps1 projeto/blueprints/x.md  # → docs
-.\scripts\auto-switch-rules.ps1 lib/ai/prompts.ts        # → ai
-```
 
 ### Contextos por Tarefa
 
@@ -90,7 +81,7 @@ chmod +x scripts/switch-rules.sh
 | 📚 **Escrevendo Blueprints** | `docs` |
 | 🔧 **Setup inicial** | `core` |
 | 🚀 **Desenvolvimento geral** | `full` |
-| 🔮 **Auto-detecção** | `auto-switch-rules.ps1` |
+
 
 ## 💡 Estratégias de Uso
 
@@ -123,7 +114,6 @@ Use contexto `docs` para blueprints e documentação:
 
 ### 🎯 Integração com VSCode
 Use tasks do VSCode (Ctrl+Shift+P → "Tasks: Run Task"):
-- **Cursor: Auto Switch Context** - Detecta automaticamente
 - **Cursor: Switch to Frontend** - Força contexto frontend
 - **Cursor: Switch to Backend** - Força contexto backend
 - **Cursor: Switch to AI** - Força contexto AI
@@ -177,17 +167,7 @@ ls -la .cursorrules-*
 cp .cursorrules.backup .cursorrules
 ```
 
-## 🔍 Padrões de Auto-Detecção
 
-O script `auto-switch-rules.ps1` detecta contextos baseado nos padrões:
-
-| Contexto | Padrões de Arquivo |
-|----------|-------------------|
-| **docs** | `projeto/`, `docs/`, `README`, `blueprint`, `*.md` |
-| **ai** | `lib/ai/`, `ai.ts`, `tool.ts`, `mcp.ts` |
-| **backend** | `app/api/`, `lib/db/`, `lib/auth/`, `*.sql`, `drizzle.`, `middleware.ts` |
-| **frontend** | `components/`, `*.tsx`, `*.css`, `tailwind.`, `ui` (exceto .md) |
-| **core** | Qualquer outro arquivo |
 
 ## 📈 Benefícios
 

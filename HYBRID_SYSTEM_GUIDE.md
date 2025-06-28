@@ -86,7 +86,6 @@ As regras core (design system, terminologia, tecnologias) ficam **sempre ativas*
 
 scripts/
 ├── switch-rules.ps1        # ← Backup: Troca manual (ainda funciona)
-├── auto-switch-rules.ps1   # ← Backup: Auto-detecção (ainda funciona)
 └── ...
 
 .vscode/tasks.json          # ← Backup: Tasks VSCode (ainda funcionam)
@@ -124,10 +123,7 @@ Se precisar forçar um contexto específico:
 ### ✅ VSCode Tasks Ainda Funcionam
 **Ctrl+Shift+P** → "Tasks: Run Task" → **Cursor: Switch to Frontend**
 
-### ✅ Auto-Switch Manual Ainda Funciona
-```powershell
-.\scripts\auto-switch-rules.ps1 components/button.tsx
-```
+
 
 ## 🎯 Resultado Final
 

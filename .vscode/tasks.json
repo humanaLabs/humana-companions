@@ -2,29 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Cursor: Auto Switch Context",
-            "type": "shell",
-            "command": "powershell",
-            "args": [
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                "./scripts/auto-switch-rules.ps1",
-                "${relativeFile}"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "silent",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Auto-detecta e aplica contexto Cursor baseado no arquivo atual"
-        },
-        {
             "label": "Cursor: Switch to Frontend",
             "type": "shell",
             "command": "powershell",
