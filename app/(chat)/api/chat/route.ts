@@ -135,7 +135,11 @@ export async function POST(request: Request) {
     //   return new ChatSDKError('rate_limit:chat').toResponse();
     // }
 
-    const chat = await getChatById({ id });
+    const organizationId = await getOrganizationId();
+    if (!organizationId) {
+      return new ChatSDKError('forbidden:chat', 'Organization context required').toResponse();
+    }
+    const chat = await getChatById({ id, organizationId });
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
@@ -542,7 +546,7 @@ export async function GET(request: Request) {
   let chat: Chat;
 
   try {
-    chat = await getChatById({ id: chatId });
+    chat = await getChatById({ id: chatId, organizationId });
   } catch {
     return new ChatSDKError('not_found:chat').toResponse();
   }

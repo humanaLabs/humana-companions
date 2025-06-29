@@ -201,9 +201,21 @@ export async function getChatsByUserId({
   }
 }
 
-export async function getChatById({ id }: { id: string }) {
+export async function getChatById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
+    const [selectedChat] = await db
+      .select()
+      .from(chat)
+      .where(and(
+        eq(chat.id, id),
+        eq(chat.organizationId, organizationId)
+      ));
     return selectedChat;
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to get chat by id');
@@ -222,12 +234,21 @@ export async function saveMessages({
   }
 }
 
-export async function getMessagesByChatId({ id }: { id: string }) {
+export async function getMessagesByChatId({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
     return await db
       .select()
       .from(message)
-      .where(eq(message.chatId, id))
+      .where(and(
+        eq(message.chatId, id),
+        eq(message.organizationId, organizationId)
+      ))
       .orderBy(asc(message.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -241,36 +262,58 @@ export async function voteMessage({
   chatId,
   messageId,
   type,
+  organizationId,
 }: {
   chatId: string;
   messageId: string;
   type: 'up' | 'down';
+  organizationId: string;
 }) {
   try {
     const [existingVote] = await db
       .select()
       .from(vote)
-      .where(and(eq(vote.messageId, messageId)));
+      .where(and(
+        eq(vote.messageId, messageId),
+        eq(vote.organizationId, organizationId)
+      ));
 
     if (existingVote) {
       return await db
         .update(vote)
         .set({ isUpvoted: type === 'up' })
-        .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
+        .where(and(
+          eq(vote.messageId, messageId), 
+          eq(vote.chatId, chatId),
+          eq(vote.organizationId, organizationId)
+        ));
     }
     return await db.insert(vote).values({
       chatId,
       messageId,
       isUpvoted: type === 'up',
+      organizationId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to vote message');
   }
 }
 
-export async function getVotesByChatId({ id }: { id: string }) {
+export async function getVotesByChatId({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
-    return await db.select().from(vote).where(eq(vote.chatId, id));
+    return await db
+      .select()
+      .from(vote)
+      .where(and(
+        eq(vote.chatId, id),
+        eq(vote.organizationId, organizationId)
+      ));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -326,12 +369,21 @@ export async function getDocumentsById({ id }: { id: string }) {
   }
 }
 
-export async function getDocumentById({ id }: { id: string }) {
+export async function getDocumentById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
     const [selectedDocument] = await db
       .select()
       .from(document)
-      .where(eq(document.id, id))
+      .where(and(
+        eq(document.id, id),
+        eq(document.organizationId, organizationId)
+      ))
       .orderBy(desc(document.createdAt));
 
     return selectedDocument;
@@ -389,14 +441,19 @@ export async function saveSuggestions({
 
 export async function getSuggestionsByDocumentId({
   documentId,
+  organizationId,
 }: {
   documentId: string;
+  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(suggestion)
-      .where(and(eq(suggestion.documentId, documentId)));
+      .where(and(
+        eq(suggestion.documentId, documentId),
+        eq(suggestion.organizationId, organizationId)
+      ));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -405,9 +462,21 @@ export async function getSuggestionsByDocumentId({
   }
 }
 
-export async function getMessageById({ id }: { id: string }) {
+export async function getMessageById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
-    return await db.select().from(message).where(eq(message.id, id));
+    return await db
+      .select()
+      .from(message)
+      .where(and(
+        eq(message.id, id),
+        eq(message.organizationId, organizationId)
+      ));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',

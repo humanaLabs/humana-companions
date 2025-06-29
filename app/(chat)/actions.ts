@@ -10,6 +10,20 @@ import {
 } from '@/lib/db/queries';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { myProvider } from '@/lib/ai/providers';
+import { redirect } from 'next/navigation';
+import { auth } from '@/app/(auth)/auth';
+import { getOrganizationId } from '@/lib/tenant-context';
+import {
+  generateCompanionWithAI,
+  getChatById,
+  saveChat,
+  saveMessage,
+  saveChatModel,
+  deleteChatById,
+  getMessagesByChatId,
+  sendNotificationEmail,
+  ChatModelType,
+} from '@/lib/db/queries';
 
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
@@ -61,4 +75,21 @@ export async function deleteMessage({
   chatId: string;
 }) {
   await deleteMessageById({ messageId, chatId });
+}
+
+export async function getMessageByIdAction(id: string) {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect('/api/auth/guest');
+  }
+
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    throw new Error('Organization context required');
+  }
+
+  const [message] = await getMessageById({ id, organizationId });
+
+  return message;
 }

@@ -1,5 +1,6 @@
-import { auth } from '@/app/(auth)/auth';
+﻿import { auth } from '@/app/(auth)/auth';
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
+import { getOrganizationId } from '@/lib/tenant-context';
 import { ChatSDKError } from '@/lib/errors';
 
 export async function GET(request: Request) {
@@ -19,8 +20,14 @@ export async function GET(request: Request) {
     return new ChatSDKError('unauthorized:suggestions').toResponse();
   }
 
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    return new ChatSDKError('forbidden:suggestions', 'Organization context required').toResponse();
+  }
+
   const suggestions = await getSuggestionsByDocumentId({
     documentId,
+    organizationId,
   });
 
   const [suggestion] = suggestions;
