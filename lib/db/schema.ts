@@ -10,6 +10,8 @@ import {
   foreignKey,
   boolean,
   integer,
+  jsonb,
+  real,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -32,6 +34,9 @@ export const chat = pgTable('Chat', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
@@ -46,6 +51,9 @@ export const projectFolder = pgTable('ProjectFolder', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
 
@@ -93,6 +101,9 @@ export const message = pgTable('Message_v2', {
   role: varchar('role').notNull(),
   parts: json('parts').notNull(),
   attachments: json('attachments').notNull(),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
   createdAt: timestamp('createdAt').notNull(),
 });
 
@@ -130,6 +141,9 @@ export const vote = pgTable(
       .notNull()
       .references(() => message.id),
     isUpvoted: boolean('isUpvoted').notNull(),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
   },
   (table) => {
     return {
@@ -153,6 +167,9 @@ export const document = pgTable(
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
   },
   (table) => {
     return {
@@ -176,6 +193,9 @@ export const suggestion = pgTable(
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
     createdAt: timestamp('createdAt').notNull(),
   },
   (table) => ({
@@ -194,6 +214,9 @@ export const stream = pgTable(
   {
     id: uuid('id').notNull().defaultRandom(),
     chatId: uuid('chatId').notNull(),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
     createdAt: timestamp('createdAt').notNull(),
   },
   (table) => ({
@@ -257,6 +280,9 @@ export const mcpServer = pgTable('McpServer', {
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
@@ -558,3 +584,219 @@ export const userInvite = pgTable('UserInvite', {
 });
 
 export type UserInvite = InferSelectModel<typeof userInvite>;
+
+// LearnGen Protocol - User Cognitive Profile
+export const userCognitiveProfile = pgTable('UserCognitiveProfile', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId').notNull().references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  
+  // Cognitive Style Assessment
+  primaryCognitiveStyle: varchar('primaryCognitiveStyle', { length: 20 }).notNull(), // visual, auditory, kinesthetic, reading
+  secondaryCognitiveStyle: varchar('secondaryCognitiveStyle', { length: 20 }),
+  adaptationLevel: varchar('adaptationLevel', { length: 10 }).notNull(), // high, medium, low
+  
+  // Experience Level
+  aiToolsExperience: varchar('aiToolsExperience', { length: 20 }).notNull(), // novice, intermediate, advanced
+  businessContext: varchar('businessContext', { length: 20 }).notNull(), // individual, team, organization
+  technicalSkills: varchar('technicalSkills', { length: 20 }).notNull(), // basic, intermediate, advanced
+  
+  // Learning Goals
+  primaryGoal: text('primaryGoal').notNull(),
+  secondaryGoals: jsonb('secondaryGoals').$type<string[]>().default([]),
+  timeframe: varchar('timeframe', { length: 20 }).notNull(), // immediate, short-term, long-term
+  
+  // Organizational Context
+  role: varchar('role', { length: 100 }),
+  department: varchar('department', { length: 100 }),
+  useCase: text('useCase'),
+  teamSize: integer('teamSize'),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// LearnGen Protocol - Onboarding Progress
+export const onboardingProgress = pgTable('OnboardingProgress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId').notNull().references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  
+  // Flow Progress
+  currentStep: integer('currentStep').notNull().default(0),
+  totalSteps: integer('totalSteps').notNull(),
+  completionRate: real('completionRate').notNull().default(0), // 0-100
+  
+  // Time Tracking
+  timeSpent: integer('timeSpent').notNull().default(0), // minutes
+  startedAt: timestamp('startedAt').defaultNow().notNull(),
+  completedAt: timestamp('completedAt'),
+  
+  // Adaptation Data
+  strugglingPoints: jsonb('strugglingPoints').$type<string[]>().default([]),
+  adaptationEvents: jsonb('adaptationEvents').$type<any[]>().default([]),
+  personalizedContent: jsonb('personalizedContent').$type<any>().default({}),
+  
+  // Success Metrics
+  featureDiscoveryRate: real('featureDiscoveryRate').default(0), // 0-100
+  interactionQuality: real('interactionQuality').default(0), // 0-100
+  confidenceLevel: real('confidenceLevel').default(0), // 0-100
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// University - Learning Modules
+export const learningModule = pgTable('LearningModule', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  
+  // Module Info
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  category: varchar('category', { length: 50 }).notNull(), // getting-started, advanced, etc.
+  
+  // Content
+  duration: integer('duration').notNull(), // minutes
+  difficultyLevel: varchar('difficultyLevel', { length: 20 }).notNull(), // beginner, intermediate, advanced
+  learningObjectives: jsonb('learningObjectives').$type<string[]>().notNull(),
+  
+  // Organization
+  isActive: boolean('isActive').notNull().default(true),
+  sortOrder: integer('sortOrder').notNull().default(0),
+  prerequisites: jsonb('prerequisites').$type<string[]>().default([]),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// University - Learning Lessons
+export const learningLesson = pgTable('LearningLesson', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  moduleId: uuid('moduleId').notNull().references(() => learningModule.id),
+  
+  // Lesson Info
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  slug: varchar('slug', { length: 100 }).notNull(),
+  
+  // Content
+  type: varchar('type', { length: 20 }).notNull(), // interactive, video, hands-on, quiz
+  duration: integer('duration').notNull(), // minutes
+  content: jsonb('content').$type<any>().notNull(), // lesson content structure
+  
+  // Learning Design
+  learningObjectives: jsonb('learningObjectives').$type<string[]>().notNull(),
+  interactiveElements: jsonb('interactiveElements').$type<any[]>().default([]),
+  assessmentQuestions: jsonb('assessmentQuestions').$type<any[]>().default([]),
+  
+  // Organization
+  sortOrder: integer('sortOrder').notNull().default(0),
+  isActive: boolean('isActive').notNull().default(true),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// University - User Progress
+export const userLearningProgress = pgTable('UserLearningProgress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId').notNull().references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  moduleId: uuid('moduleId').notNull().references(() => learningModule.id),
+  lessonId: uuid('lessonId').references(() => learningLesson.id),
+  
+  // Progress Tracking
+  status: varchar('status', { length: 20 }).notNull(), // not-started, in-progress, completed, certified
+  progressPercentage: real('progressPercentage').notNull().default(0), // 0-100
+  timeSpent: integer('timeSpent').notNull().default(0), // minutes
+  
+  // Assessment
+  quizScore: real('quizScore'), // 0-100
+  practicalScore: real('practicalScore'), // 0-100
+  attempts: integer('attempts').notNull().default(0),
+  
+  // Timestamps
+  startedAt: timestamp('startedAt'),
+  completedAt: timestamp('completedAt'),
+  certifiedAt: timestamp('certifiedAt'),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.moduleId] }),
+}));
+
+// University - Certifications
+export const userCertification = pgTable('UserCertification', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId').notNull().references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  moduleId: uuid('moduleId').notNull().references(() => learningModule.id),
+  
+  // Certification Details
+  certificateTitle: varchar('certificateTitle', { length: 200 }).notNull(),
+  issuer: varchar('issuer', { length: 100 }).notNull().default('Humana AI University'),
+  certificateId: varchar('certificateId', { length: 50 }).notNull().unique(),
+  
+  // Scoring
+  finalScore: real('finalScore').notNull(), // 0-100
+  passingScore: real('passingScore').notNull().default(80),
+  
+  // Validity
+  issuedAt: timestamp('issuedAt').defaultNow().notNull(),
+  validUntil: timestamp('validUntil'),
+  isActive: boolean('isActive').notNull().default(true),
+  
+  // Branding (for organizations)
+  customBranding: jsonb('customBranding').$type<any>().default({}),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// University - Community Forums
+export const communityForum = pgTable('CommunityForum', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  
+  // Forum Info
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  category: varchar('category', { length: 50 }).notNull(), // getting-started, advanced-usage, troubleshooting, best-practices
+  
+  // Organization
+  isActive: boolean('isActive').notNull().default(true),
+  sortOrder: integer('sortOrder').notNull().default(0),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
+
+// University - Forum Posts
+export const forumPost = pgTable('ForumPost', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  forumId: uuid('forumId').notNull().references(() => communityForum.id),
+  userId: uuid('userId').notNull().references(() => user.id),
+  organizationId: uuid('organizationId').references(() => organization.id),
+  parentPostId: uuid('parentPostId'), // for replies - self-reference handled via migration
+  
+  // Post Content
+  title: varchar('title', { length: 200 }),
+  content: text('content').notNull(),
+  type: varchar('type', { length: 20 }).notNull().default('discussion'), // discussion, question, answer
+  
+  // Engagement
+  upvotes: integer('upvotes').notNull().default(0),
+  downvotes: integer('downvotes').notNull().default(0),
+  replyCount: integer('replyCount').notNull().default(0),
+  
+  // Moderation
+  isApproved: boolean('isApproved').notNull().default(true),
+  isHidden: boolean('isHidden').notNull().default(false),
+  
+  createdAt: timestamp('createdAt').defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt').defaultNow().notNull(),
+});
