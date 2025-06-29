@@ -6,6 +6,10 @@ import { authConfig } from './auth.config';
 import { DUMMY_PASSWORD } from '@/lib/constants';
 import type { DefaultJWT } from 'next-auth/jwt';
 import { guestRegex } from '@/lib/constants';
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import { organization } from '@/lib/db/schema';
 
 export type UserType = 'guest' | 'regular';
 
@@ -14,6 +18,7 @@ declare module 'next-auth' {
     user: {
       id: string;
       type: UserType;
+      organizationId?: string;
     } & DefaultSession['user'];
   }
 
@@ -28,8 +33,13 @@ declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
     id: string;
     type: UserType;
+    organizationId?: string;
   }
 }
+
+// Database client for organization lookup
+const client = postgres(process.env.POSTGRES_URL!);
+const db = drizzle(client);
 
 export const {
   handlers: { GET, POST },
@@ -78,6 +88,20 @@ export const {
       if (user) {
         token.id = user.id as string;
         token.type = user.type;
+        
+        // Buscar organizationId do usuário
+        try {
+          const [userOrg] = await db
+            .select({ id: organization.id })
+            .from(organization)
+            .where(eq(organization.userId, user.id as string))
+            .limit(1);
+          
+          token.organizationId = userOrg?.id;
+        } catch (error) {
+          console.error('Error fetching user organization:', error);
+          // Para usuários guest ou em caso de erro, não bloquear o login
+        }
       }
 
       return token;
@@ -86,6 +110,7 @@ export const {
       if (session.user) {
         session.user.id = token.id;
         session.user.type = token.type;
+        session.user.organizationId = token.organizationId;
       }
 
       return session;

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { guestRegex, isDevelopmentEnvironment } from './lib/constants';
+import { tenantMiddleware } from './middleware/tenant';
+import { tenantMiddleware } from './middleware/tenant';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,15 +15,17 @@ export async function middleware(request: NextRequest) {
     return new Response('pong', { status: 200 });
   }
 
+  // Skip tenant validation for auth routes
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
 
-  // Skip auto-org creation for API routes to avoid infinite loops
+  // Apply tenant middleware to all API routes (except auth)
   if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
+    return await tenantMiddleware(request);
   }
 
+  // Non-API routes - existing logic for auto-organization creation
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
