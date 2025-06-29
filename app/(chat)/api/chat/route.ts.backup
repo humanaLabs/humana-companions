@@ -158,7 +158,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const previousMessages = await getMessagesByChatId({ id, organizationId });
+    const previousMessages = await getMessagesByChatId({ id });
 
     const messages = appendClientMessage({
       // @ts-expect-error: todo add type conversion from DBMessage[] to UIMessage[]
@@ -546,7 +546,7 @@ export async function GET(request: Request) {
   let chat: Chat;
 
   try {
-    chat = await getChatById({ id: chatId });
+    chat = await getChatById({ id: chatId, organizationId });
   } catch {
     return new ChatSDKError('not_found:chat').toResponse();
   }
@@ -631,11 +631,7 @@ export async function DELETE(request: Request) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
-  const organizationId = await getOrganizationId();
-    if (!organizationId) {
-      return new ChatSDKError('forbidden:chat', 'Organization context required').toResponse();
-    }
-    const chat = await getChatById({ id, organizationId });
+  const chat = await getChatById({ id });
 
   if (chat.userId !== session.user.id) {
     return new ChatSDKError('forbidden:chat').toResponse();
@@ -645,5 +641,3 @@ export async function DELETE(request: Request) {
 
   return Response.json(deletedChat, { status: 200 });
 }
-
-
