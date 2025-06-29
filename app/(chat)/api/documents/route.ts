@@ -4,6 +4,7 @@ import { document } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 // Schema de validação para criação de documentos
 const createDocumentSchema = z.object({
@@ -65,6 +66,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Get organization ID from middleware headers
+    const organizationId = await getOrganizationId();
+    
     const body = await request.json();
     const validatedData = createDocumentSchema.parse(body);
 
@@ -75,6 +79,7 @@ export async function POST(request: NextRequest) {
         content: validatedData.content || '',
         kind: validatedData.kind,
         userId: session.user.id,
+        organizationId,
         createdAt: new Date(),
       })
       .returning({

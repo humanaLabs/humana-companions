@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { projectFolder, chatFolder } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 export async function GET() {
   const session = await auth();
@@ -26,32 +27,37 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const { name, color } = await request.json();
-
-    if (!name?.trim()) {
-      return Response.json({ error: 'Name is required' }, { status: 400 });
+    const session = await auth();
+    if (!session?.user?.id) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    const [folder] = await db
+    const organizationId = await getOrganizationId();
+    if (!organizationId) {
+      return new Response('Organization context required', { status: 403 });
+    }
+
+    const { name, color } = await request.json();
+    
+    if (!name?.trim()) {
+      return new Response('Folder name is required', { status: 400 });
+    }
+
+    const [newFolder] = await db
       .insert(projectFolder)
       .values({
         name: name.trim(),
-        color: color || 'bg-blue-500',
+        color: color || null,
         userId: session.user.id,
+        organizationId
       })
       .returning();
 
-    return Response.json(folder);
+    return Response.json(newFolder);
   } catch (error) {
     console.error('Error creating folder:', error);
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    return new Response('Internal server error', { status: 500 });
   }
 }
 

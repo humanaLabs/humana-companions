@@ -8,6 +8,7 @@ import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import fs from 'fs';
 import path from 'path';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 // Schema de validação para upload
 const uploadSchema = z.object({
@@ -122,6 +123,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Get organization ID from middleware headers
+    const organizationId = await getOrganizationId();
+    
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -198,6 +202,7 @@ export async function POST(request: NextRequest) {
         content: extractedText,
         kind: documentKind,
         userId: session.user.id,
+        organizationId,
         createdAt: new Date(),
       })
       .returning({

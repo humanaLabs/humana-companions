@@ -1,6 +1,7 @@
 import type { Message } from 'ai';
 import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
+import { useSession } from 'next-auth/react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -31,6 +32,8 @@ export function PureMessageActions({
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
+  const { data: session } = useSession();
+  const user = session?.user;
 
   if (isLoading) return null;
   if (message.role === 'user') return null;
@@ -73,6 +76,42 @@ export function PureMessageActions({
               disabled={vote?.isUpvoted}
               variant="outline"
               onClick={async () => {
+                if (!user?.id || !user?.organizationId) return;
+                
+                mutate<Array<Vote>>(
+                  `/api/vote?chatId=${chatId}&messageId=${message.id}`,
+                  (currentVotes: Array<Vote> | undefined) => {
+                    const organizationId = user.organizationId;
+                    if (!currentVotes || !organizationId) return currentVotes;
+
+                    const existingVoteIndex = currentVotes.findIndex(
+                      (vote) => vote.messageId === message.id
+                    );
+
+                    if (existingVoteIndex !== -1) {
+                      // Update existing vote
+                      const updatedVotes = [...currentVotes];
+                      updatedVotes[existingVoteIndex] = {
+                        ...updatedVotes[existingVoteIndex],
+                        isUpvoted: true,
+                      };
+                      return updatedVotes;
+                    }
+
+                    // Add new vote
+                    return [
+                      ...currentVotes,
+                      {
+                        organizationId,
+                        chatId,
+                        messageId: message.id,
+                        isUpvoted: true,
+                      },
+                    ];
+                  },
+                  false
+                );
+
                 const upvote = fetch('/api/vote', {
                   method: 'PATCH',
                   body: JSON.stringify({
@@ -85,27 +124,6 @@ export function PureMessageActions({
                 toast.promise(upvote, {
                   loading: 'Upvoting Response...',
                   success: () => {
-                    mutate<Array<Vote>>(
-                      `/api/vote?chatId=${chatId}`,
-                      (currentVotes) => {
-                        if (!currentVotes) return [];
-
-                        const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
-                        );
-
-                        return [
-                          ...votesWithoutCurrent,
-                          {
-                            chatId,
-                            messageId: message.id,
-                            isUpvoted: true,
-                          },
-                        ];
-                      },
-                      { revalidate: false },
-                    );
-
                     return 'Upvoted Response!';
                   },
                   error: 'Failed to upvote response.',
@@ -126,6 +144,42 @@ export function PureMessageActions({
               variant="outline"
               disabled={vote && !vote.isUpvoted}
               onClick={async () => {
+                if (!user?.id || !user?.organizationId) return;
+                
+                mutate<Array<Vote>>(
+                  `/api/vote?chatId=${chatId}&messageId=${message.id}`,
+                  (currentVotes: Array<Vote> | undefined) => {
+                    const organizationId = user.organizationId;
+                    if (!currentVotes || !organizationId) return currentVotes;
+
+                    const existingVoteIndex = currentVotes.findIndex(
+                      (vote) => vote.messageId === message.id
+                    );
+
+                    if (existingVoteIndex !== -1) {
+                      // Update existing vote
+                      const updatedVotes = [...currentVotes];
+                      updatedVotes[existingVoteIndex] = {
+                        ...updatedVotes[existingVoteIndex],
+                        isUpvoted: false,
+                      };
+                      return updatedVotes;
+                    }
+
+                    // Add new vote
+                    return [
+                      ...currentVotes,
+                      {
+                        organizationId,
+                        chatId,
+                        messageId: message.id,
+                        isUpvoted: false,
+                      },
+                    ];
+                  },
+                  false
+                );
+
                 const downvote = fetch('/api/vote', {
                   method: 'PATCH',
                   body: JSON.stringify({
@@ -138,27 +192,6 @@ export function PureMessageActions({
                 toast.promise(downvote, {
                   loading: 'Downvoting Response...',
                   success: () => {
-                    mutate<Array<Vote>>(
-                      `/api/vote?chatId=${chatId}`,
-                      (currentVotes) => {
-                        if (!currentVotes) return [];
-
-                        const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id,
-                        );
-
-                        return [
-                          ...votesWithoutCurrent,
-                          {
-                            chatId,
-                            messageId: message.id,
-                            isUpvoted: false,
-                          },
-                        ];
-                      },
-                      { revalidate: false },
-                    );
-
                     return 'Downvoted Response!';
                   },
                   error: 'Failed to downvote response.',

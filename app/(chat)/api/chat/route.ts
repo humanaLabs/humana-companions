@@ -46,6 +46,7 @@ import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
 import { companionToSystemPrompt } from '@/lib/ai/companion-prompt';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 export const maxDuration = 60;
 
@@ -170,6 +171,9 @@ export async function POST(request: Request) {
       country,
     };
 
+    // Get organization ID from middleware headers
+    const organizationId = await getOrganizationId();
+
     await saveMessages({
       messages: [
         {
@@ -178,6 +182,7 @@ export async function POST(request: Request) {
           role: 'user',
           parts: message.parts,
           attachments: message.experimental_attachments ?? [],
+          organizationId,
           createdAt: new Date(),
         },
       ],
@@ -479,6 +484,7 @@ export async function POST(request: Request) {
                       parts: assistantMessage.parts,
                       attachments:
                         assistantMessage.experimental_attachments ?? [],
+                      organizationId,
                       createdAt: new Date(),
                     },
                   ],

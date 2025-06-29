@@ -56,6 +56,7 @@ export const requestSuggestions = ({
           id: generateUUID(),
           documentId: documentId,
           isResolved: false,
+          organizationId: document.organizationId,
         };
 
         dataStream.writeData({

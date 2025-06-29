@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { guestRegex, isDevelopmentEnvironment } from './lib/constants';
 import { tenantMiddleware } from './middleware/tenant';
-import { tenantMiddleware } from './middleware/tenant';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

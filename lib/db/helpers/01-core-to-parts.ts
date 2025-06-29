@@ -33,12 +33,14 @@ type NewMessageInsert = {
   role: string;
   attachments: any[];
   createdAt: Date;
+  organizationId: string;
 };
 
 type NewVoteInsert = {
   messageId: string;
   chatId: string;
   isUpvoted: boolean;
+  organizationId: string;
 };
 
 interface MessageDeprecatedContentPart {
@@ -174,6 +176,7 @@ async function migrateMessages() {
                   role: message.role,
                   createdAt: message.createdAt,
                   attachments: [],
+                  organizationId: chat.organizationId,
                 } as NewMessageInsert;
               } else if (message.role === 'assistant') {
                 const cleanParts = sanitizeParts(
@@ -187,6 +190,7 @@ async function migrateMessages() {
                   role: message.role,
                   createdAt: message.createdAt,
                   attachments: [],
+                  organizationId: chat.organizationId,
                 } as NewMessageInsert;
               }
               return null;
@@ -203,6 +207,7 @@ async function migrateMessages() {
                   messageId: msg.id,
                   chatId: msg.chatId,
                   isUpvoted: voteByMessage.isUpvoted,
+                  organizationId: chat.organizationId,
                 });
               }
             }
@@ -223,6 +228,7 @@ async function migrateMessages() {
           role: msg.role,
           attachments: msg.attachments,
           createdAt: msg.createdAt,
+          organizationId: msg.organizationId,
         }));
 
         await db.insert(message).values(validMessageBatch);
@@ -232,7 +238,13 @@ async function migrateMessages() {
     for (let j = 0; j < newVotesToInsert.length; j += INSERT_BATCH_SIZE) {
       const voteBatch = newVotesToInsert.slice(j, j + INSERT_BATCH_SIZE);
       if (voteBatch.length > 0) {
-        await db.insert(vote).values(voteBatch);
+        const validVoteBatch = voteBatch.map((voteItem) => ({
+          messageId: voteItem.messageId,
+          chatId: voteItem.chatId,
+          isUpvoted: voteItem.isUpvoted,
+          organizationId: voteItem.organizationId,
+        }));
+        await db.insert(vote).values(validVoteBatch);
       }
     }
   }
