@@ -2,26 +2,40 @@ import { auth } from '@/app/(auth)/auth';
 import { db } from '@/lib/db';
 import { document } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getOrganizationId } from '@/lib/tenant-context';
+import {
+  GUEST_ORGANIZATION_ID,
+  DEFAULT_ORGANIZATION_ID,
+} from '@/lib/constants';
+import type { NextRequest } from 'next/server';
 
 // Schema de validação para criação de documentos
 const createDocumentSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório').max(200, 'Título muito longo'),
+  title: z
+    .string()
+    .min(1, 'Título é obrigatório')
+    .max(200, 'Título muito longo'),
   content: z.string().optional(),
-  kind: z.enum(['text', 'code', 'image', 'sheet']).default('text'),
+  kind: z.enum(['text', 'code'], {
+    required_error: 'Tipo de documento é obrigatório',
+  }),
 });
 
 const updateDocumentSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório').max(200, 'Título muito longo').optional(),
+  title: z
+    .string()
+    .min(1, 'Título é obrigatório')
+    .max(200, 'Título muito longo')
+    .optional(),
   content: z.string().optional(),
 });
 
 // GET /api/documents - Listar documentos do usuário
 export async function GET(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
@@ -29,7 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organizationId');
-    
+
     // TODO: Implementar organizationId quando schema for normalizado
     // Por enquanto, filtrar apenas por userId
     const documents = await db
@@ -44,15 +58,15 @@ export async function GET(request: NextRequest) {
       .where(eq(document.userId, session.user.id))
       .orderBy(desc(document.createdAt));
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       documents,
-      total: documents.length 
+      total: documents.length,
     });
   } catch (error) {
     console.error('Erro ao buscar documentos:', error);
     return NextResponse.json(
       { error: 'Falha ao buscar documentos' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -60,15 +74,30 @@ export async function GET(request: NextRequest) {
 // POST /api/documents - Criar novo documento
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
   try {
-    // Get organization ID from middleware headers
-    const organizationId = await getOrganizationId();
-    
+    // Get organization ID from middleware headers - use appropriate org based on user type
+    let organizationId = await getOrganizationId();
+
+    // If organizationId is null, determine based on user type
+    if (!organizationId) {
+      const userType = session.user.type;
+      const userEmail = session.user.email || '';
+
+      if (userType === 'guest' || userEmail.includes('guest-')) {
+        organizationId = GUEST_ORGANIZATION_ID;
+      } else {
+        organizationId = DEFAULT_ORGANIZATION_ID;
+      }
+    }
+
+    // Assert that organizationId is now definitely a string
+    const finalOrganizationId: string = organizationId;
+
     const body = await request.json();
     const validatedData = createDocumentSchema.parse(body);
 
@@ -79,7 +108,7 @@ export async function POST(request: NextRequest) {
         content: validatedData.content || '',
         kind: validatedData.kind,
         userId: session.user.id,
-        organizationId,
+        organizationId: finalOrganizationId,
         createdAt: new Date(),
       })
       .returning({
@@ -90,29 +119,32 @@ export async function POST(request: NextRequest) {
         createdAt: document.createdAt,
       });
 
-    return NextResponse.json({ 
-      document: newDocument,
-      message: 'Documento criado com sucesso'
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        document: newDocument,
+        message: 'Documento criado com sucesso',
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error('Erro ao criar documento:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          error: 'Dados inválidos', 
-          details: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
-          }))
+        {
+          error: 'Dados inválidos',
+          details: error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Falha ao criar documento' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -120,7 +152,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/documents - Atualizar documento (bulk update)
 export async function PUT(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
@@ -128,11 +160,11 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, ...updateData } = body;
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'ID do documento é obrigatório' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -142,26 +174,20 @@ export async function PUT(request: NextRequest) {
     const existingDocument = await db
       .select()
       .from(document)
-      .where(and(
-        eq(document.id, id),
-        eq(document.userId, session.user.id)
-      ))
+      .where(and(eq(document.id, id), eq(document.userId, session.user.id)))
       .limit(1);
 
     if (existingDocument.length === 0) {
       return NextResponse.json(
         { error: 'Documento não encontrado ou sem permissão' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const [updatedDocument] = await db
       .update(document)
       .set(validatedData)
-      .where(and(
-        eq(document.id, id),
-        eq(document.userId, session.user.id)
-      ))
+      .where(and(eq(document.id, id), eq(document.userId, session.user.id)))
       .returning({
         id: document.id,
         title: document.title,
@@ -170,29 +196,29 @@ export async function PUT(request: NextRequest) {
         createdAt: document.createdAt,
       });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       document: updatedDocument,
-      message: 'Documento atualizado com sucesso'
+      message: 'Documento atualizado com sucesso',
     });
   } catch (error) {
     console.error('Erro ao atualizar documento:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          error: 'Dados inválidos', 
-          details: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
-          }))
+        {
+          error: 'Dados inválidos',
+          details: error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Falha ao atualizar documento' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -200,7 +226,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/documents - Deletar documento
 export async function DELETE(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
@@ -208,11 +234,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'ID do documento é obrigatório' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -220,34 +246,28 @@ export async function DELETE(request: NextRequest) {
     const existingDocument = await db
       .select()
       .from(document)
-      .where(and(
-        eq(document.id, id),
-        eq(document.userId, session.user.id)
-      ))
+      .where(and(eq(document.id, id), eq(document.userId, session.user.id)))
       .limit(1);
 
     if (existingDocument.length === 0) {
       return NextResponse.json(
         { error: 'Documento não encontrado ou sem permissão' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     await db
       .delete(document)
-      .where(and(
-        eq(document.id, id),
-        eq(document.userId, session.user.id)
-      ));
+      .where(and(eq(document.id, id), eq(document.userId, session.user.id)));
 
-    return NextResponse.json({ 
-      message: 'Documento deletado com sucesso'
+    return NextResponse.json({
+      message: 'Documento deletado com sucesso',
     });
   } catch (error) {
     console.error('Erro ao deletar documento:', error);
     return NextResponse.json(
       { error: 'Falha ao deletar documento' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}
