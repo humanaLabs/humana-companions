@@ -1,7 +1,56 @@
 {
-  "buildCommand": "next build",
-  "devCommand": "next dev",
-  "installCommand": "pnpm install",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "buildCommand": "next build",
+  "installCommand": "pnpm install",
+  "devCommand": "next dev",
+  "regions": ["iad1"],
+  "functions": {
+    "app/**": {
+      "maxDuration": 60
+    },
+    "app/api/**": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With, x-organization-id, x-user-id"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/api/auth/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 } 

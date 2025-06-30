@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { guestRegex, isDevelopmentEnvironment } from './lib/constants';
+import { guestRegex } from './lib/constants';
 import { tenantMiddleware } from './middleware/tenant';
 
 export async function middleware(request: NextRequest) {
@@ -27,18 +27,33 @@ export async function middleware(request: NextRequest) {
   // Non-API routes - existing logic for auto-organization creation
   const token = await getToken({
     req: request,
-    secret: process.env.AUTH_SECRET,
-    secureCookie: !isDevelopmentEnvironment,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secureCookie: process.env.NODE_ENV === 'production',
+    salt:
+      process.env.NODE_ENV === 'production'
+        ? 'authjs.session-token'
+        : 'next-auth.session-token',
   });
+
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Middleware check:', {
+      pathname,
+      hasToken: !!token,
+      tokenEmail: token?.email,
+      isAPI: pathname.startsWith('/api/'),
+    });
+  }
 
   if (!token) {
     // Se estiver tentando acessar login ou register, permitir
     if (['/login', '/register'].includes(pathname)) {
       return NextResponse.next();
     }
-    
+
     // Para outras rotas, redirecionar para login
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   const isGuest = guestRegex.test(token?.email ?? '');
@@ -52,39 +67,53 @@ export async function middleware(request: NextRequest) {
   if (token && !isGuest && token.id) {
     try {
       // Check if user needs an organization
-      const checkResponse = await fetch(new URL('/api/organizations/check-auto-create', request.url), {
+      const baseUrl = request.nextUrl.origin;
+      const checkUrl = new URL('/api/organizations/check-auto-create', baseUrl);
+
+      const checkResponse = await fetch(checkUrl.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token.id}`,
+          Authorization: `Bearer ${token.id}`,
+          'x-user-id': token.id as string,
+          'x-user-email': token.email as string,
         },
-        body: JSON.stringify({ 
-          userId: token.id, 
-          userEmail: token.email 
+        body: JSON.stringify({
+          userId: token.id,
+          userEmail: token.email,
         }),
       });
 
       if (checkResponse.ok) {
         const { needsOrganization } = await checkResponse.json();
-        
+
         if (needsOrganization) {
           // Create default organization
-          await fetch(new URL('/api/organizations/auto-create', request.url), {
+          const createUrl = new URL('/api/organizations/auto-create', baseUrl);
+
+          await fetch(createUrl.toString(), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token.id}`,
+              Authorization: `Bearer ${token.id}`,
+              'x-user-id': token.id as string,
+              'x-user-email': token.email as string,
             },
-            body: JSON.stringify({ 
-              userId: token.id, 
-              userEmail: token.email 
+            body: JSON.stringify({
+              userId: token.id,
+              userEmail: token.email,
             }),
           });
         }
       }
     } catch (error) {
       // Fail silently to avoid breaking the user experience
-      console.error('Error in auto-organization creation:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error in auto-organization creation:', error);
+      } else {
+        // In production, just log a warning to avoid noise
+        console.warn('Auto-organization creation failed (non-critical)');
+      }
     }
   }
 
