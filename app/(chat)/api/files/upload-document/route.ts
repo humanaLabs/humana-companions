@@ -1,14 +1,38 @@
 import { auth } from '@/app/(auth)/auth';
 import { db } from '@/lib/db';
 import { document } from '@/lib/db/schema';
-import { put } from '@vercel/blob';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
-import fs from 'fs';
-import path from 'path';
+import { put } from '@vercel/blob';
 import { getOrganizationId } from '@/lib/tenant-context';
+import {
+  GUEST_ORGANIZATION_ID,
+  DEFAULT_ORGANIZATION_ID,
+} from '@/lib/constants';
+import type { NextRequest } from 'next/server';
+
+// Import dinâmico das bibliotecas de processamento para evitar erros no build
+const loadPdfParse = async () => {
+  if (typeof window !== 'undefined') return null; // Cliente
+  try {
+    const pdfParse = await import('pdf-parse');
+    return pdfParse.default;
+  } catch (error) {
+    console.warn('pdf-parse não disponível:', error);
+    return null;
+  }
+};
+
+const loadMammoth = async () => {
+  if (typeof window !== 'undefined') return null; // Cliente
+  try {
+    const mammoth = await import('mammoth');
+    return mammoth.default;
+  } catch (error) {
+    console.warn('mammoth não disponível:', error);
+    return null;
+  }
+};
 
 // Schema de validação para upload
 const uploadSchema = z.object({
@@ -20,7 +44,8 @@ const uploadSchema = z.object({
 // Tipos de arquivo suportados
 const SUPPORTED_TYPES = {
   'application/pdf': 'pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    'docx',
   'application/msword': 'doc',
   'text/plain': 'txt',
   'text/markdown': 'md',
@@ -37,7 +62,11 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 // Função para extrair texto de PDF
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
-    const data = await pdfParse(buffer);
+    const pdf = await loadPdfParse();
+    if (!pdf) {
+      throw new Error('pdf-parse não está disponível');
+    }
+    const data = await pdf(buffer);
     return data.text;
   } catch (error) {
     console.error('Erro ao extrair texto do PDF:', error);
@@ -48,6 +77,10 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
 // Função para extrair texto de DOCX
 async function extractTextFromDocx(buffer: Buffer): Promise<string> {
   try {
+    const mammoth = await loadMammoth();
+    if (!mammoth) {
+      throw new Error('mammoth não está disponível');
+    }
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   } catch (error) {
@@ -59,6 +92,10 @@ async function extractTextFromDocx(buffer: Buffer): Promise<string> {
 // Função para extrair texto de DOC (formato legado)
 async function extractTextFromDoc(buffer: Buffer): Promise<string> {
   try {
+    const mammoth = await loadMammoth();
+    if (!mammoth) {
+      return '[Arquivo DOC - Visualização de texto não disponível. Conteúdo armazenado como arquivo binário.]';
+    }
     // Para arquivos DOC legado, tentamos usar mammoth mesmo assim
     // Em produção, seria melhor usar uma biblioteca específica como antiword
     const result = await mammoth.extractRawText({ buffer });
@@ -71,92 +108,116 @@ async function extractTextFromDoc(buffer: Buffer): Promise<string> {
 }
 
 // Função principal de extração de texto
-async function extractTextFromFile(buffer: Buffer, mimeType: string): Promise<string> {
+async function extractTextFromFile(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<string> {
   switch (mimeType) {
     case 'application/pdf':
       return await extractTextFromPdf(buffer);
-    
+
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
       return await extractTextFromDocx(buffer);
-    
+
     case 'application/msword':
       return await extractTextFromDoc(buffer);
-    
+
     case 'text/plain':
     case 'text/markdown':
     case 'application/rtf':
       return buffer.toString('utf-8');
-    
+
     case 'image/jpeg':
     case 'image/png':
     case 'image/gif':
     case 'image/webp':
       return `[Arquivo de imagem - ${mimeType}]`;
-    
+
     default:
       return '[Tipo de arquivo não suportado para extração de texto]';
   }
 }
 
 // Função para determinar o kind do documento
-function getDocumentKind(mimeType: string): 'text' | 'code' | 'image' | 'sheet' {
+function getDocumentKind(
+  mimeType: string,
+): 'text' | 'code' | 'image' | 'sheet' {
   if (mimeType.startsWith('image/')) {
     return 'image';
   }
-  
-  if (mimeType === 'text/markdown' || mimeType.includes('code') || mimeType.includes('script')) {
+
+  if (
+    mimeType === 'text/markdown' ||
+    mimeType.includes('code') ||
+    mimeType.includes('script')
+  ) {
     return 'code';
   }
-  
+
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
     return 'sheet';
   }
-  
+
   return 'text';
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
   try {
-    // Get organization ID from middleware headers
-    const organizationId = await getOrganizationId();
-    
+    // Get organization ID from middleware headers - use appropriate org based on user type
+    let organizationId = await getOrganizationId();
+
+    // If organizationId is null, determine based on user type
+    if (!organizationId) {
+      const userType = session.user.type;
+      const userEmail = session.user.email || '';
+
+      if (userType === 'guest' || userEmail.includes('guest-')) {
+        organizationId = GUEST_ORGANIZATION_ID;
+      } else {
+        organizationId = DEFAULT_ORGANIZATION_ID;
+      }
+    }
+
+    // Assert that organizationId is now definitely a string
+    const finalOrganizationId: string = organizationId;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    
+
     if (!file) {
       return NextResponse.json(
         { error: 'Nenhum arquivo foi enviado' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validar tipo de arquivo
     if (!Object.keys(SUPPORTED_TYPES).includes(file.type)) {
       return NextResponse.json(
-        { 
+        {
           error: 'Tipo de arquivo não suportado',
           supportedTypes: Object.keys(SUPPORTED_TYPES),
-          receivedType: file.type
+          receivedType: file.type,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validar tamanho do arquivo
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { 
+        {
           error: 'Arquivo muito grande',
           maxSize: MAX_FILE_SIZE,
-          receivedSize: file.size
+          receivedSize: file.size,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -177,7 +238,10 @@ export async function POST(request: NextRequest) {
     try {
       extractedText = await extractTextFromFile(buffer, file.type);
     } catch (error) {
-      console.warn('Aviso: Falha na extração de texto, continuando com upload:', error);
+      console.warn(
+        'Aviso: Falha na extração de texto, continuando com upload:',
+        error,
+      );
       extractedText = '[Texto não pôde ser extraído automaticamente]';
     }
 
@@ -188,7 +252,7 @@ export async function POST(request: NextRequest) {
       {
         access: 'public',
         contentType: file.type,
-      }
+      },
     );
 
     // Determinar kind do documento
@@ -202,7 +266,7 @@ export async function POST(request: NextRequest) {
         content: extractedText,
         kind: documentKind,
         userId: session.user.id,
-        organizationId,
+        organizationId: finalOrganizationId,
         createdAt: new Date(),
       })
       .returning({
@@ -213,45 +277,44 @@ export async function POST(request: NextRequest) {
         createdAt: document.createdAt,
       });
 
-    return NextResponse.json({
-      success: true,
-      document: newDocument,
-      file: {
-        name: validatedData.filename,
-        type: validatedData.fileType,
-        size: validatedData.fileSize,
-        url: blob.url,
-        extractedTextLength: extractedText.length,
+    return NextResponse.json(
+      {
+        success: true,
+        document: newDocument,
+        file: {
+          name: validatedData.filename,
+          type: validatedData.fileType,
+          size: validatedData.fileSize,
+          url: blob.url,
+          extractedTextLength: extractedText.length,
+        },
+        message: 'Documento enviado e processado com sucesso',
       },
-      message: 'Documento enviado e processado com sucesso',
-    }, { status: 201 });
-
+      { status: 201 },
+    );
   } catch (error) {
     console.error('Erro no upload de documento:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          error: 'Dados do arquivo inválidos', 
-          details: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
-          }))
+        {
+          error: 'Dados do arquivo inválidos',
+          details: error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     if (error instanceof Error && error.message.includes('processar arquivo')) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 422 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 422 });
     }
-    
+
     return NextResponse.json(
       { error: 'Falha no upload do documento' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -269,14 +332,9 @@ export async function GET() {
         'application/msword',
         'text/plain',
         'text/markdown',
-        'application/rtf'
+        'application/rtf',
       ],
-      imageSupport: [
-        'image/jpeg',
-        'image/png', 
-        'image/gif',
-        'image/webp'
-      ]
-    }
+      imageSupport: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    },
   });
-} 
+}

@@ -1,4 +1,7 @@
 import { config } from 'dotenv';
+import { inArray } from 'drizzle-orm';
+import { appendResponseMessages, type UIMessage } from 'ai';
+import { GUEST_ORGANIZATION_ID } from '@/lib/constants';
 import postgres from 'postgres';
 import {
   chat,
@@ -9,8 +12,6 @@ import {
   voteDeprecated,
 } from '../schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { inArray } from 'drizzle-orm';
-import { appendResponseMessages, type UIMessage } from 'ai';
 
 config({
   path: '.env.local',
@@ -92,6 +93,20 @@ function sanitizeParts<T extends { type: string; [k: string]: any }>(
   return parts.filter(
     (part) => !(part.type === 'reasoning' && part.reasoning === 'undefined'),
   );
+}
+
+// Function to get organization ID with fallback
+function getOrganizationIdForChat(
+  chatOrgId: string | null,
+  userId?: string,
+): string {
+  if (chatOrgId) {
+    return chatOrgId;
+  }
+
+  // If no organizationId, use guest org as default fallback
+  // In a real scenario, you might want to check user type, but this is a migration script
+  return GUEST_ORGANIZATION_ID;
 }
 
 async function migrateMessages() {
@@ -176,7 +191,7 @@ async function migrateMessages() {
                   role: message.role,
                   createdAt: message.createdAt,
                   attachments: [],
-                  organizationId: chat.organizationId,
+                  organizationId: getOrganizationIdForChat(chat.organizationId),
                 } as NewMessageInsert;
               } else if (message.role === 'assistant') {
                 const cleanParts = sanitizeParts(
@@ -190,7 +205,7 @@ async function migrateMessages() {
                   role: message.role,
                   createdAt: message.createdAt,
                   attachments: [],
-                  organizationId: chat.organizationId,
+                  organizationId: getOrganizationIdForChat(chat.organizationId),
                 } as NewMessageInsert;
               }
               return null;
@@ -207,7 +222,7 @@ async function migrateMessages() {
                   messageId: msg.id,
                   chatId: msg.chatId,
                   isUpvoted: voteByMessage.isUpvoted,
-                  organizationId: chat.organizationId,
+                  organizationId: getOrganizationIdForChat(chat.organizationId),
                 });
               }
             }

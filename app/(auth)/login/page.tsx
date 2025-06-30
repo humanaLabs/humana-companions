@@ -10,7 +10,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 
 import { login, type LoginActionState } from '../actions';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
 // Componente que usa useSearchParams
 function LoginContent() {
@@ -30,28 +30,35 @@ function LoginContent() {
 
   const { data: session, update: updateSession, status } = useSession();
 
-  // Se o usuário já está logado como usuário regular, redirecionar para home
+  // Se o usuário já está logado, redirecionar para home
   useEffect(() => {
     const handleAuthenticatedUser = async () => {
-      if (
-        status === 'authenticated' &&
-        session?.user &&
-        !session.user.email?.includes('guest-')
-      ) {
+      if (status === 'authenticated' && session?.user?.id) {
         const callbackUrl = searchParams?.get('callbackUrl') || '/';
-        router.push(callbackUrl);
+        console.log(
+          '🔄 Usuário autenticado, redirecionando para:',
+          callbackUrl,
+        );
+        window.location.href = callbackUrl; // Force navigation
       }
     };
 
     handleAuthenticatedUser();
-  }, [status, session, router, searchParams]);
+  }, [status, session, searchParams]);
 
   useEffect(() => {
     const handleLoginState = async () => {
       if (state.status === 'success' && !isSuccessful) {
         setIsSuccessful(true);
         toast({ type: 'success', description: 'Login realizado com sucesso!' });
-        await updateSession();
+
+        // O NextAuth deve ter redirecionado automaticamente
+        // Se não redirecionou, force o redirect
+        setTimeout(() => {
+          const callbackUrl = searchParams?.get('callbackUrl') || '/';
+          console.log('🔄 Forçando redirecionamento para:', callbackUrl);
+          window.location.href = callbackUrl;
+        }, 1000);
       } else if (state.status === 'failed') {
         toast({ type: 'error', description: 'Falha ao fazer login!' });
       } else if (state.status === 'invalid_data') {
@@ -63,7 +70,7 @@ function LoginContent() {
     };
 
     handleLoginState();
-  }, [state, isSuccessful, updateSession]);
+  }, [state, isSuccessful, searchParams]);
 
   const handleSubmit = async (formData: FormData) => {
     if (isSuccessful) return; // Previne múltiplos submits
