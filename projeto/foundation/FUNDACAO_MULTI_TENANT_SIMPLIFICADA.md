@@ -1,22 +1,27 @@
 # 🏗️ Fundação Multi-Tenant Simplificada - Humana Companions
 
-**Data:** 30-1-2025  
-**Versão:** 1.0  
-**Status:** Pronto para Implementação  
+**Data:** 30-1-2025
+**Versão:** 1.0
+**Status:** Pronto para Implementação
 
 ---
 
 ## 📊 SUMÁRIO EXECUTIVO
 
 ### 🎯 **Objetivo**
+
 Estabelecer uma fundação multi-tenant robusta e simplificada, focando em segurança, quotas individuais e organização visual sem complexidade hierárquica.
 
 ### 🔑 **Princípios Fundamentais**
+
 - **`organizationId`** = **Isolamento de Segurança** (único boundary que importa)
 - **`userId`** = **Quotas Individuais** (limites por usuário, não por organização)
 - **`department/team`** = **Labels Visuais** (organização sem impacto funcional)
 
-### ✅ **Benefícios da Simplificação**
+EDU: Cada Org é dona dos usuarios, cada usuario é dono dos seus recursos e das quotas - departamento e time é só arrumação, não influencia na hieraquida de objetos.
+
+✅ **Benefícios da Simplificação**
+
 - **50% menos complexidade** no código base
 - **Zero hierarquias** para manter ou debugar
 - **Queries 3x mais rápidas** (apenas 1 filtro de segurança)
@@ -25,6 +30,7 @@ Estabelecer uma fundação multi-tenant robusta e simplificada, focando em segur
 - **Escalabilidade linear** (sem bottlenecks hierárquicos)
 
 ### 🚨 **Problemas Resolvidos**
+
 - **15+ queries vulneráveis** com acesso cross-tenant
 - **Sistema de quotas inadequado** (estava por organização)
 - **Complexidade hierárquica desnecessária** (departamentos/times)
@@ -36,6 +42,7 @@ Estabelecer uma fundação multi-tenant robusta e simplificada, focando em segur
 ## 🏛️ ARQUITETURA SIMPLIFICADA
 
 ### **Estrutura Hierárquica (3 Níveis Apenas)**
+
 ```
 Organization (Tenant Boundary)
 ├── Users (quotas individuais + labels opcionais)
@@ -43,6 +50,7 @@ Organization (Tenant Boundary)
 ```
 
 ### **Responsabilidades Claras**
+
 ```typescript
 interface ResponsabilityMatrix {
   organizationId: {
@@ -66,6 +74,7 @@ interface ResponsabilityMatrix {
 ```
 
 ### **Fluxo de Isolamento**
+
 1. **Request** → Middleware valida token
 2. **Middleware** → Extrai organizationId da sessão
 3. **API Route** → Recebe organizationId via headers
@@ -77,6 +86,7 @@ interface ResponsabilityMatrix {
 ## 📋 MODELO DE DADOS
 
 ### **User (Simplificado)**
+
 ```typescript
 interface User {
   id: string;
@@ -98,6 +108,7 @@ interface User {
 ```
 
 ### **Organization (Apenas Config)**
+
 ```typescript
 interface OrganizationConfig {
   id: string;
@@ -136,6 +147,7 @@ interface OrganizationConfig {
 ```
 
 ### **Quotas por Usuário**
+
 ```typescript
 interface UserQuotas {
   userId: string;
@@ -172,6 +184,7 @@ interface UserUsage {
 ```
 
 ### **Resources (Padrão Unificado)**
+
 ```typescript
 // Todos os recursos seguem o mesmo padrão
 interface ResourceBase {
@@ -205,6 +218,7 @@ interface Companion extends ResourceBase {
 ## 🔒 SISTEMA DE SEGURANÇA
 
 ### **Middleware Simplificado**
+
 ```typescript
 export async function tenantMiddleware(request: NextRequest) {
   const token = await getToken({ req: request });
@@ -224,6 +238,7 @@ export async function tenantMiddleware(request: NextRequest) {
 ```
 
 ### **Padrão de Query Unificado**
+
 ```typescript
 // ✅ PADRÃO ÚNICO para todas as queries
 const SECURITY_PATTERN = `
@@ -254,6 +269,7 @@ async function getDocumentById(id: string, organizationId: string) {
 ```
 
 ### **Service Layer com Isolamento**
+
 ```typescript
 abstract class TenantService<T> {
   constructor(protected organizationId: string) {}
@@ -275,13 +291,13 @@ class ChatService extends TenantService<Chat> {
   async createChat(data: CreateChatRequest, userId: string) {
     // 1. Verificar quota do usuário
     await quotaService.checkUserQuota(userId, 'maxChatsPerMonth');
-    
+  
     // 2. Criar com isolamento
     const chat = await this.create({ ...data, userId });
-    
+  
     // 3. Incrementar uso
     await quotaService.incrementUserUsage(userId, 'chatsCreated');
-    
+  
     return chat;
   }
 }
@@ -292,6 +308,7 @@ class ChatService extends TenantService<Chat> {
 ## 📊 SISTEMA DE QUOTAS
 
 ### **Schema de Quotas**
+
 ```sql
 -- Quotas por usuário
 CREATE TABLE user_quotas (
@@ -331,6 +348,7 @@ CREATE TABLE user_usage (
 ```
 
 ### **Quota Service**
+
 ```typescript
 class UserQuotaService {
   async checkUserQuota(
@@ -339,15 +357,15 @@ class UserQuotaService {
     increment: number = 1
   ): Promise<QuotaCheckResult> {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    
+  
     const [quotas, usage] = await Promise.all([
       this.getUserQuotas(userId),
       this.getUserUsage(userId, currentMonth)
     ]);
-    
+  
     const currentValue = usage[quotaType] || 0;
     const limit = quotas[quotaType];
-    
+  
     if (currentValue + increment > limit) {
       return {
         allowed: false,
@@ -357,7 +375,7 @@ class UserQuotaService {
         resetDate: this.getNextMonthStart()
       };
     }
-    
+  
     return { allowed: true };
   }
   
@@ -367,13 +385,13 @@ class UserQuotaService {
     increment: number = 1
   ) {
     const currentMonth = new Date().toISOString().slice(0, 7);
-    
+  
     // Verificar quota antes de incrementar
     const check = await this.checkUserQuota(userId, quotaType, increment);
     if (!check.allowed) {
       throw new UserQuotaExceededError(check);
     }
-    
+  
     // Incrementar uso (upsert)
     await db.insert(userUsage)
       .values({
@@ -394,6 +412,7 @@ class UserQuotaService {
 ```
 
 ### **Planos de Quota**
+
 ```typescript
 const QUOTA_PLANS = {
   free: {
@@ -433,6 +452,7 @@ const QUOTA_PLANS = {
 ## 🎨 LABELS VISUAIS
 
 ### **Sistema de Labels (Sem Lógica)**
+
 ```typescript
 // Labels são apenas strings opcionais
 interface UserLabels {
@@ -459,6 +479,7 @@ interface UserListFilters {
 ```
 
 ### **UI Components**
+
 ```typescript
 function UserDashboard({ organizationId }: { organizationId: string }) {
   const [filters, setFilters] = useState<UserListFilters>({});
@@ -475,7 +496,7 @@ function UserDashboard({ organizationId }: { organizationId: string }) {
         onChange={setFilters}
         availableLabels={labels}
       />
-      
+    
       {/* Lista de usuários */}
       <UserList users={users} />
     </div>
@@ -498,7 +519,7 @@ function FilterBar({ filters, onChange, availableLabels }: FilterBarProps) {
           ))}
         </SelectContent>
       </Select>
-      
+    
       <Select
         value={filters.team}
         onValueChange={(team) => onChange({ ...filters, team })}
@@ -522,9 +543,11 @@ function FilterBar({ filters, onChange, availableLabels }: FilterBarProps) {
 ## 🔧 ETAPAS DE IMPLEMENTAÇÃO
 
 ### **FASE 1: CORREÇÃO DE SEGURANÇA**
+
 **Objetivo:** Eliminar vulnerabilidades cross-tenant
 
 #### **1.1 Auditoria e Correção de Queries**
+
 - [ ] Identificar todas as queries vulneráveis (15+ funções)
 - [ ] Aplicar padrão de segurança unificado
 - [ ] Atualizar funções existentes:
@@ -539,129 +562,153 @@ function FilterBar({ filters, onChange, availableLabels }: FilterBarProps) {
   - Todas as demais queries de busca
 
 #### **1.2 Hardening do Middleware**
+
 - [ ] Simplificar lógica de validação
 - [ ] Otimizar performance (target: < 20ms)
 - [ ] Adicionar audit logging para tentativas cross-tenant
 - [ ] Implementar cache de validação de organizationId
 
 #### **1.3 Testes de Segurança**
+
 - [ ] Suite de testes cross-tenant
 - [ ] Testes de performance do middleware
 - [ ] Testes de stress para isolamento
 - [ ] Validação de audit logs
 
 ### **FASE 2: SISTEMA DE QUOTAS POR USUÁRIO**
+
 **Objetivo:** Implementar quotas individuais justas
 
 #### **2.1 Schema de Quotas**
+
 - [ ] Migração para tabelas `user_quotas` e `user_usage`
 - [ ] Definição de planos (free, pro, enterprise)
 - [ ] Migração de dados existentes
 - [ ] Indexes de performance
 
 #### **2.2 UserQuotaService**
+
 - [ ] Implementação do service de quotas
 - [ ] Métodos de verificação e incremento
 - [ ] Tratamento de exceções
 - [ ] Cache de quotas frequentes
 
 #### **2.3 Integração com APIs Existentes**
+
 - [ ] Adicionar verificação de quota em todas as APIs de criação
 - [ ] Implementar incremento automático
 - [ ] Tratamento de erros de quota excedida
 - [ ] Headers de quota em responses
 
 #### **2.4 UI de Quotas**
+
 - [ ] Dashboard de uso individual
 - [ ] Indicadores de quota em tempo real
 - [ ] Alertas de aproximação do limite
 - [ ] Upgrade flow para planos superiores
 
 ### **FASE 3: SERVICE LAYER COM ISOLAMENTO**
+
 **Objetivo:** Refatorar para arquitetura limpa
 
 #### **3.1 Base Services**
+
 - [ ] Implementar `TenantService` abstrato
 - [ ] Refatorar services existentes para herdar da base
 - [ ] Injeção automática de `organizationId`
 - [ ] Padronização de métodos CRUD
 
 #### **3.2 Services Específicos**
+
 - [ ] `ChatService` com isolamento e quotas
 - [ ] `DocumentService` com isolamento e quotas
 - [ ] `CompanionService` com isolamento e quotas
 - [ ] `McpServerService` com isolamento e quotas
 
 #### **3.3 Eliminação de Complexidade Hierárquica**
+
 - [ ] Remover lógica baseada em departamento/team
 - [ ] Converter para labels visuais simples
 - [ ] Simplificar queries de busca
 - [ ] Atualizar testes unitários
 
 ### **FASE 4: CONFIGURAÇÕES E LABELS**
+
 **Objetivo:** Sistema de configuração limpo
 
 #### **4.1 OrganizationConfig Simplificado**
+
 - [ ] Migração para modelo sem quotas
 - [ ] Configurações de features por organização
 - [ ] Sistema de labels disponíveis
 - [ ] BYOC configuration management
 
 #### **4.2 Sistema de Labels Visuais**
+
 - [ ] UI para gerenciar labels disponíveis
 - [ ] Filtros opcionais em listas
 - [ ] Componentes reutilizáveis
 - [ ] Persistência de preferências de filtro
 
 #### **4.3 Configuration Service**
+
 - [ ] Cache de configurações
 - [ ] Dynamic configuration updates
 - [ ] Fallback para defaults
 - [ ] Notification system para mudanças
 
 ### **FASE 5: BYOC E PARAMETRIZAÇÕES**
+
 **Objetivo:** Suporte completo para BYOC
 
 #### **5.1 Provider Abstraction**
+
 - [ ] Adapter pattern para LLM providers
 - [ ] Adapter pattern para storage providers
 - [ ] Adapter pattern para database providers (opcional)
 - [ ] Health checks para endpoints externos
 
 #### **5.2 Configuration Management**
+
 - [ ] Encrypted secrets management
 - [ ] Configuration validation
 - [ ] Fallback strategies
 - [ ] Multi-provider support
 
 #### **5.3 BYOC UI**
+
 - [ ] Configuration wizards
 - [ ] Connection testing
 - [ ] Status monitoring
 - [ ] Error reporting
 
 ### **FASE 6: TESTES E VALIDAÇÃO**
+
 **Objetivo:** Garantir qualidade e performance
 
 #### **6.1 Testes de Segurança**
+
 - [ ] Suite completa de testes cross-tenant
 - [ ] Penetration testing automatizado
 - [ ] Audit de todas as queries
 - [ ] Validação de isolamento
 
 #### **6.2 Testes de Performance**
+
 - [ ] Benchmarks de middleware
 - [ ] Stress testing de quotas
 - [ ] Load testing multi-tenant
 - [ ] Otimização de queries
 
 #### **6.3 Testes de Integração**
+
 - [ ] Fluxos end-to-end
 - [ ] Testes de BYOC
 - [ ] Validação de configurações
 - [ ] Testes de migração
 
 #### **6.4 Documentação e Treinamento**
+
 - [ ] Documentação técnica atualizada
 - [ ] Guias de configuração BYOC
 - [ ] Training para equipe
@@ -672,24 +719,28 @@ function FilterBar({ filters, onChange, availableLabels }: FilterBarProps) {
 ## ✅ CRITÉRIOS DE SUCESSO
 
 ### **Segurança**
+
 - [ ] **Zero vulnerabilidades** cross-tenant
 - [ ] **100% das queries** com organizationId
 - [ ] **Audit logging** completo
 - [ ] **Performance < 20ms** no middleware
 
 ### **Quotas**
+
 - [ ] **Quotas por usuário** funcionando
 - [ ] **Planos diferenciados** implementados
 - [ ] **UI de quota** em tempo real
 - [ ] **Enforcement** em todas as APIs
 
 ### **Arquitetura**
+
 - [ ] **Service layer** limpo e isolado
 - [ ] **Labels visuais** sem lógica de negócio
 - [ ] **Configuration system** flexível
 - [ ] **BYOC** suporte completo
 
 ### **Performance**
+
 - [ ] **Queries 50% mais rápidas**
 - [ ] **Middleware otimizado**
 - [ ] **Cache eficiente**
@@ -708,4 +759,4 @@ Uma fundação multi-tenant **ultra-simplificada e robusta** que:
 - **Suporta BYOC** (parametrização completa)
 - **Escala linearmente** (sem bottlenecks)
 
-**Base sólida para crescimento sustentável por anos.** 
+**Base sólida para crescimento sustentável por anos.**
