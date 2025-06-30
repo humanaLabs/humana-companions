@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
 import { getOrganizationId } from '@/lib/tenant-context';

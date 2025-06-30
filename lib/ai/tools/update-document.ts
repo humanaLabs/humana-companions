@@ -3,6 +3,7 @@ import { Session } from 'next-auth';
 import { z } from 'zod';
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
 import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 interface UpdateDocumentProps {
   session: Session;
@@ -19,7 +20,12 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         .describe('The description of changes that need to be made'),
     }),
     execute: async ({ id, description }) => {
-      const document = await getDocumentById({ id });
+      const organizationId = await getOrganizationId();
+      if (!organizationId) {
+        return { error: 'Organization context required' };
+      }
+
+      const document = await getDocumentById({ id, organizationId });
 
       if (!document) {
         return {
@@ -58,3 +64,5 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
       };
     },
   });
+
+
