@@ -48,6 +48,9 @@ import { ChatSDKError } from '@/lib/errors';
 import { companionToSystemPrompt } from '@/lib/ai/companion-prompt';
 import { getOrganizationId } from '@/lib/tenant-context';
 
+// Flag para controlar se a lógica de limites está ativa
+const ENABLE_MESSAGE_LIMITS = false;
+
 export const maxDuration = 60;
 
 let globalStreamContext: ResumableStreamContext | null = null;
@@ -98,22 +101,24 @@ export async function POST(request: Request) {
       return new ChatSDKError('unauthorized:chat').toResponse();
     }
 
-    // Limite de mensagens por plano
-    const { plan, messagesSent } = await getUserPlanAndMessagesSent(
-      session.user.id,
-    );
-    let maxMessages = 10;
-    if (plan === 'guest') maxMessages = 3;
-    if (plan === 'pro') maxMessages = Number.POSITIVE_INFINITY;
-    if (messagesSent >= maxMessages) {
-      return new Response(
-        JSON.stringify({ error: 'limit_reached', plan, maxMessages }),
-        { status: 403 },
+    // Limite de mensagens por plano (DESABILITADO)
+    if (ENABLE_MESSAGE_LIMITS) {
+      const { plan, messagesSent } = await getUserPlanAndMessagesSent(
+        session.user.id,
       );
-    }
+      let maxMessages = 10;
+      if (plan === 'guest') maxMessages = 3;
+      if (plan === 'pro') maxMessages = Number.POSITIVE_INFINITY;
+      if (messagesSent >= maxMessages) {
+        return new Response(
+          JSON.stringify({ error: 'limit_reached', plan, maxMessages }),
+          { status: 403 },
+        );
+      }
 
-    // Incrementa contador de mensagens
-    await incrementUserMessagesSent(session.user.id);
+      // Incrementa contador de mensagens
+      await incrementUserMessagesSent(session.user.id);
+    }
 
     const userType: UserType = session.user.type;
 

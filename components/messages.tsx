@@ -47,9 +47,11 @@ function PureMessages({
   return (
     <div
       ref={messagesContainerRef}
-      className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4 relative"
+      className="flex flex-col min-w-0 gap-4 md:gap-6 flex-1 overflow-y-scroll pt-2 md:pt-4 px-2 md:px-0 pb-4 md:pb-0 relative"
     >
-      {messages.length === 0 && <Greeting session={session} selectedCompanionId={selectedCompanionId} />}
+      {messages.length === 0 && (
+        <Greeting session={session} selectedCompanionId={selectedCompanionId} />
+      )}
 
       {messages.map((message, index) => (
         <PreviewMessage
@@ -93,7 +95,8 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
-  if (prevProps.selectedCompanionId !== nextProps.selectedCompanionId) return false;
+  if (prevProps.selectedCompanionId !== nextProps.selectedCompanionId)
+    return false;
 
   return true;
 });

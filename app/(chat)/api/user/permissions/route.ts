@@ -55,6 +55,11 @@ export async function GET(request: NextRequest) {
       isMasterAdmin,
     );
 
+    // Calcular limites de mensagens baseado no plano
+    let messagesLimit = 10; // Free plan
+    if (dbUser.plan === 'guest') messagesLimit = 3;
+    if (dbUser.plan === 'pro') messagesLimit = Number.POSITIVE_INFINITY;
+
     return NextResponse.json({
       // Compatibilidade com código existente
       canCreateOrganization,
@@ -71,6 +76,10 @@ export async function GET(request: NextRequest) {
       rawPermissions: rolePermissions,
       plan: dbUser.plan,
       messagesSent: dbUser.messagesSent,
+
+      // Informações de limite de mensagens
+      messagesUsed: dbUser.messagesSent || 0,
+      messagesLimit: messagesLimit,
     });
   } catch (error) {
     console.error('Error fetching user permissions:', error);

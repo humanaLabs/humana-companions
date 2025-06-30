@@ -43,6 +43,7 @@ function PureMultimodalInput({
   className,
   selectedVisibilityType,
   disabled = false,
+  onInputClick,
 }: {
   chatId: string;
   input: UseChatHelpers['input'];
@@ -58,6 +59,7 @@ function PureMultimodalInput({
   className?: string;
   selectedVisibilityType: VisibilityType;
   disabled?: boolean;
+  onInputClick?: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -78,7 +80,7 @@ function PureMultimodalInput({
   const resetHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = '98px';
+      textareaRef.current.style.height = '40px';
     }
   };
 
@@ -204,11 +206,11 @@ function PureMultimodalInput({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="absolute left-1/2 bottom-28 -translate-x-1/2 z-50"
+            className="absolute left-1/2 bottom-16 md:bottom-28 -translate-x-1/2 z-50"
           >
             <Button
               data-testid="scroll-to-bottom-button"
-              className="rounded-full"
+              className="rounded-full shadow-lg"
               size="icon"
               variant="outline"
               onClick={(event) => {
@@ -244,7 +246,7 @@ function PureMultimodalInput({
       {(attachments.length > 0 || uploadQueue.length > 0) && (
         <div
           data-testid="attachments-preview"
-          className="flex flex-row gap-2 overflow-x-scroll items-end"
+          className="flex flex-row gap-2 overflow-x-scroll items-end pb-2 px-1"
         >
           {attachments.map((attachment) => (
             <PreviewAttachment key={attachment.url} attachment={attachment} />
@@ -270,8 +272,10 @@ function PureMultimodalInput({
         placeholder="Send a message..."
         value={input}
         onChange={handleInput}
+        onClick={onInputClick}
+        onFocus={onInputClick}
         className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
+          'min-h-[40px] max-h-[120px] md:max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 md:pb-10 pr-12 md:pr-10 pl-10 md:pl-10 dark:border-zinc-700',
           className,
         )}
         rows={2}
@@ -294,11 +298,11 @@ function PureMultimodalInput({
         disabled={disabled}
       />
 
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+      <div className="absolute bottom-0 p-1.5 md:p-2 w-fit flex flex-row justify-start">
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
       </div>
 
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+      <div className="absolute bottom-0 right-0 p-1.5 md:p-2 w-fit flex flex-row justify-end">
         {status === 'submitted' ? (
           <StopButton stop={stop} setMessages={setMessages} />
         ) : (

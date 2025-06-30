@@ -35,10 +35,12 @@ import {
   SidebarHeader,
   SidebarMenu,
   useSidebar,
-  SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+
+// Flag para controlar se a lógica de limites está ativa
+const ENABLE_MESSAGE_LIMITS = false;
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -52,7 +54,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     new Set(),
   );
   const [folderChats, setFolderChats] = useState<Record<string, any[]>>({});
-  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [messagesUsed, setMessagesUsed] = useState<number>(0);
+  const [messagesLimit, setMessagesLimit] = useState<number>(0);
 
   const colors = [
     'bg-blue-500',
@@ -71,17 +74,63 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   }, [user]);
 
   useEffect(() => {
-    async function fetchPlan() {
-      try {
-        const res = await fetch('/api/user/permissions');
-        if (res.ok) {
-          const data = await res.json();
-          setUserPlan(data.plan);
-        }
-      } catch {}
+    if (ENABLE_MESSAGE_LIMITS) {
+      async function fetchPlan() {
+        try {
+          const res = await fetch('/api/user/permissions');
+          if (res.ok) {
+            const data = await res.json();
+            setMessagesUsed(data.messagesUsed || 0);
+            setMessagesLimit(data.messagesLimit || 0);
+          }
+        } catch {}
+      }
+      fetchPlan();
     }
-    fetchPlan();
   }, []);
+
+  // Atualizar contador de mensagens periodicamente (DESABILITADO)
+  useEffect(() => {
+    if (ENABLE_MESSAGE_LIMITS) {
+      const interval = setInterval(async () => {
+        if (user) {
+          try {
+            const res = await fetch('/api/user/permissions');
+            if (res.ok) {
+              const data = await res.json();
+              setMessagesUsed(data.messagesUsed || 0);
+            }
+          } catch {}
+        }
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Listener para atualizar contador quando mensagem for enviada (DESABILITADO)
+  useEffect(() => {
+    if (ENABLE_MESSAGE_LIMITS) {
+      const refreshMessageCount = async () => {
+        if (user) {
+          try {
+            const res = await fetch('/api/user/permissions');
+            if (res.ok) {
+              const data = await res.json();
+              setMessagesUsed(data.messagesUsed || 0);
+            }
+          } catch {}
+        }
+      };
+
+      // Escutar evento personalizado
+      window.addEventListener('messagesSent', refreshMessageCount);
+
+      return () => {
+        window.removeEventListener('messagesSent', refreshMessageCount);
+      };
+    }
+  }, [user]);
 
   const loadFolders = async () => {
     try {
@@ -501,30 +550,26 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         {state === 'expanded' && <SidebarHistory user={user} />}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenuButton
-          type="button"
-          className="w-full mb-2 bg-muted text-foreground border border-muted-foreground/20 hover:bg-muted/80 transition-colors cursor-pointer"
-          onClick={() => {
-            window.location.href = '/pricing';
-          }}
-          title="Gerenciar plano"
-        >
-          <span className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted-foreground/20 text-muted-foreground text-xs font-bold">
-              {userPlan === 'guest'
-                ? 'G'
-                : userPlan === 'free'
-                  ? 'F'
-                  : userPlan === 'pro'
-                    ? 'P'
-                    : 'P'}
-            </span>
-            {userPlan === 'guest' && 'Usuário Convidado'}
-            {userPlan === 'free' && 'Plano Free'}
-            {userPlan === 'pro' && 'Plano Pro'}
-            {!userPlan && 'Pricing'}
-          </span>
-        </SidebarMenuButton>
+        {/* Contador de mensagens (DESABILITADO) */}
+        {ENABLE_MESSAGE_LIMITS &&
+          messagesLimit &&
+          messagesLimit !== Number.POSITIVE_INFINITY && (
+            <div className="px-2 py-1 mb-2 text-xs text-muted-foreground text-center">
+              <div className="flex items-center justify-center gap-1">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    messagesUsed >= messagesLimit
+                      ? 'bg-destructive'
+                      : 'bg-primary'
+                  }`}
+                />
+                <span>
+                  Mensagens: {messagesUsed}/{messagesLimit}
+                </span>
+              </div>
+            </div>
+          )}
+
         {user && <SidebarUserNav user={user} />}
       </SidebarFooter>
     </Sidebar>

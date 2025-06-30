@@ -37,6 +37,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+// Flag para controlar se a lógica de limites está ativa
+const ENABLE_MESSAGE_LIMITS = false;
+
 function ChatInner({
   id,
   initialMessages,
@@ -133,13 +136,58 @@ function ChatInner({
   const [messagesLimit, setMessagesLimit] = useState<number | null>(null);
   const [userPlan, setUserPlan] = useState<string | null>(null);
 
-  // Intercepta erros do append para detectar limite
+  // Intercepta mensagens para verificar limite ANTES de enviar
   const customAppend: typeof append = async (message, chatRequestOptions) => {
+    // Verificação proativa de limite ANTES de enviar (DESABILITADA)
+    if (ENABLE_MESSAGE_LIMITS) {
+      // Buscar dados atualizados para ter certeza do limite atual
+      try {
+        const res = await fetch('/api/user/permissions');
+        if (res.ok) {
+          const data = await res.json();
+          const currentUsed = data.messagesSent || 0;
+          let currentLimit = 10;
+          if (data.plan === 'guest') currentLimit = 3;
+          if (data.plan === 'pro') currentLimit = Number.POSITIVE_INFINITY;
+
+          // Verificar se já atingiu o limite
+          if (
+            currentUsed >= currentLimit &&
+            currentLimit !== Number.POSITIVE_INFINITY
+          ) {
+            console.log('🚫 Limite atingido - bloqueando envio:', {
+              currentUsed,
+              currentLimit,
+              plan: data.plan,
+            });
+
+            // Bloquear e mostrar popup
+            setLimitInfo({ plan: data.plan, maxMessages: currentLimit });
+            setLimitModalOpen(true);
+            setInputBlocked(true);
+            setMessagesUsed(currentUsed);
+            setMessagesLimit(currentLimit);
+
+            // Atualizar sidebar também
+            window.dispatchEvent(new CustomEvent('messagesSent'));
+
+            return null; // NÃO enviar a mensagem
+          }
+
+          // Atualizar estados com dados mais recentes
+          setMessagesUsed(currentUsed);
+          setMessagesLimit(currentLimit);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar limite:', error);
+      }
+    }
+
     try {
       return await append(message, chatRequestOptions);
     } catch (err: any) {
       console.log('Erro no customAppend:', err);
-      if (err instanceof Response) {
+      if (ENABLE_MESSAGE_LIMITS && err instanceof Response) {
         try {
           const data = await err.json();
           if (data?.error === 'limit_reached') {
@@ -190,78 +238,111 @@ function ChatInner({
     setMessages,
   });
 
-  // Checar limite ao montar
+  // Checar limite ao montar (DESABILITADO)
   useEffect(() => {
-    async function checkLimitOnMount() {
-      try {
-        const res = await fetch('/api/user/permissions');
-        if (res.ok) {
-          const data = await res.json();
-          let maxMessages = 10;
-          if (data.plan === 'guest') maxMessages = 3;
-          if (data.plan === 'pro') maxMessages = Number.POSITIVE_INFINITY;
-          setMessagesUsed(data.messagesSent ?? 0);
-          setMessagesLimit(data.plan === 'guest' ? 3 : maxMessages);
-          if (data.messagesSent >= (data.plan === 'guest' ? 3 : maxMessages)) {
-            setLimitInfo({
-              plan: data.plan,
-              maxMessages: data.plan === 'guest' ? 3 : maxMessages,
-            });
-            setLimitModalOpen(true);
-            setInputBlocked(true);
+    if (ENABLE_MESSAGE_LIMITS) {
+      async function checkLimitOnMount() {
+        try {
+          const res = await fetch('/api/user/permissions');
+          if (res.ok) {
+            const data = await res.json();
+            let maxMessages = 10;
+            if (data.plan === 'guest') maxMessages = 3;
+            if (data.plan === 'pro') maxMessages = Number.POSITIVE_INFINITY;
+
+            const currentUsed = data.messagesSent ?? 0;
+
+            setMessagesUsed(currentUsed);
+            setMessagesLimit(maxMessages);
+            setUserPlan(data.plan);
+
+            // Verificar se já atingiu o limite e bloquear input SILENCIOSAMENTE
+            if (
+              currentUsed >= maxMessages &&
+              maxMessages !== Number.POSITIVE_INFINITY
+            ) {
+              console.log(
+                '🚫 Limite já atingido ao carregar chat (bloqueando silenciosamente):',
+                {
+                  currentUsed,
+                  maxMessages,
+                  plan: data.plan,
+                },
+              );
+
+              setLimitInfo({
+                plan: data.plan,
+                maxMessages: maxMessages,
+              });
+              setInputBlocked(true);
+              // NÃO abrir modal automaticamente - apenas ao interagir
+            }
           }
+        } catch (error) {
+          console.error('Erro ao verificar limite inicial:', error);
         }
-      } catch {}
+      }
+      checkLimitOnMount();
     }
-    checkLimitOnMount();
   }, []);
 
-  // Atualizar contador ao enviar mensagem com sucesso
+  // Atualizar contador ao enviar mensagem com sucesso (DESABILITADO)
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+    if (
+      ENABLE_MESSAGE_LIMITS &&
+      messages.length > 0 &&
+      messages[messages.length - 1].role === 'user'
+    ) {
       // Buscar do backend o valor atualizado
       fetch('/api/user/permissions')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data) {
-            setMessagesUsed(data.messagesSent ?? 0);
+            const currentUsed = data.messagesSent ?? 0;
+            let currentLimit = 10;
+            if (data.plan === 'guest') currentLimit = 3;
+            if (data.plan === 'pro') currentLimit = Number.POSITIVE_INFINITY;
+
+            setMessagesUsed(currentUsed);
+            setMessagesLimit(currentLimit);
+
+            // Verificar se atingiu o limite após envio - bloquear silenciosamente
+            if (
+              currentUsed >= currentLimit &&
+              currentLimit !== Number.POSITIVE_INFINITY
+            ) {
+              console.log(
+                '🚫 Limite atingido após envio - bloqueando silenciosamente',
+              );
+              setLimitInfo({ plan: data.plan, maxMessages: currentLimit });
+              setInputBlocked(true);
+              // NÃO mostrar modal automaticamente - apenas na próxima interação
+            }
+
+            // Disparar evento para atualizar sidebar
+            window.dispatchEvent(new CustomEvent('messagesSent'));
           }
         });
     }
   }, [messages]);
 
-  // Garante que o modal será exibido sempre que o input for bloqueado e houver info de limite
-  useEffect(() => {
+  // Função para mostrar popup quando usuário tentar interagir com input bloqueado
+  const handleBlockedInputInteraction = () => {
     if (inputBlocked && limitInfo) {
+      console.log(
+        '👆 Usuário tentou interagir com input bloqueado - mostrando popup',
+      );
       setLimitModalOpen(true);
     }
-  }, [inputBlocked, limitInfo]);
-
-  // Forçar modal para guest ou free sempre que input estiver bloqueado e plano for guest ou free
-  useEffect(() => {
-    if (inputBlocked && (userPlan === 'guest' || userPlan === 'free')) {
-      setLimitModalOpen(true);
-    }
-  }, [inputBlocked, userPlan]);
-
-  // Buscar plano do usuário ao montar
-  useEffect(() => {
-    async function fetchPlan() {
-      try {
-        const res = await fetch('/api/user/permissions');
-        if (res.ok) {
-          const data = await res.json();
-          setUserPlan(data.plan);
-        }
-      } catch {}
-    }
-    fetchPlan();
-  }, []);
+  };
 
   return (
     <div>
-      {/* Modal de Limite de Mensagens */}
-      <Dialog open={limitModalOpen} onOpenChange={setLimitModalOpen}>
+      {/* Modal de Limite de Mensagens (DESABILITADO) */}
+      <Dialog
+        open={ENABLE_MESSAGE_LIMITS && limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Limite de mensagens atingido</DialogTitle>
@@ -317,13 +398,7 @@ function ChatInner({
         </DialogContent>
       </Dialog>
       {/* Fim do Modal */}
-      <div className="flex flex-col min-w-0 h-dvh bg-background">
-        {/* Contador de mensagens */}
-        {messagesLimit && messagesLimit !== Number.POSITIVE_INFINITY && (
-          <div className="w-full text-right pr-4 pt-2 text-xs text-muted-foreground">
-            Mensagens usadas: {messagesUsed ?? 0}/{messagesLimit}
-          </div>
-        )}
+      <div className="flex flex-col min-w-0 h-dvh md:h-dvh bg-background">
         <ChatHeader
           chatId={id}
           selectedModelId={initialChatModel}
@@ -348,51 +423,54 @@ function ChatInner({
           selectedCompanionId={selectedCompanionId}
         />
 
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {!isReadonly &&
-            (inputBlocked ? (
-              <Tooltip className="relative w-full">
-                <TooltipTrigger asChild className="w-full">
-                  <MultimodalInput
-                    className="w-full"
-                    chatId={id}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    status={status}
-                    stop={stop}
-                    attachments={attachments}
-                    setAttachments={setAttachments}
-                    messages={messages}
-                    setMessages={setMessages}
-                    append={customAppend}
-                    selectedVisibilityType={visibilityType}
-                    disabled={true}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  Limite de mensagens atingido. Assine o plano Pro para
-                  continuar.
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <MultimodalInput
-                chatId={id}
-                input={input}
-                setInput={setInput}
-                handleSubmit={handleSubmit}
-                status={status}
-                stop={stop}
-                attachments={attachments}
-                setAttachments={setAttachments}
-                messages={messages}
-                setMessages={setMessages}
-                append={customAppend}
-                selectedVisibilityType={visibilityType}
-                disabled={false}
-              />
-            ))}
-        </form>
+        <div className="flex-shrink-0">
+          <form className="flex mx-auto px-2 md:px-4 bg-background pb-4 md:pb-4 pt-2 md:pt-0 gap-2 w-full md:max-w-3xl">
+            {!isReadonly &&
+              (ENABLE_MESSAGE_LIMITS && inputBlocked ? (
+                <Tooltip className="relative w-full">
+                  <TooltipTrigger asChild className="w-full">
+                    <MultimodalInput
+                      className="w-full"
+                      chatId={id}
+                      input={input}
+                      setInput={setInput}
+                      handleSubmit={handleSubmit}
+                      status={status}
+                      stop={stop}
+                      attachments={attachments}
+                      setAttachments={setAttachments}
+                      messages={messages}
+                      setMessages={setMessages}
+                      append={customAppend}
+                      selectedVisibilityType={visibilityType}
+                      disabled={true}
+                      onInputClick={handleBlockedInputInteraction}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Limite de mensagens atingido. Assine o plano Pro para
+                    continuar.
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <MultimodalInput
+                  chatId={id}
+                  input={input}
+                  setInput={setInput}
+                  handleSubmit={handleSubmit}
+                  status={status}
+                  stop={stop}
+                  attachments={attachments}
+                  setAttachments={setAttachments}
+                  messages={messages}
+                  setMessages={setMessages}
+                  append={customAppend}
+                  selectedVisibilityType={visibilityType}
+                  disabled={false}
+                />
+              ))}
+          </form>
+        </div>
       </div>
 
       <Artifact

@@ -6,7 +6,6 @@ import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import React from 'react';
 
 import {
@@ -34,20 +33,6 @@ export function SidebarUserNav({ user }: { user: User }) {
   const { state } = useSidebar();
 
   const isGuest = guestRegex.test(data?.user?.email ?? '');
-  const [userPlan, setUserPlan] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    async function fetchPlan() {
-      try {
-        const res = await fetch('/api/user/permissions');
-        if (res.ok) {
-          const data = await res.json();
-          setUserPlan(data.plan);
-        }
-      } catch {}
-    }
-    fetchPlan();
-  }, []);
 
   return (
     <SidebarMenu>
@@ -81,28 +66,11 @@ export function SidebarUserNav({ user }: { user: User }) {
                 {state === 'expanded' && (
                   <>
                     <div className="flex flex-col items-start flex-1 min-w-0">
-                      {userPlan === 'pro' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            window.location.href = '/pricing';
-                          }}
-                          className="focus:outline-none mb-1"
-                          title="Gerenciar plano"
-                        >
-                          <Badge
-                            variant="default"
-                            className="px-3 py-1 text-xs cursor-pointer"
-                          >
-                            Plano Pro
-                          </Badge>
-                        </button>
-                      )}
                       <span
                         data-testid="user-email"
                         className="truncate text-sm"
                       >
-                        {isGuest ? 'Guest' : user?.email}
+                        {isGuest ? 'Usuário Convidado' : user?.email}
                       </span>
                       {isGuest && (
                         <span className="text-[10px] text-muted-foreground/50 truncate w-full font-mono leading-tight">
@@ -132,6 +100,13 @@ export function SidebarUserNav({ user }: { user: User }) {
               onSelect={() => router.push('/preferences')}
             >
               ⚙️ Preferências
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-pricing"
+              className="cursor-pointer"
+              onSelect={() => router.push('/pricing')}
+            >
+              💎 Gerenciar Plano
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
