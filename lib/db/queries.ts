@@ -29,6 +29,11 @@ import {
 import { generateHashedPassword, generateUUID } from './utils';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { ChatSDKError } from '../errors';
+import {
+  GUEST_ORGANIZATION_ID,
+  DEFAULT_ORGANIZATION_ID,
+  SYSTEM_USER_ID,
+} from '@/lib/constants';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -87,11 +92,13 @@ export async function saveChat({
   userId,
   title,
   visibility,
+  organizationId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
+  organizationId: string;
 }) {
   try {
     return await db.insert(chat).values({
@@ -100,8 +107,10 @@ export async function saveChat({
       userId,
       title,
       visibility,
+      organizationId,
     });
   } catch (error) {
+    console.error('❌ Erro ao salvar chat:', error);
     throw new ChatSDKError('bad_request:database', 'Failed to save chat');
   }
 }
@@ -203,9 +212,25 @@ export async function getChatsByUserId({
 
 export async function getChatById({ id }: { id: string }) {
   try {
+    console.log(`🔍 DEBUG: Buscando chat com ID: ${id}`);
     const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
+
+    if (!selectedChat) {
+      console.log(`⚠️ DEBUG: Chat ${id} não encontrado no banco`);
+      return null;
+    }
+
+    console.log(`✅ DEBUG: Chat ${id} encontrado:`, {
+      id: selectedChat.id,
+      title: selectedChat.title,
+      userId: selectedChat.userId,
+      organizationId: selectedChat.organizationId,
+      visibility: selectedChat.visibility,
+    });
+
     return selectedChat;
   } catch (error) {
+    console.error(`❌ DEBUG: Erro ao buscar chat ${id}:`, error);
     throw new ChatSDKError('bad_request:database', 'Failed to get chat by id');
   }
 }
@@ -532,15 +557,18 @@ export async function getMessageCountByUserId({
 export async function createStreamId({
   streamId,
   chatId,
+  organizationId,
 }: {
   streamId: string;
   chatId: string;
+  organizationId: string;
 }) {
   try {
     await db
       .insert(stream)
-      .values({ id: streamId, chatId, createdAt: new Date() });
+      .values({ id: streamId, chatId, organizationId, createdAt: new Date() });
   } catch (error) {
+    console.error('❌ Erro ao criar stream ID:', error);
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to create stream id',
@@ -1608,5 +1636,182 @@ export async function incrementUserMessagesSent(userId: string): Promise<void> {
       'bad_request:database',
       'Failed to increment user messagesSent',
     );
+  }
+}
+
+export async function ensureGuestOrganization(): Promise<string> {
+  const guestOrgId = GUEST_ORGANIZATION_ID;
+
+  try {
+    // Check if guest org exists
+    const [existingOrg] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.id, guestOrgId));
+
+    if (existingOrg) {
+      return guestOrgId;
+    }
+
+    // Create guest org if it doesn't exist
+    await db
+      .insert(organization)
+      .values({
+        id: guestOrgId,
+        name: 'Guest Organization',
+        description: 'Organização padrão para usuários guest e temporários',
+        tenantConfig: {
+          timezone: 'America/Sao_Paulo',
+          language: 'pt-BR',
+          llm_provider: 'azure-openai',
+          default_model: 'gpt-4o',
+        },
+        values: [],
+        teams: [],
+        positions: [],
+        orgUsers: [],
+        userId: SYSTEM_USER_ID,
+      })
+      .onConflictDoNothing();
+
+    return guestOrgId;
+  } catch (error) {
+    console.error('Error ensuring guest organization:', error);
+    return guestOrgId; // Return ID even if creation fails
+  }
+}
+
+export async function ensureDefaultOrganization(): Promise<string> {
+  const defaultOrgId = DEFAULT_ORGANIZATION_ID;
+
+  try {
+    // Check if default org exists
+    const [existingOrg] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.id, defaultOrgId));
+
+    if (existingOrg) {
+      return defaultOrgId;
+    }
+
+    // Create default org if it doesn't exist
+    await db
+      .insert(organization)
+      .values({
+        id: defaultOrgId,
+        name: 'Organização Padrão',
+        description:
+          'Organização padrão para usuários cadastrados que não possuem organização específica',
+        tenantConfig: {
+          timezone: 'America/Sao_Paulo',
+          language: 'pt-BR',
+          llm_provider: 'azure-openai',
+          default_model: 'gpt-4o',
+        },
+        values: [
+          {
+            name: 'Colaboração',
+            description: 'Trabalhar em equipe de forma eficiente',
+          },
+          { name: 'Inovação', description: 'Buscar sempre novas soluções' },
+          {
+            name: 'Qualidade',
+            description: 'Entregar o melhor resultado possível',
+          },
+        ],
+        teams: [
+          {
+            id: 'general',
+            name: 'Geral',
+            description: 'Equipe geral da organização',
+          },
+        ],
+        positions: [
+          {
+            id: 'member',
+            name: 'Membro',
+            description: 'Membro da organização',
+          },
+          {
+            id: 'admin',
+            name: 'Administrador',
+            description: 'Administrador da organização',
+          },
+        ],
+        orgUsers: [],
+        userId: SYSTEM_USER_ID,
+      })
+      .onConflictDoNothing();
+
+    return defaultOrgId;
+  } catch (error) {
+    console.error('Error ensuring default organization:', error);
+    return defaultOrgId; // Return ID even if creation fails
+  }
+}
+
+export async function getOrganizationForUser(
+  userId: string,
+  userType: 'guest' | 'regular' | 'free' | 'pro',
+  currentOrgId?: string | null,
+): Promise<string> {
+  try {
+    // 1. Se já tem uma organização válida no contexto, usa ela
+    if (
+      currentOrgId &&
+      currentOrgId !== GUEST_ORGANIZATION_ID &&
+      currentOrgId !== DEFAULT_ORGANIZATION_ID
+    ) {
+      const [org] = await db
+        .select()
+        .from(organization)
+        .where(eq(organization.id, currentOrgId));
+
+      if (org) {
+        console.log(
+          `✅ Usuário ${userId} usando organização específica: ${currentOrgId}`,
+        );
+        return currentOrgId;
+      }
+    }
+
+    // 2. Usuários guest sempre usam organização guest
+    if (userType === 'guest') {
+      const guestOrgId = await ensureGuestOrganization();
+      console.log(
+        `👥 Usuário guest ${userId} usando organização guest: ${guestOrgId}`,
+      );
+      return guestOrgId;
+    }
+
+    // 3. Verificar se usuário tem suas próprias organizações
+    const userOrganizations = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.userId, userId))
+      .limit(1);
+
+    if (userOrganizations.length > 0) {
+      console.log(
+        `🏢 Usuário ${userId} usando sua própria organização: ${userOrganizations[0].id}`,
+      );
+      return userOrganizations[0].id;
+    }
+
+    // 4. Usuários cadastrados sem organização específica usam organização padrão
+    const defaultOrgId = await ensureDefaultOrganization();
+    console.log(
+      `🏛️ Usuário cadastrado ${userId} usando organização padrão: ${defaultOrgId}`,
+    );
+    return defaultOrgId;
+  } catch (error) {
+    console.error('Error getting organization for user:', error);
+    // Fallback: guest users -> guest org, others -> default org
+    if (userType === 'guest') {
+      return await ensureGuestOrganization();
+    } else {
+      return await ensureDefaultOrganization();
+    }
   }
 }

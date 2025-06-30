@@ -11,3 +11,18 @@ export const isTestEnvironment = Boolean(
 export const guestRegex = /^guest-\d+$/;
 
 export const DUMMY_PASSWORD = generateDummyPassword();
+
+// ============================================================================
+// ORGANIZAÇÕES PADRÃO - IDs FIXOS
+// ============================================================================
+
+export const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000001';
+export const GUEST_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000002';
+export const DEFAULT_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000003';
+
+// Mapa para facilitar uso
+export const ORGANIZATION_IDS = {
+  SYSTEM_USER: SYSTEM_USER_ID,
+  GUEST: GUEST_ORGANIZATION_ID,
+  DEFAULT: DEFAULT_ORGANIZATION_ID,
+} as const;

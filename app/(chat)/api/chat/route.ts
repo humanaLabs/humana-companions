@@ -20,6 +20,7 @@ import {
   getActiveMcpServersByUserId,
   getUserPlanAndMessagesSent,
   incrementUserMessagesSent,
+  getOrganizationForUser,
 } from '@/lib/db/queries';
 import { generateUUID, getTrailingMessageId } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
@@ -42,7 +43,6 @@ import {
   type ResumableStreamContext,
 } from 'resumable-stream';
 import { after } from 'next/server';
-import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
 import { companionToSystemPrompt } from '@/lib/ai/companion-prompt';
@@ -142,11 +142,20 @@ export async function POST(request: Request) {
         message,
       });
 
+      // Get organization ID from middleware headers - use appropriate org based on user type
+      const organizationId = await getOrganizationId();
+      const finalOrgId = await getOrganizationForUser(
+        session.user.id,
+        session.user.type || userType,
+        organizationId,
+      );
+
       await saveChat({
         id,
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
+        organizationId: finalOrgId,
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -171,8 +180,13 @@ export async function POST(request: Request) {
       country,
     };
 
-    // Get organization ID from middleware headers
+    // Get organization ID from middleware headers - use appropriate org based on user type (already done above)
     const organizationId = await getOrganizationId();
+    const finalOrgId = await getOrganizationForUser(
+      session.user.id,
+      session.user.type || userType,
+      organizationId,
+    );
 
     await saveMessages({
       messages: [
@@ -182,14 +196,14 @@ export async function POST(request: Request) {
           role: 'user',
           parts: message.parts,
           attachments: message.experimental_attachments ?? [],
-          organizationId,
+          organizationId: finalOrgId,
           createdAt: new Date(),
         },
       ],
     });
 
     const streamId = generateUUID();
-    await createStreamId({ streamId, chatId: id });
+    await createStreamId({ streamId, chatId: id, organizationId: finalOrgId });
 
     const stream = createDataStream({
       execute: async (dataStream) => {
@@ -484,7 +498,7 @@ export async function POST(request: Request) {
                       parts: assistantMessage.parts,
                       attachments:
                         assistantMessage.experimental_attachments ?? [],
-                      organizationId,
+                      organizationId: finalOrgId,
                       createdAt: new Date(),
                     },
                   ],
@@ -539,78 +553,76 @@ export async function GET(request: Request) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
-  let chat: Chat;
-
   try {
-    chat = await getChatById({ id: chatId });
+    const chat = await getChatById({ id: chatId });
+
+    if (!chat) {
+      return new ChatSDKError('not_found:chat').toResponse();
+    }
+
+    if (chat.visibility === 'private' && chat.userId !== session.user.id) {
+      return new ChatSDKError('forbidden:chat').toResponse();
+    }
+
+    const streamIds = await getStreamIdsByChatId({ chatId });
+
+    if (!streamIds.length) {
+      return new ChatSDKError('not_found:stream').toResponse();
+    }
+
+    const recentStreamId = streamIds.at(-1);
+
+    if (!recentStreamId) {
+      return new ChatSDKError('not_found:stream').toResponse();
+    }
+
+    const emptyDataStream = createDataStream({
+      execute: () => {},
+    });
+
+    const stream = await streamContext.resumableStream(
+      recentStreamId,
+      () => emptyDataStream,
+    );
+
+    /*
+     * For when the generation is streaming during SSR
+     * but the resumable stream has concluded at this point.
+     */
+    if (!stream) {
+      const messages = await getMessagesByChatId({ id: chatId });
+      const mostRecentMessage = messages.at(-1);
+
+      if (!mostRecentMessage) {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+
+      if (mostRecentMessage.role !== 'assistant') {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+
+      const messageCreatedAt = new Date(mostRecentMessage.createdAt);
+
+      if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
+        return new Response(emptyDataStream, { status: 200 });
+      }
+
+      const restoredStream = createDataStream({
+        execute: (buffer) => {
+          buffer.writeData({
+            type: 'append-message',
+            message: JSON.stringify(mostRecentMessage),
+          });
+        },
+      });
+
+      return new Response(restoredStream, { status: 200 });
+    }
+
+    return new Response(stream, { status: 200 });
   } catch {
     return new ChatSDKError('not_found:chat').toResponse();
   }
-
-  if (!chat) {
-    return new ChatSDKError('not_found:chat').toResponse();
-  }
-
-  if (chat.visibility === 'private' && chat.userId !== session.user.id) {
-    return new ChatSDKError('forbidden:chat').toResponse();
-  }
-
-  const streamIds = await getStreamIdsByChatId({ chatId });
-
-  if (!streamIds.length) {
-    return new ChatSDKError('not_found:stream').toResponse();
-  }
-
-  const recentStreamId = streamIds.at(-1);
-
-  if (!recentStreamId) {
-    return new ChatSDKError('not_found:stream').toResponse();
-  }
-
-  const emptyDataStream = createDataStream({
-    execute: () => {},
-  });
-
-  const stream = await streamContext.resumableStream(
-    recentStreamId,
-    () => emptyDataStream,
-  );
-
-  /*
-   * For when the generation is streaming during SSR
-   * but the resumable stream has concluded at this point.
-   */
-  if (!stream) {
-    const messages = await getMessagesByChatId({ id: chatId });
-    const mostRecentMessage = messages.at(-1);
-
-    if (!mostRecentMessage) {
-      return new Response(emptyDataStream, { status: 200 });
-    }
-
-    if (mostRecentMessage.role !== 'assistant') {
-      return new Response(emptyDataStream, { status: 200 });
-    }
-
-    const messageCreatedAt = new Date(mostRecentMessage.createdAt);
-
-    if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
-      return new Response(emptyDataStream, { status: 200 });
-    }
-
-    const restoredStream = createDataStream({
-      execute: (buffer) => {
-        buffer.writeData({
-          type: 'append-message',
-          message: JSON.stringify(mostRecentMessage),
-        });
-      },
-    });
-
-    return new Response(restoredStream, { status: 200 });
-  }
-
-  return new Response(stream, { status: 200 });
 }
 
 export async function DELETE(request: Request) {
@@ -628,6 +640,10 @@ export async function DELETE(request: Request) {
   }
 
   const chat = await getChatById({ id });
+
+  if (!chat) {
+    return new ChatSDKError('not_found:chat').toResponse();
+  }
 
   if (chat.userId !== session.user.id) {
     return new ChatSDKError('forbidden:chat').toResponse();
