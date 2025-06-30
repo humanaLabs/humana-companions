@@ -10,7 +10,7 @@ import { SubmitButton } from '@/components/submit-button';
 import { Button } from '@/components/ui/button';
 
 import { login, type LoginActionState } from '../actions';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
 // Componente que usa useSearchParams
 function LoginContent() {
@@ -30,16 +30,17 @@ function LoginContent() {
 
   const { data: session, update: updateSession, status } = useSession();
 
-  // Se o usuário já está logado como usuário regular, redirecionar para home
+  // Se o usuário já está logado, redirecionar para home
   useEffect(() => {
     const handleAuthenticatedUser = async () => {
-      if (
-        status === 'authenticated' &&
-        session?.user &&
-        !session.user.email?.includes('guest-')
-      ) {
+      if (status === 'authenticated' && session?.user?.id) {
         const callbackUrl = searchParams?.get('callbackUrl') || '/';
+        console.log(
+          '🔄 Usuário autenticado, redirecionando para:',
+          callbackUrl,
+        );
         router.push(callbackUrl);
+        router.refresh(); // Force refresh para garantir que o middleware reconheça
       }
     };
 
@@ -51,7 +52,20 @@ function LoginContent() {
       if (state.status === 'success' && !isSuccessful) {
         setIsSuccessful(true);
         toast({ type: 'success', description: 'Login realizado com sucesso!' });
+
+        // Force update session and redirect
         await updateSession();
+
+        // Wait a bit for session to update then redirect
+        setTimeout(() => {
+          const callbackUrl = searchParams?.get('callbackUrl') || '/';
+          console.log(
+            '🔄 Login bem-sucedido, redirecionando para:',
+            callbackUrl,
+          );
+          router.push(callbackUrl);
+          router.refresh();
+        }, 500);
       } else if (state.status === 'failed') {
         toast({ type: 'error', description: 'Falha ao fazer login!' });
       } else if (state.status === 'invalid_data') {
@@ -63,7 +77,7 @@ function LoginContent() {
     };
 
     handleLoginState();
-  }, [state, isSuccessful, updateSession]);
+  }, [state, isSuccessful, updateSession, router, searchParams]);
 
   const handleSubmit = async (formData: FormData) => {
     if (isSuccessful) return; // Previne múltiplos submits

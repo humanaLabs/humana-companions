@@ -50,11 +50,6 @@ export async function tenantMiddleware(
     const token = await getToken({
       req: request,
       secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-      secureCookie: process.env.NODE_ENV === 'production',
-      salt:
-        process.env.NODE_ENV === 'production'
-          ? 'authjs.session-token'
-          : 'next-auth.session-token',
     });
 
     // Log token status for debugging in development
