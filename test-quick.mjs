@@ -1,11 +1,9 @@
+import { extractOrganizationFromPath, validateOrganizationAccess, tenantConfig } from './middleware/tenant.ts';
+
 console.log('🧪 Quick Middleware Test\n');
 
-async function testBasicFunctions() {
+function testBasicFunctions() {
   try {
-    // Import functions
-    const { extractOrganizationFromPath, validateOrganizationAccess, tenantConfig } = 
-      await import('./middleware/tenant.ts');
-    
     console.log('✅ Import successful');
     
     // Test 1: Path extraction
@@ -57,20 +55,22 @@ async function testBasicFunctions() {
     
   } catch (error) {
     console.error('💥 Test failed:', error.message);
+    console.error('📋 Full error:', error);
     return false;
   }
 }
 
-testBasicFunctions().then(success => {
-  if (success) {
-    console.log('\n🎉 Basic middleware tests PASSED!');
-    console.log('\n📋 Next Steps:');
-    console.log('  ✓ Helper functions working');
-    console.log('  ✓ Configuration correct');
-    console.log('  → Ready to integrate with main middleware.ts');
-    process.exit(0);
-  } else {
-    console.log('\n🚨 Tests FAILED!');
-    process.exit(1);
-  }
-}); 
+const success = testBasicFunctions();
+
+if (success) {
+  console.log('\n🎉 Basic middleware tests PASSED!');
+  console.log('\n📋 Results: 4/4 passed');
+  console.log('  ✓ Path extraction working');
+  console.log('  ✓ Access validation secure');
+  console.log('  ✓ Configuration correct');
+  console.log('  → Ready for full integration tests');
+  process.exit(0);
+} else {
+  console.log('\n🚨 Tests FAILED!');
+  process.exit(1);
+} 

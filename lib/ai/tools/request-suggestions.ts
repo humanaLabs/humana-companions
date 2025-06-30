@@ -4,6 +4,7 @@ import { DataStreamWriter, streamObject, tool } from 'ai';
 import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import { Suggestion } from '@/lib/db/schema';
 import { generateUUID } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/tenant-context';
 import { myProvider } from '../providers';
 
 interface RequestSuggestionsProps {
@@ -23,7 +24,12 @@ export const requestSuggestions = ({
         .describe('The ID of the document to request edits'),
     }),
     execute: async ({ documentId }) => {
-      const document = await getDocumentById({ id: documentId });
+      const organizationId = await getOrganizationId();
+      if (!organizationId) {
+        return { error: 'Organization context required' };
+      }
+
+      const document = await getDocumentById({ id: documentId, organizationId });
 
       if (!document || !document.content) {
         return {
@@ -88,3 +94,6 @@ export const requestSuggestions = ({
       };
     },
   });
+
+
+
