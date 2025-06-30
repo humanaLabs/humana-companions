@@ -2,461 +2,325 @@
 
 **Data:** 30-1-2025  
 **Versão:** 1.0  
-**Status:** Guia de Implementação  
+**Status:** Blueprint Funcional  
 
 ---
 
 ## 🎯 **VISÃO GERAL**
 
-Arquitetura em camadas com isolamento de responsabilidades e multi-tenancy nativo.
+Plataforma de companheiros inteligentes com arquitetura modular focada na experiência do usuário e capacidades de negócio.
 
 ---
 
-## 📐 **CAMADAS DE RESPONSABILIDADE**
+## 🏛️ **CAMADAS FUNCIONAIS DA PLATAFORMA**
 
 ```
-┌─────────────────────┐
-│   API Routes        │ ← HTTP/REST interface
-├─────────────────────┤
-│   Application       │ ← Use cases e orchestration
-├─────────────────────┤
-│   Domain Services   │ ← Business logic
-├─────────────────────┤
-│   Repository        │ ← Data access abstraction
-├─────────────────────┤
-│   Infrastructure    │ ← External services (DB, LLM, Storage)
-└─────────────────────┘
-```
-
-### **🔄 Fluxo de Dados**
-```
-Request → Middleware → Route → Application → Domain → Repository → Infrastructure
-```
-
----
-
-## 🏛️ **COMPONENTES PRINCIPAIS**
-
-### **1. API Layer**
-```typescript
-// app/api/chat/route.ts
-export async function POST(request: Request) {
-  const { organizationId } = await getSession(request);
-  const body = await request.json();
-  
-  const result = await chatApplication.createChat({
-    ...body,
-    organizationId
-  });
-  
-  return Response.json(result);
-}
-```
-
-### **2. Application Layer**
-```typescript
-// lib/application/chat-application.ts
-export class ChatApplication {
-  constructor(
-    private chatService: ChatService,
-    private quotaService: QuotaService
-  ) {}
-  
-  async createChat(request: CreateChatRequest) {
-    // Orchestrate use case
-    await this.quotaService.checkQuota(request.userId);
-    const chat = await this.chatService.create(request);
-    await this.quotaService.incrementUsage(request.userId);
-    return chat;
-  }
-}
-```
-
-### **3. Domain Services**
-```typescript
-// lib/domain/chat-service.ts
-export class ChatService {
-  constructor(
-    private chatRepo: ChatRepository,
-    private aiProvider: AIProvider
-  ) {}
-  
-  async create(request: CreateChatRequest): Promise<Chat> {
-    // Business logic only
-    const chat = this.buildChat(request);
-    this.validateChat(chat);
-    return this.chatRepo.save(chat);
-  }
-}
-```
-
-### **4. Repository Layer**
-```typescript
-// lib/repository/chat-repository.ts
-export class ChatRepository {
-  async save(chat: Chat): Promise<Chat> {
-    return db.insert(chats).values({
-      ...chat,
-      organizationId: chat.organizationId // Always isolated
-    });
-  }
-  
-  async findByUser(userId: string, organizationId: string) {
-    return db.select().from(chats)
-      .where(and(
-        eq(chats.userId, userId),
-        eq(chats.organizationId, organizationId) // Tenant isolation
-      ));
-  }
-}
-```
-
-### **5. Infrastructure Layer**
-```typescript
-// lib/infrastructure/openai-provider.ts
-export class OpenAIProvider implements AIProvider {
-  async generateResponse(messages: Message[]): Promise<string> {
-    // External service integration
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages
-    });
-    return response.choices[0].message.content;
-  }
-}
+┌─────────────────────────────────────────────────────────────┐
+│                    INTERFACE DO USUÁRIO                     │
+│              Web App • Mobile • Desktop                     │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                  FUNCIONALIDADES CORE                      │
+│        Chat • Companions • Data Room • University          │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                    CAMADA DE INTELIGÊNCIA                   │
+│           AI Processing • Analytics • Insights             │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                 GESTÃO E ADMINISTRAÇÃO                     │
+│         Organizations • Users • Permissions • Billing       │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                INTEGRAÇÕES E EXTENSIBILIDADE                │
+│            APIs • MCP Tools • BYOC • Marketplace           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔐 **ISOLAMENTO MULTI-TENANT**
+## 👥 **PERSONAS E JORNADAS DE USUÁRIO**
 
-### **Tenant Boundary**
-```typescript
-interface TenantContext {
-  organizationId: string;  // ÚNICO isolamento necessário
-  userId: string;         // Owner dos recursos
-}
+### **🧑‍💼 End User (Colaborador)**
 ```
+Acessa → Conversa com Companions → Consulta Data Room → Aprende na University
+```
+**Valor:** Produtividade e conhecimento instantâneo
 
-### **Middleware de Tenant**
-```typescript
-// middleware.ts
-export function middleware(request: NextRequest) {
-  const session = getSession(request);
-  
-  // Inject tenant context
-  request.headers.set('x-organization-id', session.organizationId);
-  request.headers.set('x-user-id', session.userId);
-}
+### **👨‍💻 Admin (Gestor de TI)**
 ```
+Configura → Gerencia usuários → Define permissões → Monitora uso
+```
+**Valor:** Controle e governança organizacional
 
-### **Repository Base**
-```typescript
-abstract class TenantRepository<T> {
-  protected addTenantFilter(query: any, organizationId: string) {
-    return query.where(eq(this.table.organizationId, organizationId));
-  }
-  
-  // All queries auto-filtered by organizationId
-}
+### **🏢 Organization (Empresa)**
 ```
+Contrata → Integra sistemas → Customiza → Escala uso
+```
+**Valor:** ROI e transformação digital
 
 ---
 
-## 🎛️ **CONFIGURAÇÕES HIERÁRQUICAS**
+## 🎭 **FUNCIONALIDADES POR CAMADA**
 
-### **Níveis de Config**
-```
-Global (System) 
-  ↓
-Organization (Per-tenant)
-  ↓  
-User (Per-user)
-  ↓
-Runtime (Dynamic)
-```
+### **1. 🖥️ INTERFACE DO USUÁRIO**
+**O que o usuário vê e usa:**
 
-### **Config Resolution**
-```typescript
-class ConfigService {
-  async get<T>(path: string, context: TenantContext): Promise<T> {
-    // 1. Check user config
-    const userConfig = await this.getUserConfig(context.userId, path);
-    if (userConfig) return userConfig;
-    
-    // 2. Check org config  
-    const orgConfig = await this.getOrgConfig(context.organizationId, path);
-    if (orgConfig) return orgConfig;
-    
-    // 3. Fall back to global
-    return this.getGlobalConfig(path);
-  }
-}
-```
+#### **Web Application**
+- **Chat Interface**: Conversas naturais com companions
+- **Data Room**: Navegação e busca de documentos
+- **University**: Módulos de aprendizado interativo
+- **Studio**: Criação de companions personalizados
+- **Dashboard**: Visão geral de atividades
 
----
+#### **Mobile Experience**
+- **Quick Chat**: Acesso rápido aos companions
+- **Voice Interface**: Conversas por voz
+- **Notifications**: Alertas e lembretes
+- **Offline Mode**: Funcionalidades básicas sem internet
 
-## 🔌 **PROVIDER SYSTEM**
+### **2. 🎯 FUNCIONALIDADES CORE**
 
-### **Provider Abstraction**
-```typescript
-interface AIProvider {
-  generateResponse(input: AIRequest): Promise<AIResponse>;
-  listModels(): Promise<Model[]>;
-}
+#### **💬 Intelligent Chat**
+**Capacidades:**
+- Conversas contextuais multi-turn
+- Suporte a múltiplos idiomas
+- Histórico e continuação de sessões
+- Compartilhamento de conversas
 
-interface StorageProvider {
-  upload(file: File, path: string): Promise<string>;
-  download(path: string): Promise<Buffer>;
-}
+**Valor de Negócio:**
+- Redução de 70% no tempo de busca por informações
+- Aumento de 40% na produtividade diária
 
-interface DatabaseProvider {
-  query<T>(sql: string, params: any[]): Promise<T[]>;
-}
-```
+#### **🤖 Companions (Assistentes Especializados)**
+**Tipos de Companions:**
+- **Companion Super Hero**: Generalista para qualquer tarefa
+- **Document Specialist**: Expert em análise documental
+- **Code Assistant**: Suporte a desenvolvimento
+- **Business Analyst**: Análise de dados e insights
+- **Learning Coach**: Tutor personalizado
 
-### **Provider Factory**
-```typescript
-class ProviderFactory {
-  createAIProvider(config: AIConfig): AIProvider {
-    switch (config.provider) {
-      case 'openai': return new OpenAIProvider(config);
-      case 'azure': return new AzureProvider(config);
-      case 'anthropic': return new AnthropicProvider(config);
-    }
-  }
-}
-```
+**Valor de Negócio:**
+- Especialização instantânea em qualquer área
+- Onboarding 60% mais rápido
 
----
+#### **📚 Data Room (Centro de Conhecimento)**
+**Funcionalidades:**
+- Upload e organização de documentos
+- Busca semântica inteligente
+- Análise automática de conteúdo
+- Extração de insights
+- Controle de acesso granular
 
-## 📊 **ESTRUTURA DE DIRETÓRIOS**
+**Valor de Negócio:**
+- Democratização do conhecimento organizacional
+- Redução de 80% no tempo de encontrar informações
 
-```
-lib/
-├── application/           # Use cases & orchestration
-│   ├── chat-application.ts
-│   ├── document-application.ts
-│   └── companion-application.ts
-│
-├── domain/               # Business logic
-│   ├── services/
-│   │   ├── chat-service.ts
-│   │   ├── document-service.ts
-│   │   └── companion-service.ts
-│   └── models/
-│       ├── chat.ts
-│       ├── document.ts
-│       └── companion.ts
-│
-├── repository/           # Data access
-│   ├── chat-repository.ts
-│   ├── document-repository.ts
-│   └── companion-repository.ts
-│
-├── infrastructure/       # External services
-│   ├── providers/
-│   │   ├── openai-provider.ts
-│   │   ├── azure-provider.ts
-│   │   └── s3-provider.ts
-│   └── config/
-│       ├── database.ts
-│       └── providers.ts
-│
-└── shared/              # Cross-cutting
-    ├── types.ts
-    ├── errors.ts
-    └── utils.ts
-```
+#### **🎓 University (Aprendizado Contínuo)**
+**Módulos:**
+- Cursos adaptativos personalizados
+- Trilhas de aprendizado por cargo
+- Avaliações inteligentes
+- Certificações internas
+- Gamificação e engajamento
 
----
+**Valor de Negócio:**
+- Upskilling contínuo da equipe
+- ROI mensurável em capacitação
 
-## 🚀 **FLUXOS PRINCIPAIS**
+### **3. 🧠 CAMADA DE INTELIGÊNCIA**
 
-### **1. Chat Creation**
-```
-POST /api/chat
-  ↓
-Middleware (extract organizationId)
-  ↓
-Route Handler
-  ↓
-ChatApplication.createChat()
-  ↓
-QuotaService.checkQuota() + ChatService.create()
-  ↓
-ChatRepository.save()
-  ↓
-Database (with organizationId filter)
-```
+#### **AI Processing Engine**
+**Capacidades Inteligentes:**
+- **Natural Language Understanding**: Compreensão contextual
+- **Document Intelligence**: Extração e síntese automática
+- **Predictive Analytics**: Antecipação de necessidades
+- **Adaptive Learning**: Melhoria contínua por uso
 
-### **2. Document Processing**
-```
-POST /api/documents
-  ↓
-Middleware (tenant context)
-  ↓
-DocumentApplication.processDocument()
-  ↓
-DocumentService.extract() + EmbeddingService.generate()
-  ↓
-DocumentRepository.save() + VectorRepository.store()
-  ↓
-Storage + Vector Database
-```
+#### **Business Intelligence**
+**Insights Automáticos:**
+- Padrões de uso organizacional
+- Identificação de gaps de conhecimento
+- Sugestões de otimização
+- Alertas proativos
 
-### **3. Companion Response**
-```
-POST /api/companions/{id}/chat
-  ↓
-CompanionApplication.generateResponse()
-  ↓
-CompanionService.loadContext() + AIProvider.generate()
-  ↓
-MessageRepository.save()
-  ↓
-Stream Response
-```
+### **4. 🏛️ GESTÃO E ADMINISTRAÇÃO**
+
+#### **Organization Management**
+**Capacidades Administrativas:**
+- Multi-tenancy nativo
+- Hierarquias organizacionais flexíveis
+- Políticas de uso personalizáveis
+- Auditoria completa de atividades
+
+#### **User & Permissions**
+**Controle de Acesso:**
+- RBAC (Role-Based Access Control)
+- Single Sign-On (SSO)
+- Gestão de quotas individuais
+- Aprovações e workflows
+
+#### **Billing & Usage**
+**Transparência Financeira:**
+- Tracking de uso por usuário/departamento
+- Relatórios de ROI
+- Otimização de custos
+- Previsões de consumo
+
+### **5. 🔌 INTEGRAÇÕES E EXTENSIBILIDADE**
+
+#### **Enterprise Integrations**
+**Conectividade:**
+- **Microsoft 365**: SharePoint, Teams, Outlook
+- **Google Workspace**: Drive, Gmail, Calendar
+- **Slack**: Notificações e comandos
+- **Salesforce**: CRM e dados de clientes
+- **SAP**: ERP e dados financeiros
+
+#### **MCP Tools Ecosystem**
+**Ferramentas Extensíveis:**
+- Weather & Location Services
+- Code Analysis & Generation
+- Document Processing
+- Web Search & Research
+- Custom Business Tools
+
+#### **BYOC (Bring Your Own Cloud)**
+**Flexibilidade Total:**
+- **AI Providers**: OpenAI, Azure, Anthropic
+- **Storage**: S3, Azure Blob, Google Cloud
+- **Database**: PostgreSQL, MySQL, Oracle
+- **Deployment**: AWS, Azure, GCP, On-Premise
 
 ---
 
-## ⚙️ **DEPENDENCY INJECTION**
+## 🎯 **CASOS DE USO POR INDÚSTRIA**
 
-### **Service Container**
-```typescript
-// lib/di/container.ts
-export class ServiceContainer {
-  register<T>(key: string, factory: () => T): void;
-  resolve<T>(key: string): T;
-}
+### **🏥 Healthcare**
+- **Companion Médico**: Suporte a diagnósticos
+- **Data Room**: Protocolos e guidelines
+- **University**: Educação médica continuada
 
-// Setup
-container.register('chatRepo', () => new ChatRepository(db));
-container.register('aiProvider', () => new OpenAIProvider(config));
-container.register('chatService', () => 
-  new ChatService(
-    container.resolve('chatRepo'),
-    container.resolve('aiProvider')
-  )
-);
-```
+### **🏛️ Government**
+- **Companion Jurídico**: Análise de regulamentações
+- **Data Room**: Base legal centralizada
+- **University**: Capacitação de servidores
 
-### **Provider Registration**
-```typescript
-// Per-organization providers
-function registerProviders(container: Container, organizationId: string) {
-  const config = getOrgConfig(organizationId);
-  
-  container.register(`aiProvider:${organizationId}`, () =>
-    providerFactory.createAIProvider(config.ai)
-  );
-  
-  container.register(`storageProvider:${organizationId}`, () =>
-    providerFactory.createStorageProvider(config.storage)
-  );
-}
-```
+### **🏭 Manufacturing**
+- **Companion Técnico**: Suporte operacional
+- **Data Room**: Manuais e procedimentos
+- **University**: Treinamento de segurança
+
+### **💼 Financial Services**
+- **Companion Financeiro**: Análise de risco
+- **Data Room**: Compliance e regulamentações
+- **University**: Certificações financeiras
 
 ---
 
-## 🔍 **PADRÕES DE IMPLEMENTAÇÃO**
+## 📊 **MÉTRICAS DE VALOR**
 
-### **1. Repository Pattern**
-```typescript
-interface Repository<T> {
-  findById(id: string, organizationId: string): Promise<T | null>;
-  findMany(filter: Filter, organizationId: string): Promise<T[]>;
-  save(entity: T): Promise<T>;
-  delete(id: string, organizationId: string): Promise<void>;
-}
-```
+### **Produtividade**
+- ⏱️ **70% redução** no tempo de busca por informações
+- 📈 **40% aumento** na produtividade diária
+- 🚀 **60% acelerar** onboarding de novos funcionários
 
-### **2. Service Pattern**
-```typescript
-abstract class DomainService {
-  constructor(protected organizationId: string) {}
-  
-  protected async validateAccess(userId: string, resourceId: string) {
-    // Permission checking
-  }
-  
-  protected async applyBusinessRules<T>(entity: T): Promise<T> {
-    // Business logic
-  }
-}
-```
+### **Conhecimento**
+- 📚 **90% democratização** do conhecimento organizacional
+- 🎓 **80% melhoria** em programas de capacitação
+- 💡 **50% aumento** em inovação e insights
 
-### **3. Application Pattern**
-```typescript
-abstract class ApplicationService {
-  protected async executeUseCase<T>(
-    operation: () => Promise<T>
-  ): Promise<T> {
-    // Cross-cutting concerns: logging, monitoring, etc.
-    try {
-      return await operation();
-    } catch (error) {
-      this.handleError(error);
-      throw error;
-    }
-  }
-}
-```
+### **Operacional**
+- 💰 **35% redução** em custos operacionais
+- 🤖 **80% automação** de tarefas repetitivas
+- 📋 **95% compliance** em processos auditáveis
 
 ---
 
-## ✅ **CHECKLIST DE IMPLEMENTAÇÃO**
+## 🚀 **ROADMAP FUNCIONAL**
 
-### **API Layer**
-- [ ] Routes isoladas por tenant
-- [ ] Middleware de autenticação
-- [ ] Validação de input
-- [ ] Error handling consistente
+### **FASE 1: Foundation (MVP)**
+**Funcionalidades Essenciais:**
+- ✅ Chat básico com Companion Super Hero
+- ✅ Upload e busca de documentos
+- ✅ Gestão básica de usuários
+- ✅ Integração com provedor AI principal
 
-### **Application Layer**
-- [ ] Use cases bem definidos
-- [ ] Orchestração de serviços
-- [ ] Transaction management
-- [ ] Logging e monitoring
+### **FASE 2: Intelligence (Expansion)**
+**Capacidades Avançadas:**
+- 🔄 Companions especializados
+- 🔄 Analytics e insights automáticos
+- 🔄 University com módulos adaptativos
+- 🔄 Integrações empresariais básicas
 
-### **Domain Layer**
-- [ ] Business logic isolada
-- [ ] Validações de domínio
-- [ ] Invariantes garantidas
-- [ ] Testes unitários
+### **FASE 3: Ecosystem (Scale)**
+**Plataforma Completa:**
+- 📋 MCP Tools marketplace
+- 📋 BYOC completo
+- 📋 Studio de criação de companions
+- 📋 APIs públicas para desenvolvedores
 
-### **Repository Layer**
-- [ ] Abstração de dados
-- [ ] Filtros de tenant automáticos
-- [ ] Query optimization
-- [ ] Connection pooling
-
-### **Infrastructure Layer**
-- [ ] Provider abstraction
-- [ ] Configuration management
-- [ ] Health checks
-- [ ] Fallback strategies
+### **FASE 4: Innovation (Future)**
+**Próxima Geração:**
+- 🔮 Companions com reasoning avançado
+- 🔮 Predição proativa de necessidades
+- 🔮 Automação workflow end-to-end
+- 🔮 Realidade aumentada integrada
 
 ---
 
-## 🎯 **PRÓXIMOS PASSOS**
+## 💼 **MODELOS DE NEGÓCIO**
 
-### **Fase 1: Base Architecture**
-1. Implementar camadas básicas
-2. Setup dependency injection
-3. Configurar tenant isolation
-4. Testes de integração
+### **🆓 Freemium**
+- Companion básico ilimitado
+- 5GB storage no Data Room
+- Acesso limitado à University
+- Suporte por comunidade
 
-### **Fase 2: Provider System**
-1. Abstrair providers externos
-2. Implementar BYOC
-3. Configuration management
-4. Health monitoring
+### **💼 Professional**
+- Companions especializados
+- 100GB storage + analytics
+- University completa
+- Integrações básicas
+- Suporte prioritário
 
-### **Fase 3: Advanced Features**
-1. Caching strategies
-2. Event system
-3. Background jobs
-4. Performance optimization
+### **🏢 Enterprise**
+- Companions ilimitados + customização
+- Storage ilimitado + auditoria
+- University + certificações personalizadas
+- Todas as integrações + BYOC
+- Suporte dedicado + SLA
 
-**🎯 Resultado:** Arquitetura robusta, testável e escalável com isolamento perfeito por tenant. 
+### **🌐 Marketplace**
+- Revenue share em MCP Tools
+- Companions premium criados pela comunidade
+- Templates e módulos especializados
+- Consultoria e implementação
+
+---
+
+## 🎯 **PROPOSTA DE VALOR ÚNICA**
+
+### **Para o Usuário Final**
+**"Seu companheiro inteligente que conhece tudo da sua empresa"**
+- Respostas instantâneas e precisas
+- Aprendizado contínuo e personalizado
+- Produtividade sem precedentes
+
+### **Para a Organização**
+**"Plataforma que transforma conhecimento em vantagem competitiva"**
+- Democratização do conhecimento
+- ROI mensurável e transparente
+- Escalabilidade sem limites
+
+### **Para o Mercado**
+**"Ecosystem aberto que evolui com suas necessidades"**
+- Integrações ilimitadas
+- Customização total
+- Comunidade ativa de desenvolvedores
+
+**🎯 Resultado:** Uma plataforma que transforma como as organizações criam, compartilham e utilizam conhecimento para gerar valor de negócio. 
