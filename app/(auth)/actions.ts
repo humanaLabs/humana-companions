@@ -28,20 +28,32 @@ export const login = async (
       password: formData.get('password'),
     });
 
+    console.log('🔐 Tentando login para:', validatedData.email);
+
     const result = await signIn('credentials', {
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
+      redirectTo: '/', // Redirecionar automaticamente para home
     });
 
-    if (result?.error) {
-      return { status: 'failed' };
-    }
+    console.log('✅ Resultado do signIn:', result);
 
-    return { status: 'success' };
+    // Se chegou até aqui sem redirecionamento, houve erro
+    return { status: 'failed' };
   } catch (error) {
+    console.error('❌ Erro no login:', error);
+
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
+    }
+
+    // Se o erro é de redirecionamento do NextAuth, é sucesso
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = error.message as string;
+      if (message.includes('NEXT_REDIRECT') || message.includes('redirect')) {
+        console.log('✅ Login bem-sucedido - redirecionamento detectado');
+        return { status: 'success' };
+      }
     }
 
     return { status: 'failed' };
@@ -68,22 +80,41 @@ export const register = async (
       password: formData.get('password'),
     });
 
+    console.log('👤 Tentando registrar:', validatedData.email);
+
     const [user] = await getUser(validatedData.email);
 
     if (user) {
+      console.log('❌ Usuário já existe:', validatedData.email);
       return { status: 'user_exists' } as RegisterActionState;
     }
+
     await createUser(validatedData.email, validatedData.password);
+    console.log('✅ Usuário criado:', validatedData.email);
+
+    // Fazer login automático após registro
     await signIn('credentials', {
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
+      redirectTo: '/', // Redirecionar automaticamente para home
     });
 
+    console.log('✅ Login automático após registro realizado');
     return { status: 'success' };
   } catch (error) {
+    console.error('❌ Erro no registro:', error);
+
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
+    }
+
+    // Se o erro é de redirecionamento do NextAuth, é sucesso
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = error.message as string;
+      if (message.includes('NEXT_REDIRECT') || message.includes('redirect')) {
+        console.log('✅ Registro bem-sucedido - redirecionamento detectado');
+        return { status: 'success' };
+      }
     }
 
     return { status: 'failed' };

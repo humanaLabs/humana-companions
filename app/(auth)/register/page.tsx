@@ -36,14 +36,18 @@ export default function Page() {
         type: 'error',
         description: 'Dados inválidos!',
       });
-    } else if (state.status === 'success') {
+    } else if (state.status === 'success' && !isSuccessful) {
       toast({ type: 'success', description: 'Conta criada com sucesso!' });
-
       setIsSuccessful(true);
-      updateSession();
-      router.refresh();
+
+      // O NextAuth deve ter redirecionado automaticamente após o registro
+      // Se não redirecionou, force o redirect para home
+      setTimeout(() => {
+        console.log('🔄 Forçando redirecionamento após registro para home');
+        window.location.href = '/';
+      }, 1000);
     }
-  }, [state]);
+  }, [state, isSuccessful]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get('email') as string);

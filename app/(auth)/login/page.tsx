@@ -39,13 +39,12 @@ function LoginContent() {
           '🔄 Usuário autenticado, redirecionando para:',
           callbackUrl,
         );
-        router.push(callbackUrl);
-        router.refresh(); // Force refresh para garantir que o middleware reconheça
+        window.location.href = callbackUrl; // Force navigation
       }
     };
 
     handleAuthenticatedUser();
-  }, [status, session, router, searchParams]);
+  }, [status, session, searchParams]);
 
   useEffect(() => {
     const handleLoginState = async () => {
@@ -53,19 +52,13 @@ function LoginContent() {
         setIsSuccessful(true);
         toast({ type: 'success', description: 'Login realizado com sucesso!' });
 
-        // Force update session and redirect
-        await updateSession();
-
-        // Wait a bit for session to update then redirect
+        // O NextAuth deve ter redirecionado automaticamente
+        // Se não redirecionou, force o redirect
         setTimeout(() => {
           const callbackUrl = searchParams?.get('callbackUrl') || '/';
-          console.log(
-            '🔄 Login bem-sucedido, redirecionando para:',
-            callbackUrl,
-          );
-          router.push(callbackUrl);
-          router.refresh();
-        }, 500);
+          console.log('🔄 Forçando redirecionamento para:', callbackUrl);
+          window.location.href = callbackUrl;
+        }, 1000);
       } else if (state.status === 'failed') {
         toast({ type: 'error', description: 'Falha ao fazer login!' });
       } else if (state.status === 'invalid_data') {
@@ -77,7 +70,7 @@ function LoginContent() {
     };
 
     handleLoginState();
-  }, [state, isSuccessful, updateSession, router, searchParams]);
+  }, [state, isSuccessful, searchParams]);
 
   const handleSubmit = async (formData: FormData) => {
     if (isSuccessful) return; // Previne múltiplos submits
