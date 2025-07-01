@@ -22,7 +22,10 @@ export async function GET(request: Request) {
 
   const organizationId = await getOrganizationId();
   if (!organizationId) {
-    return new ChatSDKError('forbidden:vote', 'Organization context required').toResponse();
+    return new ChatSDKError(
+      'forbidden:vote',
+      'Organization context required',
+    ).toResponse();
   }
 
   const chat = await getChatById({ id: chatId, organizationId });
@@ -63,7 +66,10 @@ export async function PATCH(request: Request) {
 
   const organizationId = await getOrganizationId();
   if (!organizationId) {
-    return new ChatSDKError('forbidden:vote', 'Organization context required').toResponse();
+    return new ChatSDKError(
+      'forbidden:vote',
+      'Organization context required',
+    ).toResponse();
   }
 
   const chat = await getChatById({ id: chatId, organizationId });

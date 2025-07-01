@@ -210,10 +210,24 @@ export async function getChatsByUserId({
   }
 }
 
-export async function getChatById({ id }: { id: string }) {
+export async function getChatById({
+  id,
+  organizationId,
+}: {
+  id: string;
+  organizationId?: string;
+}) {
   try {
-    console.log(`🔍 DEBUG: Buscando chat com ID: ${id}`);
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
+    console.log(
+      `🔍 DEBUG: Buscando chat com ID: ${id}`,
+      organizationId ? `e orgId: ${organizationId}` : '',
+    );
+
+    const whereCondition = organizationId
+      ? and(eq(chat.id, id), eq(chat.organizationId, organizationId))
+      : eq(chat.id, id);
+
+    const [selectedChat] = await db.select().from(chat).where(whereCondition);
 
     if (!selectedChat) {
       console.log(`⚠️ DEBUG: Chat ${id} não encontrado no banco`);
@@ -247,12 +261,20 @@ export async function saveMessages({
   }
 }
 
-export async function getMessagesByChatId({ id }: { id: string }) {
+export async function getMessagesByChatId({
+  id,
+  organizationId,
+}: {
+  id: string;
+  organizationId: string;
+}) {
   try {
     return await db
       .select()
       .from(message)
-      .where(eq(message.chatId, id))
+      .where(
+        and(eq(message.chatId, id), eq(message.organizationId, organizationId)),
+      )
       .orderBy(asc(message.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -266,36 +288,59 @@ export async function voteMessage({
   chatId,
   messageId,
   type,
+  organizationId,
 }: {
   chatId: string;
   messageId: string;
   type: 'up' | 'down';
+  organizationId: string;
 }) {
   try {
     const [existingVote] = await db
       .select()
       .from(vote)
-      .where(and(eq(vote.messageId, messageId)));
+      .where(
+        and(
+          eq(vote.messageId, messageId),
+          eq(vote.organizationId, organizationId),
+        ),
+      );
 
     if (existingVote) {
       return await db
         .update(vote)
         .set({ isUpvoted: type === 'up' })
-        .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
+        .where(
+          and(
+            eq(vote.messageId, messageId),
+            eq(vote.chatId, chatId),
+            eq(vote.organizationId, organizationId),
+          ),
+        );
     }
     return await db.insert(vote).values({
       chatId,
       messageId,
       isUpvoted: type === 'up',
+      organizationId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to vote message');
   }
 }
 
-export async function getVotesByChatId({ id }: { id: string }) {
+export async function getVotesByChatId({
+  id,
+  organizationId,
+}: {
+  id: string;
+  organizationId: string;
+}) {
   try {
-    return await db.select().from(vote).where(eq(vote.chatId, id));
+    return await db
+      .select()
+      .from(vote)
+      .where(and(eq(vote.chatId, id), eq(vote.organizationId, organizationId)));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -351,12 +396,20 @@ export async function getDocumentsById({ id }: { id: string }) {
   }
 }
 
-export async function getDocumentById({ id }: { id: string }) {
+export async function getDocumentById({
+  id,
+  organizationId,
+}: {
+  id: string;
+  organizationId: string;
+}) {
   try {
     const [selectedDocument] = await db
       .select()
       .from(document)
-      .where(eq(document.id, id))
+      .where(
+        and(eq(document.id, id), eq(document.organizationId, organizationId)),
+      )
       .orderBy(desc(document.createdAt));
 
     return selectedDocument;
@@ -414,14 +467,21 @@ export async function saveSuggestions({
 
 export async function getSuggestionsByDocumentId({
   documentId,
+  organizationId,
 }: {
   documentId: string;
+  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(suggestion)
-      .where(and(eq(suggestion.documentId, documentId)));
+      .where(
+        and(
+          eq(suggestion.documentId, documentId),
+          eq(suggestion.organizationId, organizationId),
+        ),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -430,9 +490,20 @@ export async function getSuggestionsByDocumentId({
   }
 }
 
-export async function getMessageById({ id }: { id: string }) {
+export async function getMessageById({
+  id,
+  organizationId,
+}: {
+  id: string;
+  organizationId: string;
+}) {
   try {
-    return await db.select().from(message).where(eq(message.id, id));
+    return await db
+      .select()
+      .from(message)
+      .where(
+        and(eq(message.id, id), eq(message.organizationId, organizationId)),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -444,16 +515,22 @@ export async function getMessageById({ id }: { id: string }) {
 export async function deleteMessagesByChatIdAfterTimestamp({
   chatId,
   timestamp,
+  organizationId,
 }: {
   chatId: string;
   timestamp: Date;
+  organizationId: string;
 }) {
   try {
     const messagesToDelete = await db
       .select({ id: message.id })
       .from(message)
       .where(
-        and(eq(message.chatId, chatId), gte(message.createdAt, timestamp)),
+        and(
+          eq(message.chatId, chatId),
+          gte(message.createdAt, timestamp),
+          eq(message.organizationId, organizationId),
+        ),
       );
 
     const messageIds = messagesToDelete.map((message) => message.id);
@@ -462,13 +539,21 @@ export async function deleteMessagesByChatIdAfterTimestamp({
       await db
         .delete(vote)
         .where(
-          and(eq(vote.chatId, chatId), inArray(vote.messageId, messageIds)),
+          and(
+            eq(vote.chatId, chatId),
+            inArray(vote.messageId, messageIds),
+            eq(vote.organizationId, organizationId),
+          ),
         );
 
       return await db
         .delete(message)
         .where(
-          and(eq(message.chatId, chatId), inArray(message.id, messageIds)),
+          and(
+            eq(message.chatId, chatId),
+            inArray(message.id, messageIds),
+            eq(message.organizationId, organizationId),
+          ),
         );
     }
   } catch (error) {
@@ -482,20 +567,34 @@ export async function deleteMessagesByChatIdAfterTimestamp({
 export async function deleteMessageById({
   messageId,
   chatId,
+  organizationId,
 }: {
   messageId: string;
   chatId: string;
+  organizationId: string;
 }) {
   try {
     // Primeiro, exclui os votos relacionados à mensagem
     await db
       .delete(vote)
-      .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
+      .where(
+        and(
+          eq(vote.messageId, messageId),
+          eq(vote.chatId, chatId),
+          eq(vote.organizationId, organizationId),
+        ),
+      );
 
     // Depois, exclui a mensagem
     return await db
       .delete(message)
-      .where(and(eq(message.id, messageId), eq(message.chatId, chatId)));
+      .where(
+        and(
+          eq(message.id, messageId),
+          eq(message.chatId, chatId),
+          eq(message.organizationId, organizationId),
+        ),
+      );
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',

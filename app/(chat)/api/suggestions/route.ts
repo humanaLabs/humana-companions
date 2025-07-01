@@ -22,7 +22,10 @@ export async function GET(request: Request) {
 
   const organizationId = await getOrganizationId();
   if (!organizationId) {
-    return new ChatSDKError('forbidden:suggestions', 'Organization context required').toResponse();
+    return new ChatSDKError(
+      'forbidden:suggestions',
+      'Organization context required',
+    ).toResponse();
   }
 
   const suggestions = await getSuggestionsByDocumentId({

@@ -1,6 +1,7 @@
 import { auth } from '@/app/(auth)/auth';
 import { deleteMessageById } from '@/lib/db/queries';
-import { NextRequest, NextResponse } from 'next/server';
+import { getOrganizationId } from '@/lib/tenant-context';
+import { type NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +11,7 @@ export async function DELETE(request: NextRequest) {
   if (!messageId || !chatId) {
     return NextResponse.json(
       { error: 'messageId e chatId são obrigatórios' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -19,14 +20,22 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: 'Contexto de organização obrigatório' },
+      { status: 403 },
+    );
+  }
+
   try {
-    await deleteMessageById({ messageId, chatId });
+    await deleteMessageById({ messageId, chatId, organizationId });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao excluir mensagem:', error);
     return NextResponse.json(
       { error: 'Falha ao excluir mensagem' },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

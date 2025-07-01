@@ -142,22 +142,25 @@ export async function POST(request: Request) {
 
     const organizationId = await getOrganizationId();
     if (!organizationId) {
-      return new ChatSDKError('forbidden:chat', 'Organization context required').toResponse();
+      return new ChatSDKError(
+        'forbidden:chat',
+        'Organization context required',
+      ).toResponse();
     }
-    const chat = await getChatById({ id, organizationId });
+
+    // Get appropriate org based on user type
+    const finalOrgId = await getOrganizationForUser(
+      session.user.id,
+      session.user.type || userType,
+      organizationId,
+    );
+
+    const chat = await getChatById({ id, organizationId: finalOrgId });
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
         message,
       });
-
-      // Get organization ID from middleware headers - use appropriate org based on user type
-      const organizationId = await getOrganizationId();
-      const finalOrgId = await getOrganizationForUser(
-        session.user.id,
-        session.user.type || userType,
-        organizationId,
-      );
 
       await saveChat({
         id,
@@ -172,7 +175,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const previousMessages = await getMessagesByChatId({ id, organizationId });
+    const previousMessages = await getMessagesByChatId({
+      id,
+      organizationId: finalOrgId,
+    });
 
     const messages = appendClientMessage({
       // @ts-expect-error: todo add type conversion from DBMessage[] to UIMessage[]
@@ -188,14 +194,6 @@ export async function POST(request: Request) {
       city,
       country,
     };
-
-    // Get organization ID from middleware headers - use appropriate org based on user type (already done above)
-    const organizationId = await getOrganizationId();
-    const finalOrgId = await getOrganizationForUser(
-      session.user.id,
-      session.user.type || userType,
-      organizationId,
-    );
 
     await saveMessages({
       messages: [
@@ -563,7 +561,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const chat = await getChatById({ id: chatId });
+    const organizationId = await getOrganizationId();
+    if (!organizationId) {
+      return new ChatSDKError(
+        'forbidden:chat',
+        'Organization context required',
+      ).toResponse();
+    }
+
+    const chat = await getChatById({ id: chatId, organizationId });
 
     if (!chat) {
       return new ChatSDKError('not_found:chat').toResponse();
@@ -599,7 +605,10 @@ export async function GET(request: Request) {
      * but the resumable stream has concluded at this point.
      */
     if (!stream) {
-      const messages = await getMessagesByChatId({ id: chatId });
+      const messages = await getMessagesByChatId({
+        id: chatId,
+        organizationId,
+      });
       const mostRecentMessage = messages.at(-1);
 
       if (!mostRecentMessage) {
@@ -649,10 +658,13 @@ export async function DELETE(request: Request) {
   }
 
   const organizationId = await getOrganizationId();
-    if (!organizationId) {
-      return new ChatSDKError('forbidden:chat', 'Organization context required').toResponse();
-    }
-    const chat = await getChatById({ id, organizationId });
+  if (!organizationId) {
+    return new ChatSDKError(
+      'forbidden:chat',
+      'Organization context required',
+    ).toResponse();
+  }
+  const chat = await getChatById({ id, organizationId });
 
   if (!chat) {
     return new ChatSDKError('not_found:chat').toResponse();
@@ -666,5 +678,3 @@ export async function DELETE(request: Request) {
 
   return Response.json(deletedChat, { status: 200 });
 }
-
-

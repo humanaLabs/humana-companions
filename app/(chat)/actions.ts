@@ -13,17 +13,6 @@ import { myProvider } from '@/lib/ai/providers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
 import { getOrganizationId } from '@/lib/tenant-context';
-import {
-  generateCompanionWithAI,
-  getChatById,
-  saveChat,
-  saveMessage,
-  saveChatModel,
-  deleteChatById,
-  getMessagesByChatId,
-  sendNotificationEmail,
-  ChatModelType,
-} from '@/lib/db/queries';
 
 export async function saveChatModelAsCookie(model: string) {
   const cookieStore = await cookies();
@@ -49,11 +38,17 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const [message] = await getMessageById({ id });
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    throw new Error('Organization context required');
+  }
+
+  const [message] = await getMessageById({ id, organizationId });
 
   await deleteMessagesByChatIdAfterTimestamp({
     chatId: message.chatId,
     timestamp: message.createdAt,
+    organizationId,
   });
 }
 
@@ -74,7 +69,12 @@ export async function deleteMessage({
   messageId: string;
   chatId: string;
 }) {
-  await deleteMessageById({ messageId, chatId });
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    throw new Error('Organization context required');
+  }
+
+  await deleteMessageById({ messageId, chatId, organizationId });
 }
 
 export async function getMessageByIdAction(id: string) {
@@ -93,4 +93,3 @@ export async function getMessageByIdAction(id: string) {
 
   return message;
 }
-
