@@ -24,7 +24,16 @@ export async function GET(request: Request) {
     return new ChatSDKError('unauthorized:document').toResponse();
   }
 
-  const documents = await getDocumentsById({ id });
+  // Get organizationId from middleware headers
+  const organizationId = request.headers.get('x-organization-id');
+  if (!organizationId) {
+    return new ChatSDKError(
+      'bad_request:api',
+      'Organization context missing',
+    ).toResponse();
+  }
+
+  const documents = await getDocumentsById({ id, organizationId });
 
   const [document] = documents;
 
@@ -56,6 +65,15 @@ export async function POST(request: Request) {
     return new ChatSDKError('not_found:document').toResponse();
   }
 
+  // Get organizationId from middleware headers
+  const organizationId = request.headers.get('x-organization-id');
+  if (!organizationId) {
+    return new ChatSDKError(
+      'bad_request:api',
+      'Organization context missing',
+    ).toResponse();
+  }
+
   const {
     content,
     title,
@@ -63,7 +81,7 @@ export async function POST(request: Request) {
   }: { content: string; title: string; kind: ArtifactKind } =
     await request.json();
 
-  const documents = await getDocumentsById({ id });
+  const documents = await getDocumentsById({ id, organizationId });
 
   if (documents.length > 0) {
     const [document] = documents;
@@ -109,7 +127,16 @@ export async function DELETE(request: Request) {
     return new ChatSDKError('unauthorized:document').toResponse();
   }
 
-  const documents = await getDocumentsById({ id });
+  // Get organizationId from middleware headers
+  const organizationId = request.headers.get('x-organization-id');
+  if (!organizationId) {
+    return new ChatSDKError(
+      'bad_request:api',
+      'Organization context missing',
+    ).toResponse();
+  }
+
+  const documents = await getDocumentsById({ id, organizationId });
 
   const [document] = documents;
 
@@ -120,6 +147,7 @@ export async function DELETE(request: Request) {
   const documentsDeleted = await deleteDocumentsByIdAfterTimestamp({
     id,
     timestamp: new Date(timestamp),
+    organizationId,
   });
 
   return Response.json(documentsDeleted, { status: 200 });

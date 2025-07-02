@@ -220,6 +220,7 @@ export async function POST(request: Request) {
           try {
             const companion = await getCompanionById({
               id: selectedCompanionId,
+              organizationId: finalOrgId,
             });
             if (companion && companion.userId === session.user.id) {
               companionInstruction = companionToSystemPrompt(companion);

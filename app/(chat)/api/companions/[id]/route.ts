@@ -13,9 +13,22 @@ export async function GET(
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
+  // Get organizationId from middleware headers
+  const organizationId = request.headers.get('x-organization-id');
+  
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: 'Organization context missing' },
+      { status: 400 }
+    );
+  }
+
   try {
     const resolvedParams = await params;
-    const companion = await getCompanionById({ id: resolvedParams.id });
+    const companion = await getCompanionById({ 
+      id: resolvedParams.id,
+      organizationId 
+    });
     
     if (!companion) {
       return NextResponse.json(

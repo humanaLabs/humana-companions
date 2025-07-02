@@ -23,8 +23,18 @@ export async function GET(request: NextRequest) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
+  // Get organizationId from middleware headers
+  const organizationId = request.headers.get('x-organization-id');
+  if (!organizationId) {
+    return new ChatSDKError(
+      'bad_request:api',
+      'Organization context missing',
+    ).toResponse();
+  }
+
   const chats = await getChatsByUserId({
     id: session.user.id,
+    organizationId,
     limit,
     startingAfter,
     endingBefore,

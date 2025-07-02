@@ -19,11 +19,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // Get organizationId from middleware headers
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = connectSchema.parse(body);
 
     // Buscar o servidor
-    const server = await getMcpServerById({ id: validatedData.serverId });
+    const server = await getMcpServerById({ 
+      id: validatedData.serverId,
+      organizationId 
+    });
     if (!server || server.userId !== session.user.id) {
       return NextResponse.json({ error: 'Servidor não encontrado' }, { status: 404 });
     }

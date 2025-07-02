@@ -136,11 +136,13 @@ export async function deleteChatById({ id }: { id: string }) {
 
 export async function getChatsByUserId({
   id,
+  organizationId,
   limit,
   startingAfter,
   endingBefore,
 }: {
   id: string;
+  organizationId: string;
   limit: number;
   startingAfter: string | null;
   endingBefore: string | null;
@@ -154,8 +156,15 @@ export async function getChatsByUserId({
         .from(chat)
         .where(
           whereCondition
-            ? (and(whereCondition, eq(chat.userId, id) as any) as any)
-            : (eq(chat.userId, id) as any),
+            ? (and(
+                whereCondition,
+                eq(chat.userId, id),
+                eq(chat.organizationId, organizationId)
+              ) as any)
+            : (and(
+                eq(chat.userId, id),
+                eq(chat.organizationId, organizationId)
+              ) as any),
         )
         .orderBy(desc(chat.createdAt) as any)
         .limit(extendedLimit);
@@ -166,7 +175,12 @@ export async function getChatsByUserId({
       const [selectedChat] = await db
         .select()
         .from(chat)
-        .where(eq(chat.id, startingAfter))
+        .where(
+          and(
+            eq(chat.id, startingAfter),
+            eq(chat.organizationId, organizationId)
+          )
+        )
         .limit(1);
 
       if (!selectedChat) {
@@ -181,7 +195,12 @@ export async function getChatsByUserId({
       const [selectedChat] = await db
         .select()
         .from(chat)
-        .where(eq(chat.id, endingBefore))
+        .where(
+          and(
+            eq(chat.id, endingBefore),
+            eq(chat.organizationId, organizationId)
+          )
+        )
         .limit(1);
 
       if (!selectedChat) {
@@ -215,7 +234,7 @@ export async function getChatById({
   organizationId,
 }: {
   id: string;
-  organizationId?: string;
+  organizationId: string;
 }) {
   try {
     console.log(
@@ -223,11 +242,10 @@ export async function getChatById({
       organizationId ? `e orgId: ${organizationId}` : '',
     );
 
-    const whereCondition = organizationId
-      ? and(eq(chat.id, id), eq(chat.organizationId, organizationId))
-      : eq(chat.id, id);
-
-    const [selectedChat] = await db.select().from(chat).where(whereCondition);
+    const [selectedChat] = await db
+      .select()
+      .from(chat)
+      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)));
 
     if (!selectedChat) {
       console.log(`⚠️ DEBUG: Chat ${id} não encontrado no banco`);
@@ -379,12 +397,23 @@ export async function saveDocument({
   }
 }
 
-export async function getDocumentsById({ id }: { id: string }) {
+export async function getDocumentsById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
     const documents = await db
       .select()
       .from(document)
-      .where(eq(document.id, id))
+      .where(
+        and(
+          eq(document.id, id),
+          eq(document.organizationId, organizationId)
+        )
+      )
       .orderBy(asc(document.createdAt));
 
     return documents;
@@ -424,9 +453,11 @@ export async function getDocumentById({
 export async function deleteDocumentsByIdAfterTimestamp({
   id,
   timestamp,
+  organizationId,
 }: {
   id: string;
   timestamp: Date;
+  organizationId: string;
 }) {
   try {
     await db
@@ -435,12 +466,19 @@ export async function deleteDocumentsByIdAfterTimestamp({
         and(
           eq(suggestion.documentId, id),
           gt(suggestion.documentCreatedAt, timestamp),
+          eq(suggestion.organizationId, organizationId)
         ),
       );
 
     return await db
       .delete(document)
-      .where(and(eq(document.id, id), gt(document.createdAt, timestamp)))
+      .where(
+        and(
+          eq(document.id, id), 
+          gt(document.createdAt, timestamp),
+          eq(document.organizationId, organizationId)
+        )
+      )
       .returning();
   } catch (error) {
     throw new ChatSDKError(
@@ -788,12 +826,23 @@ export async function getCompanionsByOrganizationId({
   }
 }
 
-export async function getCompanionById({ id }: { id: string }) {
+export async function getCompanionById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
     const [companionResult] = await db
       .select()
       .from(companion)
-      .where(eq(companion.id, id))
+      .where(
+        and(
+          eq(companion.id, id),
+          eq(companion.organizationId, organizationId)
+        )
+      )
       .limit(1);
 
     return companionResult;
@@ -964,12 +1013,23 @@ export async function getActiveMcpServersByUserId({
   }
 }
 
-export async function getMcpServerById({ id }: { id: string }) {
+export async function getMcpServerById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
     const [mcpServerResult] = await db
       .select()
       .from(mcpServer)
-      .where(eq(mcpServer.id, id))
+      .where(
+        and(
+          eq(mcpServer.id, id),
+          eq(mcpServer.organizationId, organizationId)
+        )
+      )
       .limit(1);
 
     return mcpServerResult;

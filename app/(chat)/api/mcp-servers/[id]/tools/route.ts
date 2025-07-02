@@ -25,7 +25,16 @@ export async function GET(
     }
 
     console.log(`🔍 Buscando servidor MCP com ID: ${id}`);
-    const mcpServer = await getMcpServerById({ id });
+    // Get organizationId from middleware headers
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+
+    const mcpServer = await getMcpServerById({ id, organizationId });
 
     if (!mcpServer) {
       console.log('❌ Servidor MCP não encontrado');

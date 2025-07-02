@@ -22,7 +22,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { serverId } = testMcpServerSchema.parse(body);
 
-    const mcpServer = await getMcpServerById({ id: serverId });
+    // Get organizationId from middleware headers
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+
+    const mcpServer = await getMcpServerById({ id: serverId, organizationId });
 
     if (!mcpServer) {
       return NextResponse.json(

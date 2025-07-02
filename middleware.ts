@@ -24,6 +24,14 @@ export async function middleware(request: NextRequest) {
     return await tenantMiddleware(request);
   }
 
+  // Apply tenant middleware to protected page routes that need organization context
+  const protectedPageRoutes = ['/chat/', '/companions', '/data-room', '/mcp-servers', '/organizations'];
+  const needsTenantContext = protectedPageRoutes.some(route => pathname.startsWith(route));
+  
+  if (needsTenantContext) {
+    return await tenantMiddleware(request);
+  }
+
   // Non-API routes - existing logic for auto-organization creation
   try {
     const token = await getToken({
