@@ -230,19 +230,25 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
                 {state === 'expanded' ? (
                   <Image
-                    src="/images/LogobrancoHumana.svg"
+                    src="/images/icone_branco-Humana.png"
                     alt="Humana AI"
-                    width={150}
-                    height={35}
+                    width={24}
+                    height={24}
                     priority
-                    style={{ objectFit: 'contain' }}
                     className="invert dark:invert-0"
+                    style={{ width: 'auto', height: '24px' }}
                   />
                 ) : (
                   <span className="text-xl font-bold">H</span>
                 )}
               </span>
             </Link>
+            
+            {state === 'expanded' && (
+              <span className="text-[12px] font-extralight text-muted-foreground tracking-wide flex-1 text-center">
+                reimagine humans
+              </span>
+            )}
             <div className="flex items-center gap-1">
               {state === 'expanded' && (
                 <Tooltip>
