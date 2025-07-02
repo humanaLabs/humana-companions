@@ -62,10 +62,61 @@ export default function BYOCProvidersPage() {
     try {
       setLoading(true);
       const response = await fetch('/api/admin/byoc-providers');
+      
+      if (!response.ok) {
+        console.error('API Error:', response.status, await response.text());
+        toast.error(`Erro ao carregar configurações: ${response.status}`);
+        return;
+      }
+
       const data = await response.json();
-      setConfig(data.config);
-      setHealthStatus(data.health);
+      
+      // 🔍 DEBUG: Log data structure
+      console.log('📊 API Response:', data);
+      
+      // Ensure we have proper structure with fallbacks
+      const llmConfig = data.configurations?.llm?.[0];
+      const storageConfig = data.configurations?.storage?.[0];
+      
+      console.log('🔍 LLM Config:', llmConfig);
+      console.log('🔍 Storage Config:', storageConfig);
+      
+      setConfig({
+        organizationId: data.organizationId || 'current-org',
+        llm: llmConfig ? {
+          type: llmConfig.providerName || llmConfig.type || 'azure',
+          enabled: llmConfig.enabled || false,
+          credentials: llmConfig.credentials || {},
+          settings: llmConfig.settings || {},
+          metadata: llmConfig.metadata || {}
+        } : undefined,
+        storage: storageConfig ? {
+          type: storageConfig.providerName || storageConfig.type || 'aws-s3',
+          enabled: storageConfig.enabled || false,
+          credentials: storageConfig.credentials || {},
+          settings: storageConfig.settings || {},
+          metadata: storageConfig.metadata || {}
+        } : undefined,
+        database: data.configurations?.database?.[0] ? {
+          type: data.configurations.database[0].providerName || 'postgresql',
+          enabled: data.configurations.database[0].enabled || false,
+          credentials: data.configurations.database[0].credentials || {},
+          settings: data.configurations.database[0].settings || {},
+          metadata: data.configurations.database[0].metadata || {}
+        } : undefined,
+        vector: data.configurations?.vector?.[0] ? {
+          type: data.configurations.vector[0].providerName || 'pinecone',
+          enabled: data.configurations.vector[0].enabled || false,
+          credentials: data.configurations.vector[0].credentials || {},
+          settings: data.configurations.vector[0].settings || {},
+          metadata: data.configurations.vector[0].metadata || {}
+        } : undefined,
+        email: data.configurations?.email?.[0] || undefined,
+      });
+      
+      setHealthStatus(data.health || {});
     } catch (error) {
+      console.error('Configuration loading error:', error);
       toast.error('Erro ao carregar configurações BYOC');
     } finally {
       setLoading(false);
@@ -146,13 +197,16 @@ export default function BYOCProvidersPage() {
   };
 
   const updateProviderConfig = (type: string, updates: Partial<ProviderConfig>) => {
-    setConfig(prev => ({
-      ...prev,
-      [type]: {
-        ...prev[type as keyof OrganizationConfig],
-        ...updates
-      } as ProviderConfig
-    }));
+    setConfig(prev => {
+      const currentConfig = prev[type as keyof OrganizationConfig] as ProviderConfig | undefined;
+      return {
+        ...prev,
+        [type]: {
+          ...(currentConfig || {}),
+          ...updates
+        } as ProviderConfig
+      };
+    });
   };
 
   const getProviderIcon = (type: string) => {
@@ -712,7 +766,14 @@ function StorageProviderConfig({ config, availableProviders, onUpdate, onTest, t
 }
 
 // Placeholder components para outros providers
-function DatabaseProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: any) {
+function DatabaseProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: {
+  config?: ProviderConfig;
+  availableProviders: string[];
+  onUpdate: (updates: Partial<ProviderConfig>) => void;
+  onTest: (config: ProviderConfig) => void;
+  testing: boolean;
+  health: React.ReactNode;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -726,7 +787,14 @@ function DatabaseProviderConfig({ config, availableProviders, onUpdate, onTest, 
   );
 }
 
-function VectorProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: any) {
+function VectorProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: {
+  config?: ProviderConfig;
+  availableProviders: string[];
+  onUpdate: (updates: Partial<ProviderConfig>) => void;
+  onTest: (config: ProviderConfig) => void;
+  testing: boolean;
+  health: React.ReactNode;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -740,7 +808,14 @@ function VectorProviderConfig({ config, availableProviders, onUpdate, onTest, te
   );
 }
 
-function EmailProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: any) {
+function EmailProviderConfig({ config, availableProviders, onUpdate, onTest, testing, health }: {
+  config?: ProviderConfig;
+  availableProviders: string[];
+  onUpdate: (updates: Partial<ProviderConfig>) => void;
+  onTest: (config: ProviderConfig) => void;
+  testing: boolean;
+  health: React.ReactNode;
+}) {
   return (
     <Card>
       <CardHeader>

@@ -307,6 +307,52 @@ export const organization = pgTable('Organization', {
 
 export type Organization = InferSelectModel<typeof organization>;
 
+// Tabela para configurações de providers BYOC por organização
+export const providerConfiguration = pgTable('ProviderConfiguration', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  organizationId: uuid('organizationId')
+    .notNull()
+    .references(() => organization.id),
+  providerType: varchar('providerType', { 
+    enum: ['llm', 'storage', 'database', 'vector', 'email'] 
+  }).notNull(),
+  providerName: varchar('providerName', { length: 100 }).notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  isPrimary: boolean('isPrimary').notNull().default(false),
+  isFallback: boolean('isFallback').notNull().default(false),
+  priority: integer('priority').notNull().default(100),
+  
+  // Configurações criptografadas
+  credentials: jsonb('credentials').notNull().default('{}'),
+  settings: jsonb('settings').notNull().default('{}'),
+  
+  // Metadados
+  metadata: jsonb('metadata').default('{}'),
+  
+  // Health check tracking
+  lastHealthCheck: timestamp('lastHealthCheck'),
+  healthStatus: varchar('healthStatus', { 
+    enum: ['healthy', 'unhealthy', 'unknown'] 
+  }).default('unknown'),
+  healthDetails: jsonb('healthDetails').default('{}'),
+  
+  // Migration tracking
+  migrationStatus: varchar('migrationStatus', { 
+    enum: ['stable', 'migrating', 'failed'] 
+  }).default('stable'),
+  migrationDetails: jsonb('migrationDetails').default('{}'),
+  
+  // Auditoria
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  createdBy: uuid('createdBy').references(() => user.id),
+  updatedBy: uuid('updatedBy').references(() => user.id),
+}, (table) => ({
+  uniqueOrgTypeProvider: unique().on(table.organizationId, table.providerType, table.providerName),
+}));
+
+export type ProviderConfiguration = InferSelectModel<typeof providerConfiguration>;
+
 // Tabela para feedback dos companions
 export const companionFeedback = pgTable('CompanionFeedback', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
