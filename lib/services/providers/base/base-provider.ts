@@ -73,6 +73,12 @@ export abstract class BaseProvider<TConfig = any, TCredentials = any> {
   protected readonly config: ProviderConfiguration;
   protected readonly providerType: string;
   protected readonly providerName: string;
+  protected readonly logger: {
+    info: (message: string, meta?: any) => void;
+    error: (message: string, meta?: any) => void;
+    warn: (message: string, meta?: any) => void;
+    debug: (message: string, meta?: any) => void;
+  };
 
   constructor(
     organizationId: string,
@@ -83,6 +89,14 @@ export abstract class BaseProvider<TConfig = any, TCredentials = any> {
     this.config = config;
     this.providerType = providerType;
     this.providerName = config.providerName;
+
+    // Simple logger implementation
+    this.logger = {
+      info: (message: string, meta?: any) => console.log(`[INFO] ${this.providerName}:`, message, meta || ''),
+      error: (message: string, meta?: any) => console.error(`[ERROR] ${this.providerName}:`, message, meta || ''),
+      warn: (message: string, meta?: any) => console.warn(`[WARN] ${this.providerName}:`, message, meta || ''),
+      debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${this.providerName}:`, message, meta || '')
+    };
 
     if (!organizationId) {
       throw new Error('BaseProvider: organizationId is required');

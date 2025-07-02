@@ -7,7 +7,7 @@ import type { ChatRepository } from '../domain/chat-domain-service';
 /**
  * @description Chat entity tipo do Drizzle
  */
-type ChatEntity = typeof chat.$inferSelect;
+type ChatEntity = typeof chatTable.$inferSelect;
 
 /**
  * @description Implementação concreta do ChatRepository usando Drizzle ORM
@@ -26,19 +26,19 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
     return this.executeQuery(async () => {
       const result = await db
         .select()
-        .from(chat)
+        .from(chatTable)
         .where(and(
-          eq(chat.id, id),
-          eq(chat.organizationId, targetOrgId)
+          eq(chatTable.id, id),
+          eq(chatTable.organizationId, targetOrgId)
         ))
         .limit(1);
 
-      const chat = result[0] || null;
-      if (chat) {
+      const foundChat = result[0] || null;
+      if (foundChat) {
         this.auditLog('find_by_id', id, { found: true });
       }
 
-      return chat;
+      return foundChat;
     }, 'findById');
   }
 
@@ -55,12 +55,12 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
     return this.executeQuery(async () => {
       const result = await db
         .select()
-        .from(chats)
+        .from(chatTable)
         .where(and(
-          eq(chats.userId, userId),
-          eq(chats.organizationId, targetOrgId)
+          eq(chatTable.userId, userId),
+          eq(chatTable.organizationId, targetOrgId)
         ))
-        .orderBy(desc(chats.updatedAt))
+        .orderBy(desc(chatTable.updatedAt))
         .limit(limit);
 
       this.auditLog('find_by_user', userId, { 
@@ -80,13 +80,13 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
     limit = 50
   ): Promise<ChatEntity[]> {
     return this.executeQuery(async () => {
-      const conditions = createFilters(chats, filters, this.organizationId);
+      const conditions = createFilters(chatTable, filters, this.organizationId);
       
       const result = await db
         .select()
-        .from(chats)
+        .from(chatTable)
         .where(conditions)
-        .orderBy(desc(chats.updatedAt))
+        .orderBy(desc(chatTable.updatedAt))
         .limit(limit);
 
       this.auditLog('find_many', 'multiple', { 
@@ -106,7 +106,7 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
   ): Promise<ChatEntity> {
     return this.executeQuery(async () => {
       const result = await db
-        .insert(chats)
+        .insert(chatTable)
         .values({
           ...data,
           organizationId: this.organizationId, // Force tenant isolation
@@ -139,14 +139,14 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
       this.validateTenantAccess(existing);
 
       const result = await db
-        .update(chats)
+        .update(chatTable)
         .set({
           ...updates,
           updatedAt: new Date()
         })
         .where(and(
-          eq(chats.id, id),
-          eq(chats.organizationId, this.organizationId)
+          eq(chatTable.id, id),
+          eq(chatTable.organizationId, this.organizationId)
         ))
         .returning();
 
@@ -175,10 +175,10 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
 
       // Deletar o chat
       await db
-        .delete(chats)
+        .delete(chatTable)
         .where(and(
-          eq(chats.id, id),
-          eq(chats.organizationId, targetOrgId)
+          eq(chatTable.id, id),
+          eq(chatTable.organizationId, targetOrgId)
         ));
 
       this.auditLog('delete', id, { title: existing.title });
@@ -191,15 +191,15 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
   async incrementUsage(id: string, tokens: number): Promise<void> {
     return this.executeQuery(async () => {
       await db
-        .update(chats)
+        .update(chatTable)
         .set({
-          tokenUsage: chats.tokenUsage + tokens,
-          messageCount: chats.messageCount + 1,
+          tokenUsage: chatTable.tokenUsage + tokens,
+          messageCount: chatTable.messageCount + 1,
           updatedAt: new Date()
         })
         .where(and(
-          eq(chats.id, id),
-          eq(chats.organizationId, this.organizationId)
+          eq(chatTable.id, id),
+          eq(chatTable.organizationId, this.organizationId)
         ));
 
       this.auditLog('increment_usage', id, { tokens });
@@ -211,11 +211,11 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
    */
   async count(filters: Record<string, any> = {}): Promise<number> {
     return this.executeQuery(async () => {
-      const conditions = createFilters(chats, filters, this.organizationId);
+      const conditions = createFilters(chatTable, filters, this.organizationId);
       
       const result = await db
         .select({ count: count() })
-        .from(chats)
+        .from(chatTable)
         .where(conditions);
 
       return result[0]?.count || 0;
@@ -251,13 +251,13 @@ export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements Ch
       const result = await db
         .select({
           totalChats: count(),
-          totalMessages: chats.messageCount,
-          totalTokens: chats.tokenUsage
+          totalMessages: chatTable.messageCount,
+          totalTokens: chatTable.tokenUsage
         })
-        .from(chats)
+        .from(chatTable)
         .where(and(
-          eq(chats.userId, userId),
-          eq(chats.organizationId, this.organizationId)
+          eq(chatTable.userId, userId),
+          eq(chatTable.organizationId, this.organizationId)
         ));
 
       return {
