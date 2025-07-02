@@ -1,6 +1,10 @@
 import type { ServiceContext } from '../types/service-context';
 import { ChatDomainService, type IChatDomainService } from '../domain/chat-domain-service';
 import { ProviderConfigurationService } from '../domain/provider-configuration-service';
+import { OrganizationDomainService, type IOrganizationDomainService } from '../domain/organization-domain-service';
+import { OrganizationRepositoryImpl } from '../repositories/organization-repository';
+import { CompanionDomainServiceImpl, type CompanionDomainService } from '../domain/companion-domain-service';
+import { CompanionRepositoryImpl } from '../repositories/companion-repository';
 import type { TenantService } from '../base/tenant-service';
 import { ProviderManager, ProviderHelper } from '../providers/factory/provider-manager';
 import { LLMProvider } from '../providers/llm/llm-provider-interface';
@@ -252,6 +256,38 @@ export class ServiceContainer {
       singleton: true
     });
 
+    // Organization Domain Service
+    this.register('OrganizationDomainService', (context) => {
+      const orgRepo = new OrganizationRepositoryImpl({}, context.organizationId);
+      const userRepo = this.createStubRepository('user');
+      const permissionService = null; // Will be replaced with real implementation
+      const quotaService = this.createStubQuotaService();
+
+      return new OrganizationDomainService(
+        context.organizationId,
+        orgRepo,
+        userRepo,
+        permissionService,
+        quotaService
+      );
+    }, {
+      singleton: true
+    });
+
+    // Companion Domain Service
+    this.register('CompanionDomainService', (context) => {
+      const companionRepo = new CompanionRepositoryImpl();
+      const quotaService = this.createStubQuotaService();
+
+      return new CompanionDomainServiceImpl(
+        context.organizationId,
+        companionRepo,
+        quotaService
+      );
+    }, {
+      singleton: true
+    });
+
     console.log('✅ Core services registered with Provider System integration');
   }
 
@@ -295,8 +331,10 @@ export class ServiceContainer {
    */
   private createStubQuotaService(): any {
     return {
+      checkQuota: async (organizationId: string, resource: string) => true,
+      incrementUsage: async (organizationId: string, resource: string) => {},
+      // Legacy methods for backward compatibility
       checkUserQuota: async (userId: string, resource: string) => true,
-      incrementUsage: async (userId: string, resource: string, amount: number) => {},
       getUserUsage: async (userId: string) => ({ chats: 0, messages: 0, tokens: 0 })
     };
   }
@@ -376,11 +414,26 @@ export class ServiceResolver {
     return this.container.resolve<ProviderConfigurationService>('ProviderConfigurationService', context);
   }
 
+  organizationDomainService(context: ServiceContext): IOrganizationDomainService {
+    return this.container.resolve<IOrganizationDomainService>('OrganizationDomainService', context);
+  }
+
+  companionDomainService(context: ServiceContext): CompanionDomainService {
+    return this.container.resolve<CompanionDomainService>('CompanionDomainService', context);
+  }
+
   /**
    * @description Factory method para criar resolver
    */
   static create(): ServiceResolver {
     return new ServiceResolver(ServiceContainer.getInstance());
+  }
+
+  /**
+   * @description Create resolver instance
+   */
+  createResolver(): ServiceResolver {
+    return ServiceResolver.create();
   }
 }
 

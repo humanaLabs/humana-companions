@@ -1,123 +1,165 @@
-import { auth } from '@/app/(auth)/auth';
-import { createCompanion, getCompanionsByUserId, incrementUsage } from '@/lib/db/queries';
 import { NextRequest, NextResponse } from 'next/server';
-import { createCompanionSchema } from './schema';
-import { checkQuotaBeforeAction } from '@/lib/middleware/quota-enforcement';
+import { auth } from '@/app/(auth)/auth';
+import { createCompanionApiAdapter } from '@/lib/services/adapters/companion-api-adapter';
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session || !session.user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
-  const organizationId = request.headers.get('x-organization-id');
-  if (!organizationId) {
-    return NextResponse.json(
-      { error: 'Context de organização requerido' },
-      { status: 403 }
-    );
-  }
-
   try {
-    const companions = await getCompanionsByUserId({ 
-      userId: session.user.id!,
-      organizationId
-    });
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const organizationId = session.user.organizationId || 'default-org';
     
-    return NextResponse.json({ companions });
+    // Create adapter with service layer
+    const adapter = await createCompanionApiAdapter(organizationId);
+    
+    // Use the adapter's handleListRequest method
+    const result = await adapter.handleListRequest(url.searchParams);
+    
+    if (!result.success) {
+      console.error('Failed to fetch companions:', result.error);
+      return NextResponse.json(
+        { error: result.error || 'Failed to fetch companions' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      companions: result.data,
+      success: true 
+    });
   } catch (error) {
-    console.error('Erro ao buscar companions:', error);
+    console.error('Companions API error:', error);
     return NextResponse.json(
-      { error: 'Falha ao buscar companions' },
+      { error: 'Internal server error' }, 
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log('POST /api/companions - Starting...'); // Debug
-  
-  const session = await auth();
-  
-  if (!session || !session.user) {
-    console.log('POST /api/companions - No session or user'); // Debug
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
-  console.log('POST /api/companions - User:', session.user.id); // Debug
-
-  // 🛡️ VERIFICAÇÃO DE QUOTA - Companions
   try {
-    const quotaCheck = await checkQuotaBeforeAction({ 
-      request, 
-      config: { 
-        quotaType: 'companions', 
-        actionType: 'create' 
-      } 
-    });
-    
-    if (!quotaCheck.allowed && quotaCheck.error) {
-      return NextResponse.json(
-        {
-          error: quotaCheck.error.message,
-          quotaType: quotaCheck.error.quotaType,
-          current: quotaCheck.error.current,
-          limit: quotaCheck.error.limit,
-          type: 'quota_exceeded'
-        },
-        { status: 429 }
-      );
-    }
-  } catch (quotaError) {
-    console.error('Erro na verificação de quota de companions:', quotaError);
-    // Continuar com a operação se houver erro na verificação
-  }
-
-  try {
-    const body = await request.json();
-    console.log('POST /api/companions - Request body received:', JSON.stringify(body, null, 2)); // Debug
-    
-    const organizationId = request.headers.get('x-organization-id');
-    console.log('POST /api/companions - Organization ID from header:', organizationId); // Debug
-    
-    const validatedData = createCompanionSchema.parse(body);
-
-    const [companion] = await createCompanion({
-      ...validatedData,
-      userId: session.user.id!,
-    });
-
-    // 📊 TRACKING DE USO - Incrementar contador de companions
-    try {
-      const organizationId = request.headers.get('x-organization-id');
-      if (organizationId) {
-        await incrementUsage({
-          userId: session.user.id!,
-          organizationId,
-          usageType: 'companions',
-          amount: 1,
-        });
-        console.log('✅ Criação de companion registrada');
-      }
-    } catch (trackingError) {
-      console.error('❌ Erro ao registrar criação de companion:', trackingError);
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({ companion }, { status: 201 });
-  } catch (error) {
-    console.error('Erro ao criar companion:', error);
+    // Get organization ID from user session or tenant middleware
+    const organizationId = session.user.organizationId || 'default-org';
+    const userId = session.user.id; // Get userId from session
     
-    if (error instanceof Error && 'issues' in error) {
-      // Erro de validação Zod
+    // Create adapter with service layer
+    const adapter = await createCompanionApiAdapter(organizationId);
+    
+    // Use the adapter's handleCreateRequest method which expects complex schema and userId
+    const result = await adapter.handleCreateRequest(request, userId);
+    
+    if (!result.success) {
+      console.error('Failed to create companion:', result.error);
       return NextResponse.json(
-        { error: 'Dados inválidos', details: error.issues },
+        { error: result.error || 'Failed to create companion' }, 
         { status: 400 }
       );
     }
-    
+
+    return NextResponse.json({ 
+      companion: result.data,
+      success: true 
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Companion creation error:', error);
     return NextResponse.json(
-      { error: 'Falha ao criar companion' },
+      { error: 'Internal server error' }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const companionId = url.searchParams.get('id');
+    
+    if (!companionId) {
+      return NextResponse.json({ error: 'Companion ID is required' }, { status: 400 });
+    }
+
+    // Get organization ID from user session or tenant middleware
+    const organizationId = session.user.organizationId || 'default-org';
+    
+    // Create adapter with service layer
+    const adapter = await createCompanionApiAdapter(organizationId);
+    
+    // Use the adapter's handleUpdateRequest method
+    const result = await adapter.handleUpdateRequest(companionId, request);
+    
+    if (!result.success) {
+      console.error('Failed to update companion:', result.error);
+      return NextResponse.json(
+        { error: result.error || 'Failed to update companion' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      companion: result.data,
+      success: true 
+    });
+  } catch (error) {
+    console.error('Companion update error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const companionId = url.searchParams.get('id');
+    
+    if (!companionId) {
+      return NextResponse.json({ error: 'Companion ID is required' }, { status: 400 });
+    }
+
+    // Get organization ID from user session or tenant middleware
+    const organizationId = session.user.organizationId || 'default-org';
+    
+    // Create adapter with service layer
+    const adapter = await createCompanionApiAdapter(organizationId);
+    
+    // Use the adapter's handleDeleteRequest method
+    const result = await adapter.handleDeleteRequest(companionId);
+    
+    if (!result.success) {
+      console.error('Failed to delete companion:', result.error);
+      return NextResponse.json(
+        { error: result.error || 'Failed to delete companion' }, 
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ 
+      message: 'Companion deleted successfully',
+      success: true 
+    });
+  } catch (error) {
+    console.error('Companion deletion error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' }, 
       { status: 500 }
     );
   }

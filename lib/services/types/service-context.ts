@@ -9,8 +9,29 @@ export interface ServiceContext {
 export interface OperationResult<T> {
   success: boolean;
   data?: T;
-  error?: string;
-  context: ServiceContext;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+export class OperationResultHelper {
+  static success<T>(data: T): OperationResult<T> {
+    return {
+      success: true,
+      data
+    };
+  }
+
+  static failure<T>(code: string, message: string): OperationResult<T> {
+    return {
+      success: false,
+      error: {
+        code,
+        message
+      }
+    };
+  }
 }
 
 export interface PaginationContext {

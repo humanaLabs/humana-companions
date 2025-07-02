@@ -146,7 +146,7 @@ function PureChatHeader({
                 </div>
               </div>
 
-              {/* Menu Items */}
+              {/* Grupo 1: Configurações e Planos */}
               <DropdownMenuItem
                 data-testid="user-nav-item-preferences"
                 className="cursor-pointer"
@@ -168,7 +168,10 @@ function PureChatHeader({
               >
                 Quotas
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
+              
+              {/* Grupo 2: Design e Organização */}
               <DropdownMenuItem
                 data-testid="user-nav-item-org-center"
                 className="cursor-pointer"
@@ -183,7 +186,10 @@ function PureChatHeader({
               >
                 Companions Designer
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
+              
+              {/* Grupo 3: Ferramentas e Aprendizado */}
               <DropdownMenuItem
                 data-testid="user-nav-item-university"
                 className="cursor-pointer"
@@ -198,7 +204,10 @@ function PureChatHeader({
               >
                 Ferramentas MCP
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
+              
+              {/* Grupo 4: Administração e Experimental */}
               <DropdownMenuItem
                 data-testid="user-nav-item-admin"
                 className="cursor-pointer"
@@ -213,7 +222,10 @@ function PureChatHeader({
               >
                 Experimental
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
+              
+              {/* Controles do Sistema */}
               <DropdownMenuItem
                 data-testid="user-nav-item-theme"
                 className="cursor-pointer"
@@ -221,9 +233,12 @@ function PureChatHeader({
                   setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
                 }
               >
-                {`Toggle ${resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
+                Toggle light mode
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
+              
+              {/* Ação de Saída */}
               <DropdownMenuItem asChild data-testid="user-nav-item-auth">
                 <button
                   type="button"
@@ -249,7 +264,7 @@ function PureChatHeader({
                     }
                   }}
                 >
-                  {isGuest ? 'Login to your account' : 'Sign out'}
+                  Sign out
                 </button>
               </DropdownMenuItem>
             </DropdownMenuContent>
