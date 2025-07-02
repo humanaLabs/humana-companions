@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       id: serverId,
       isConnected: testResult.success && testResult.isAuthenticated === true,
       connectionError: testResult.error || null,
+      organizationId,
     });
 
     return NextResponse.json({

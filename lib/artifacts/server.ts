@@ -7,6 +7,7 @@ import { DataStreamWriter } from 'ai';
 import { Document } from '../db/schema';
 import { saveDocument } from '../db/queries';
 import { Session } from 'next-auth';
+import { getOrganizationId } from '../tenant-context';
 
 export interface SaveDocumentProps {
   id: string;
@@ -14,6 +15,7 @@ export interface SaveDocumentProps {
   kind: ArtifactKind;
   content: string;
   userId: string;
+  organizationId: string;
 }
 
 export interface CreateDocumentCallbackProps {
@@ -52,12 +54,18 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
       });
 
       if (args.session?.user?.id) {
+        const organizationId = await getOrganizationId();
+        if (!organizationId) {
+          throw new Error('Organization context required');
+        }
+
         await saveDocument({
           id: args.id,
           title: args.title,
           content: draftContent,
           kind: config.kind,
           userId: args.session.user.id,
+          organizationId,
         });
       }
 
@@ -72,12 +80,18 @@ export function createDocumentHandler<T extends ArtifactKind>(config: {
       });
 
       if (args.session?.user?.id) {
+        const organizationId = await getOrganizationId();
+        if (!organizationId) {
+          throw new Error('Organization context required');
+        }
+
         await saveDocument({
           id: args.document.id,
           title: args.document.title,
           content: draftContent,
           kind: config.kind,
           userId: args.session.user.id,
+          organizationId,
         });
       }
 

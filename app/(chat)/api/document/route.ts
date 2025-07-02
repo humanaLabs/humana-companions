@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     title,
     kind,
     userId: session.user.id,
+    organizationId,
   });
 
   return Response.json(document, { status: 200 });

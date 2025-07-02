@@ -367,6 +367,7 @@ export async function POST(request: Request) {
             // Buscar apenas os servidores selecionados
             const allMcpServers = await getActiveMcpServersByUserId({
               userId: session.user.id,
+              organizationId: finalOrgId,
             });
             console.log(
               '📋 Todos os servidores MCP do usuário:',
@@ -632,7 +633,10 @@ export async function GET(request: Request) {
       return new ChatSDKError('forbidden:chat').toResponse();
     }
 
-    const streamIds = await getStreamIdsByChatId({ chatId });
+    const streamIds = await getStreamIdsByChatId({ 
+      chatId, 
+      organizationId 
+    });
 
     if (!streamIds.length) {
       return new ChatSDKError('not_found:stream').toResponse();
@@ -727,7 +731,10 @@ export async function DELETE(request: Request) {
     return new ChatSDKError('forbidden:chat').toResponse();
   }
 
-  const deletedChat = await deleteChatById({ id });
+  const deletedChat = await deleteChatById({ 
+    id, 
+    organizationId 
+  });
 
   return Response.json(deletedChat, { status: 200 });
 }

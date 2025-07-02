@@ -59,7 +59,12 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
-  await updateChatVisiblityById({ chatId, visibility });
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    throw new Error('Organization context required');
+  }
+
+  await updateChatVisiblityById({ chatId, visibility, organizationId });
 }
 
 export async function deleteMessage({

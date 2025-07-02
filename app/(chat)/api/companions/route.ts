@@ -4,16 +4,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCompanionSchema } from './schema';
 import { checkQuotaBeforeAction } from '@/lib/middleware/quota-enforcement';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth();
   
   if (!session || !session.user) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 
+  const organizationId = request.headers.get('x-organization-id');
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: 'Context de organização requerido' },
+      { status: 403 }
+    );
+  }
+
   try {
     const companions = await getCompanionsByUserId({ 
-      userId: session.user.id! 
+      userId: session.user.id!,
+      organizationId
     });
     
     return NextResponse.json({ companions });

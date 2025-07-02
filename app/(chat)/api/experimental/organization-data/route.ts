@@ -10,11 +10,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get organizationId from middleware headers
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+
     // Buscar organizações do usuário
     const organizations = await getOrganizationsByUserId(session.user.id);
 
     // Buscar companions do usuário
-    const companions = await getCompanionsByUserId({ userId: session.user.id });
+    const companions = await getCompanionsByUserId({ 
+      userId: session.user.id,
+      organizationId
+    });
 
     // Transformar dados para o formato do ReactFlow
     const hierarchyData = {

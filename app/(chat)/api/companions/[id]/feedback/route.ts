@@ -27,7 +27,16 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const feedback = await getCompanionFeedback(id);
+    
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+    
+    const feedback = await getCompanionFeedback(id, organizationId);
     return NextResponse.json({ feedback });
   } catch (error) {
     console.error('Error fetching feedback:', error);

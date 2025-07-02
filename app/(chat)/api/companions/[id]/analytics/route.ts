@@ -15,7 +15,16 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const analytics = await getCompanionAnalytics(id);
+    
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Organization context missing' },
+        { status: 400 }
+      );
+    }
+    
+    const analytics = await getCompanionAnalytics(id, organizationId);
     return NextResponse.json(analytics);
   } catch (error) {
     console.error('Error fetching companion analytics:', error);

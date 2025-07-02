@@ -118,15 +118,35 @@ export async function saveChat({
   }
 }
 
-export async function deleteChatById({ id }: { id: string }) {
+export async function deleteChatById({ 
+  id, 
+  organizationId 
+}: { 
+  id: string;
+  organizationId: string;
+}) {
   try {
-    await db.delete(vote).where(eq(vote.chatId, id));
-    await db.delete(message).where(eq(message.chatId, id));
-    await db.delete(stream).where(eq(stream.chatId, id));
+    // Aplicar padrão de segurança unificado - verificar se o chat pertence à organização
+    const [chatToDelete] = await db
+      .select()
+      .from(chat)
+      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)));
+
+    if (!chatToDelete) {
+      throw new ChatSDKError(
+        'not_found:database',
+        'Chat not found or access denied',
+      );
+    }
+
+    // Deletar com isolamento de segurança
+    await db.delete(vote).where(and(eq(vote.chatId, id), eq(vote.organizationId, organizationId)));
+    await db.delete(message).where(and(eq(message.chatId, id), eq(message.organizationId, organizationId)));
+    await db.delete(stream).where(and(eq(stream.chatId, id), eq(stream.organizationId, organizationId)));
 
     const [chatsDeleted] = await db
       .delete(chat)
-      .where(eq(chat.id, id))
+      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)))
       .returning();
     return chatsDeleted;
   } catch (error) {
@@ -376,12 +396,14 @@ export async function saveDocument({
   kind,
   content,
   userId,
+  organizationId,
 }: {
   id: string;
   title: string;
   kind: ArtifactKind;
   content: string;
   userId: string;
+  organizationId: string;
 }) {
   try {
     return await db
@@ -392,6 +414,7 @@ export async function saveDocument({
         kind,
         content,
         userId,
+        organizationId,
         createdAt: new Date(),
       })
       .returning();
@@ -647,12 +670,17 @@ export async function deleteMessageById({
 export async function updateChatVisiblityById({
   chatId,
   visibility,
+  organizationId,
 }: {
   chatId: string;
   visibility: 'private' | 'public';
+  organizationId: string;
 }) {
   try {
-    return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
+    return await db
+      .update(chat)
+      .set({ visibility })
+      .where(and(eq(chat.id, chatId), eq(chat.organizationId, organizationId)));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -716,12 +744,18 @@ export async function createStreamId({
   }
 }
 
-export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
+export async function getStreamIdsByChatId({ 
+  chatId, 
+  organizationId 
+}: { 
+  chatId: string;
+  organizationId: string;
+}) {
   try {
     const streamIds = await db
       .select({ id: stream.id })
       .from(stream)
-      .where(eq(stream.chatId, chatId))
+      .where(and(eq(stream.chatId, chatId), eq(stream.organizationId, organizationId)))
       .orderBy(asc(stream.createdAt))
       .execute();
 
@@ -791,12 +825,18 @@ export async function createCompanion({
   }
 }
 
-export async function getCompanionsByUserId({ userId }: { userId: string }) {
+export async function getCompanionsByUserId({ 
+  userId, 
+  organizationId 
+}: { 
+  userId: string;
+  organizationId: string;
+}) {
   try {
     return await db
       .select()
       .from(companion)
-      .where(eq(companion.userId, userId))
+      .where(and(eq(companion.userId, userId), eq(companion.organizationId, organizationId)))
       .orderBy(desc(companion.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -984,12 +1024,18 @@ export async function createMcpServer({
   }
 }
 
-export async function getMcpServersByUserId({ userId }: { userId: string }) {
+export async function getMcpServersByUserId({ 
+  userId, 
+  organizationId 
+}: { 
+  userId: string;
+  organizationId: string;
+}) {
   try {
     return await db
       .select()
       .from(mcpServer)
-      .where(eq(mcpServer.userId, userId))
+      .where(and(eq(mcpServer.userId, userId), eq(mcpServer.organizationId, organizationId)))
       .orderBy(desc(mcpServer.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -1001,12 +1047,20 @@ export async function getMcpServersByUserId({ userId }: { userId: string }) {
 
 export async function getActiveMcpServersByUserId({
   userId,
-}: { userId: string }) {
+  organizationId,
+}: { 
+  userId: string;
+  organizationId: string;
+}) {
   try {
     return await db
       .select()
       .from(mcpServer)
-      .where(and(eq(mcpServer.userId, userId), eq(mcpServer.isActive, true)))
+      .where(and(
+        eq(mcpServer.userId, userId), 
+        eq(mcpServer.isActive, true),
+        eq(mcpServer.organizationId, organizationId)
+      ))
       .orderBy(desc(mcpServer.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -1121,22 +1175,38 @@ export async function updateMcpServerConnectionStatus({
   id,
   isConnected,
   connectionError,
+  organizationId,
 }: {
   id: string;
   isConnected: boolean;
   connectionError?: string | null;
+  organizationId: string;
 }) {
   try {
-    return await db
+    // Verificar se o server existe e pertence à organização
+    const [serverToUpdate] = await db
+      .select()
+      .from(mcpServer)
+      .where(and(eq(mcpServer.id, id), eq(mcpServer.organizationId, organizationId)));
+
+    if (!serverToUpdate) {
+      throw new ChatSDKError(
+        'not_found:database',
+        'MCP Server not found or access denied',
+      );
+    }
+
+    const [updatedServer] = await db
       .update(mcpServer)
       .set({
         isConnected,
-        lastConnectionTest: new Date(),
         connectionError,
-        updatedAt: new Date(),
+        lastConnectionAt: new Date(),
       })
-      .where(eq(mcpServer.id, id))
+      .where(and(eq(mcpServer.id, id), eq(mcpServer.organizationId, organizationId)))
       .returning();
+
+    return updatedServer;
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -1461,12 +1531,18 @@ export async function createCompanionFeedback({
   }
 }
 
-export async function getCompanionFeedback(companionId: string) {
+export async function getCompanionFeedback(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     return await db
       .select()
       .from(companionFeedback)
-      .where(eq(companionFeedback.companionId, companionId))
+      .where(and(
+        eq(companionFeedback.companionId, companionId),
+        eq(companionFeedback.organizationId, organizationId)
+      ))
       .orderBy(desc(companionFeedback.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -1527,12 +1603,18 @@ export async function createCompanionInteraction({
   }
 }
 
-export async function getCompanionInteractions(companionId: string) {
+export async function getCompanionInteractions(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     return await db
       .select()
       .from(companionInteraction)
-      .where(eq(companionInteraction.companionId, companionId))
+      .where(and(
+        eq(companionInteraction.companionId, companionId),
+        eq(companionInteraction.organizationId, organizationId)
+      ))
       .orderBy(desc(companionInteraction.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -1634,12 +1716,18 @@ export async function updateCompanionPerformance(
   }
 }
 
-export async function getCompanionPerformance(companionId: string) {
+export async function getCompanionPerformance(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     const [performance] = await db
       .select()
       .from(companionPerformance)
-      .where(eq(companionPerformance.companionId, companionId));
+      .where(and(
+        eq(companionPerformance.companionId, companionId),
+        eq(companionPerformance.organizationId, organizationId)
+      ));
 
     return performance;
   } catch (error) {
@@ -1678,12 +1766,18 @@ export async function createMCPCycleReport(reportData: {
   }
 }
 
-export async function getMCPCycleReports(companionId: string) {
+export async function getMCPCycleReports(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     return await db
       .select()
       .from(mcpCycleReport)
-      .where(eq(mcpCycleReport.companionId, companionId))
+      .where(and(
+        eq(mcpCycleReport.companionId, companionId),
+        eq(mcpCycleReport.organizationId, organizationId)
+      ))
       .orderBy(desc(mcpCycleReport.cycleDate));
   } catch (error) {
     throw new ChatSDKError(
@@ -1693,12 +1787,18 @@ export async function getMCPCycleReports(companionId: string) {
   }
 }
 
-export async function getLatestMCPCycleReport(companionId: string) {
+export async function getLatestMCPCycleReport(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     const [report] = await db
       .select()
       .from(mcpCycleReport)
-      .where(eq(mcpCycleReport.companionId, companionId))
+      .where(and(
+        eq(mcpCycleReport.companionId, companionId),
+        eq(mcpCycleReport.organizationId, organizationId)
+      ))
       .orderBy(desc(mcpCycleReport.cycleDate))
       .limit(1);
 
@@ -1713,47 +1813,45 @@ export async function getLatestMCPCycleReport(companionId: string) {
 
 // ==================== ANALYTICS FUNCTIONS ====================
 
-export async function getCompanionAnalytics(companionId: string) {
+export async function getCompanionAnalytics(
+  companionId: string, 
+  organizationId: string
+) {
   try {
     // Buscar dados de performance
-    const performance = await getCompanionPerformance(companionId);
+    const performance = await getCompanionPerformance(companionId, organizationId);
 
     // Buscar feedback recente
-    const recentFeedback = await db
+    const feedback = await db
       .select()
       .from(companionFeedback)
-      .where(eq(companionFeedback.companionId, companionId))
+      .where(and(
+        eq(companionFeedback.companionId, companionId),
+        eq(companionFeedback.organizationId, organizationId)
+      ))
       .orderBy(desc(companionFeedback.createdAt))
       .limit(10);
 
     // Buscar interações recentes
-    const recentInteractions = await db
+    const interactions = await db
       .select()
       .from(companionInteraction)
-      .where(eq(companionInteraction.companionId, companionId))
+      .where(and(
+        eq(companionInteraction.companionId, companionId),
+        eq(companionInteraction.organizationId, organizationId)
+      ))
       .orderBy(desc(companionInteraction.createdAt))
       .limit(20);
 
     // Buscar último relatório MCP
-    const latestMcpReport = await getLatestMCPCycleReport(companionId);
+    const latestMcpReport = await getLatestMCPCycleReport(companionId, organizationId);
 
     return {
       performance,
-      recentFeedback,
-      recentInteractions,
+      recentFeedback: feedback,
+      recentInteractions: interactions,
       latestMcpReport,
-      summary: {
-        totalFeedback: recentFeedback.length,
-        averageRating:
-          recentFeedback.length > 0
-            ? recentFeedback.reduce(
-                (sum, f) => sum + Number.parseInt(f.rating),
-                0,
-              ) / recentFeedback.length
-            : 0,
-        totalInteractions: recentInteractions.length,
-        lastActivity: recentInteractions[0]?.createdAt || null,
-      },
+      analyticsGeneratedAt: new Date(),
     };
   } catch (error) {
     throw new ChatSDKError(

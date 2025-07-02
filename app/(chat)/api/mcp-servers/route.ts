@@ -20,7 +20,7 @@ const createMcpServerSchema = z.object({
   authHeaderName: z.string().optional(),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
@@ -31,8 +31,17 @@ export async function GET() {
       );
     }
 
+    const organizationId = request.headers.get('x-organization-id');
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: 'Context de organização requerido' },
+        { status: 403 }
+      );
+    }
+
     const mcpServers = await getMcpServersByUserId({ 
-      userId: session.user.id 
+      userId: session.user.id,
+      organizationId
     });
 
     return NextResponse.json(mcpServers);

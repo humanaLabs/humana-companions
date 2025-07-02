@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { CompanionsPageClient } from '@/components/companions-page-client';
 import { PageHeader } from '@/components/page-header';
 import { CompanionsHeaderActions } from '@/components/companions-header-actions';
+import { getOrganizationId } from '@/lib/tenant-context';
 
 export default async function CompanionsPage() {
   const session = await auth();
@@ -12,8 +13,14 @@ export default async function CompanionsPage() {
     redirect('/login');
   }
 
+  const organizationId = await getOrganizationId();
+  if (!organizationId) {
+    throw new Error('Organization context required');
+  }
+
   const companions = await getCompanionsByUserId({ 
-    userId: session.user.id! 
+    userId: session.user.id!,
+    organizationId
   });
 
   return (
