@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import type { ProjectFolder } from '@/lib/db/schema';
+import { useFolders } from '@/contexts/folders-context';
 
 import {
   PlusIcon,
@@ -46,8 +47,8 @@ const ENABLE_MESSAGE_LIMITS = false;
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile, toggleSidebar, state } = useSidebar();
+  const { folders, addFolder, removeFolder } = useFolders();
 
-  const [folders, setFolders] = useState<ProjectFolder[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -67,12 +68,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     'bg-indigo-500',
   ];
 
-  // Load folders on component mount
-  useEffect(() => {
-    if (user) {
-      loadFolders();
-    }
-  }, [user]);
+  // Folders são carregados automaticamente pelo contexto
 
   useEffect(() => {
     if (ENABLE_MESSAGE_LIMITS) {
@@ -133,17 +129,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     }
   }, [user]);
 
-  const loadFolders = async () => {
-    try {
-      const response = await fetch('/api/folders');
-      if (response.ok) {
-        const data = await response.json();
-        setFolders(data);
-      }
-    } catch (error) {
-      console.error('Error loading folders:', error);
-    }
-  };
+  // loadFolders é gerenciado pelo contexto
 
   const handleCreateFolder = async () => {
     if (newFolderName.trim()) {
@@ -161,7 +147,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
         if (response.ok) {
           const newFolder = await response.json();
-          setFolders([...folders, newFolder]);
+          addFolder(newFolder);
           setNewFolderName('');
           setIsCreating(false);
           toast.success('Pasta criada com sucesso!');
@@ -182,7 +168,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       });
 
       if (response.ok) {
-        setFolders(folders.filter((folder) => folder.id !== folderId));
+        removeFolder(folderId);
         toast.success('Pasta excluída com sucesso!');
       } else {
         toast.error('Erro ao excluir pasta');

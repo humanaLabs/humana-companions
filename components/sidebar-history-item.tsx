@@ -4,6 +4,7 @@ import type { Chat, ProjectFolder } from '@/lib/db/schema';
 import { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useFolders } from '@/contexts/folders-context';
 import {
   SidebarMenuAction,
   SidebarMenuButton,
@@ -46,23 +47,7 @@ const PureChatItem = ({
     initialVisibilityType: chat.visibility,
   });
 
-  const [folders, setFolders] = useState<ProjectFolder[]>([]);
-
-  useEffect(() => {
-    loadFolders();
-  }, []);
-
-  const loadFolders = async () => {
-    try {
-      const response = await fetch('/api/folders');
-      if (response.ok) {
-        const data = await response.json();
-        setFolders(data);
-      }
-    } catch (error) {
-      console.error('Error loading folders:', error);
-    }
-  };
+  const { folders } = useFolders();
 
   const addToFolder = async (folderId: string) => {
     try {
