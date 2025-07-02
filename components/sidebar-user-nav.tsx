@@ -108,6 +108,20 @@ export function SidebarUserNav({ user }: { user: User }) {
             >
               💎 Gerenciar Plano
             </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-quotas"
+              className="cursor-pointer"
+              onSelect={() => router.push('/quotas')}
+            >
+              📊 Quotas
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="user-nav-item-mcp-servers"
+              className="cursor-pointer"
+              onSelect={() => router.push('/mcp-servers')}
+            >
+              🔧 Servidores MCP
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               data-testid="user-nav-item-studio"

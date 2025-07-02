@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://chat.vercel.ai'),
   title: 'Humana AI - Companions Platform',
   description: 'Humana AI - Companions Platform',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
 };
 
 export const viewport = {

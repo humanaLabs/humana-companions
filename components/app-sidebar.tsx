@@ -25,9 +25,9 @@ import {
   ChevronDownIcon,
   MoreIcon,
   TrashIcon,
-  SparklesIcon,
+
 } from '@/components/icons';
-import { BarChart3 } from 'lucide-react';
+
 import { SidebarHistory } from '@/components/sidebar-history';
 
 import { Button } from '@/components/ui/button';
@@ -225,9 +225,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               onClick={() => {
                 setOpenMobile(false);
               }}
-              className="flex flex-row gap-3 items-center"
+              className="flex flex-row gap-3 items-center flex-1 hover:bg-muted/50 rounded-md transition-colors"
             >
-              <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
+              <span className="text-lg font-semibold px-2">
                 {state === 'expanded' ? (
                   <Image
                     src="/images/icone_branco-Humana.png"
@@ -242,13 +242,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <span className="text-xl font-bold">H</span>
                 )}
               </span>
+              {state === 'expanded' && (
+                <span className="text-[10px] font-extralight text-muted-foreground tracking-wide flex-1 text-center whitespace-nowrap">
+                  reimagine humans
+                </span>
+              )}
             </Link>
-            
-            {state === 'expanded' && (
-              <span className="text-[12px] font-extralight text-muted-foreground tracking-wide flex-1 text-center">
-                reimagine humans
-              </span>
-            )}
             <div className="flex items-center gap-1">
               {state === 'expanded' && (
                 <Tooltip>
@@ -312,20 +311,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </TooltipTrigger>
                     <TooltipContent side="right">My Companions</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href="/studio"
-                        onClick={() => setOpenMobile(false)}
-                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                      >
-                        <div className="flex items-center justify-center w-6 h-6">
-                          <SparklesIcon size={16} />
-                        </div>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Org Studio</TooltipContent>
-                  </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link
@@ -340,20 +326,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </TooltipTrigger>
                     <TooltipContent side="right">Data Room</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        href="/mcp-servers"
-                        onClick={() => setOpenMobile(false)}
-                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                      >
-                        <div className="flex items-center justify-center w-6 h-6">
-                          <CodeIcon size={16} />
-                        </div>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">Ferramentas</TooltipContent>
-                  </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link
@@ -366,7 +339,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         </div>
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Aplicativos</TooltipContent>
+                    <TooltipContent side="right">Aplicativos (em breve)</TooltipContent>
                   </Tooltip>
                   {/* Organizer - Collapsed */}
                   {folders.map((folder) => (
@@ -400,16 +373,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </div>
                     <span className="flex-1">My Companions</span>
                   </Link>
-                  <Link
-                    href="/studio"
-                    onClick={() => setOpenMobile(false)}
-                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                  >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <SparklesIcon size={16} />
-                    </div>
-                    <span className="flex-1">Org Studio</span>
-                  </Link>
+
                   <Link
                     href="/data-room"
                     onClick={() => setOpenMobile(false)}
@@ -420,16 +384,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </div>
                     <span className="flex-1">Data Room</span>
                   </Link>
-                  <Link
-                    href="/mcp-servers"
-                    onClick={() => setOpenMobile(false)}
-                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                  >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <CodeIcon size={16} />
-                    </div>
-                    <span className="flex-1">Ferramentas</span>
-                  </Link>
+
                   <Link
                     href="/aplicativos"
                     onClick={() => setOpenMobile(false)}
@@ -439,16 +394,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <BoxIcon size={16} />
                     </div>
                     <span className="flex-1">Aplicativos</span>
-                  </Link>
-                  <Link
-                    href="/quotas"
-                    onClick={() => setOpenMobile(false)}
-                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
-                  >
-                    <div className="flex items-center justify-center w-6 h-6">
-                      <BarChart3 size={16} />
-                    </div>
-                    <span className="flex-1">Quotas</span>
+                    <span className="px-1.5 py-0.5 text-[8px] font-medium bg-muted-foreground/10 text-muted-foreground rounded-sm">
+                      em breve
+                    </span>
                   </Link>
 
                   {/* Seção Organizer - Expanded */}

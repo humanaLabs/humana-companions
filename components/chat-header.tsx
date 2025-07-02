@@ -152,23 +152,38 @@ function PureChatHeader({
                 className="cursor-pointer"
                 onSelect={() => router.push('/preferences')}
               >
-                ⚙️ Preferências
+                Preferências
               </DropdownMenuItem>
               <DropdownMenuItem
                 data-testid="user-nav-item-pricing"
                 className="cursor-pointer"
                 onSelect={() => router.push('/pricing')}
               >
-                💎 Gerenciar Plano
+                Gerenciar Plano
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                data-testid="user-nav-item-quotas"
+                className="cursor-pointer"
+                onSelect={() => router.push('/quotas')}
+              >
+                Quotas
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                data-testid="user-nav-item-studio"
+                data-testid="user-nav-item-org-center"
                 className="cursor-pointer"
-                onSelect={() => router.push('/studio')}
+                onSelect={() => router.push('/organizations')}
               >
-                Studio
+                Organizational Brain
               </DropdownMenuItem>
+              <DropdownMenuItem
+                data-testid="user-nav-item-comp-designer"
+                className="cursor-pointer"
+                onSelect={() => router.push('/companions')}
+              >
+                Companions Designer
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 data-testid="user-nav-item-university"
                 className="cursor-pointer"
@@ -176,6 +191,14 @@ function PureChatHeader({
               >
                 University
               </DropdownMenuItem>
+              <DropdownMenuItem
+                data-testid="user-nav-item-mcp-servers"
+                className="cursor-pointer"
+                onSelect={() => router.push('/mcp-servers')}
+              >
+                Ferramentas MCP
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 data-testid="user-nav-item-admin"
                 className="cursor-pointer"

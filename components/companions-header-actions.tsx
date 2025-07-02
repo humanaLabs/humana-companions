@@ -10,7 +10,9 @@ export function CompanionsHeaderActions() {
   const router = useRouter();
 
   const handleAIGenerateSuccess = () => {
-    router.refresh();
+    console.log('AI companion generation success - reloading page'); // Debug
+    // Recarregar a página completamente para garantir que a lista seja atualizada
+    window.location.reload();
   };
 
   return (

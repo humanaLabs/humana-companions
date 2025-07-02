@@ -36,11 +36,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('POST /api/companions - Starting...'); // Debug
+  
   const session = await auth();
   
   if (!session || !session.user) {
+    console.log('POST /api/companions - No session or user'); // Debug
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
+
+  console.log('POST /api/companions - User:', session.user.id); // Debug
 
   // 🛡️ VERIFICAÇÃO DE QUOTA - Companions
   try {
@@ -71,6 +76,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    console.log('POST /api/companions - Request body received:', JSON.stringify(body, null, 2)); // Debug
+    
+    const organizationId = request.headers.get('x-organization-id');
+    console.log('POST /api/companions - Organization ID from header:', organizationId); // Debug
+    
     const validatedData = createCompanionSchema.parse(body);
 
     const [companion] = await createCompanion({
