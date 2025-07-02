@@ -2,6 +2,8 @@ import type { ServiceContext } from '../types/service-context';
 import { ChatDomainService, type IChatDomainService } from '../domain/chat-domain-service';
 import { ProviderConfigurationService } from '../domain/provider-configuration-service';
 import type { TenantService } from '../base/tenant-service';
+import { ProviderManager, ProviderHelper } from '../providers/factory/provider-manager';
+import { LLMProvider } from '../providers/llm/llm-provider-interface';
 
 /**
  * @description Registry de services para dependency injection
@@ -206,24 +208,41 @@ export class ServiceContainer {
    * @description Registrar serviços core do sistema
    */
   private registerCoreServices(): void {
-    // Chat Domain Service
+    // Provider Manager (singleton global)
+    this.register('ProviderManager', () => {
+      return ProviderManager.getInstance();
+    }, { singleton: true });
+
+    // LLM Provider (organization-scoped)
+    this.register('LLMProvider', (context) => {
+      const provider = ProviderHelper.getLLMProvider(context.organizationId);
+      if (!provider) {
+        // Se não há provider, usar stub para desenvolvimento
+        return this.createStubAiProvider();
+      }
+      return provider;
+    }, { singleton: true });
+
+    // Chat Domain Service with real LLM provider
     this.register('ChatDomainService', (context) => {
-      // Para demo, usando stubs das dependências
       const chatRepo = this.createStubRepository('chat');
       const messageRepo = this.createStubRepository('message');
-      const aiProvider = this.createStubAiProvider();
+      const llmProvider = this.resolve<LLMProvider>('LLMProvider', context);
       const quotaService = this.createStubQuotaService();
+
+      // Adapter para compatibilidade com AIProvider interface
+      const aiProviderAdapter = this.createLLMProviderAdapter(llmProvider);
 
       return new ChatDomainService(
         context,
         chatRepo,
         messageRepo,
-        aiProvider,
+        aiProviderAdapter,
         quotaService
       );
     }, {
       singleton: true,
-      dependencies: ['ChatRepository', 'MessageRepository', 'AIProvider', 'QuotaService']
+      dependencies: ['LLMProvider']
     });
 
     // Provider Configuration Service
@@ -233,7 +252,7 @@ export class ServiceContainer {
       singleton: true
     });
 
-    console.log('✅ Core services registered');
+    console.log('✅ Core services registered with Provider System integration');
   }
 
   /**
@@ -280,6 +299,42 @@ export class ServiceContainer {
       incrementUsage: async (userId: string, resource: string, amount: number) => {},
       getUserUsage: async (userId: string) => ({ chats: 0, messages: 0, tokens: 0 })
     };
+  }
+
+  /**
+   * @description Adapter LLMProvider -> AIProvider para compatibilidade
+   */
+  private createLLMProviderAdapter(llmProvider: LLMProvider | any): any {
+    // Se é um LLMProvider real, criar adapter
+    if (llmProvider && typeof llmProvider.generateResponse === 'function') {
+      return {
+        generateResponse: async (context: any) => {
+          const response = await llmProvider.generateResponse(context);
+          return {
+            content: response.content,
+            model: response.model,
+            tokens: {
+              prompt: response.usage.promptTokens,
+              completion: response.usage.completionTokens,
+              total: response.usage.totalTokens
+            },
+            finishReason: response.finishReason
+          };
+        },
+        generateStream: llmProvider.generateStream?.bind(llmProvider),
+        validateConfig: llmProvider.validateConfig?.bind(llmProvider),
+        getModels: async () => {
+          if (typeof llmProvider.getAvailableModels === 'function') {
+            const models = await llmProvider.getAvailableModels();
+            return models.map((m: any) => m.id);
+          }
+          return ['default-model'];
+        }
+      };
+    }
+
+    // Se é stub, retornar como está
+    return llmProvider;
   }
 
   /**

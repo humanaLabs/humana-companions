@@ -1,265 +1,439 @@
-import {
-  LLMProvider,
-  LLMModel,
-  LLMRequest,
-  LLMResponse,
-  ProviderConfig,
-  ProviderHealth
-} from '../base/provider-interface';
+import { openai } from '@ai-sdk/openai';
+import { azure } from '@ai-sdk/azure';
+import { generateText, streamText } from 'ai';
+import { 
+  LLMProvider, 
+  type LLMProviderConfig, 
+  type LLMGenerationContext, 
+  type LLMResponse, 
+  type LLMStreamChunk, 
+  type LLMModel 
+} from './llm-provider-interface';
+import type { ProviderMetrics, HealthCheckResult } from '../base/base-provider';
 
-export interface AzureOpenAIConfig {
+/**
+ * @description Configuração específica para Azure OpenAI
+ */
+export interface AzureOpenAICredentials {
   apiKey: string;
-  endpoint: string;
-  apiVersion?: string;
+  resourceName: string;
   deploymentName: string;
+  apiVersion?: string;
 }
 
-export class AzureOpenAIProvider implements LLMProvider {
-  readonly type = 'llm' as const;
-  readonly name = 'Azure OpenAI';
+/**
+ * @description Implementação do Azure OpenAI provider
+ */
+export class AzureOpenAIProvider extends LLMProvider {
+  private client: any;
+  private metrics: ProviderMetrics;
 
-  private apiKey!: string;
-  private endpoint!: string;
-  private apiVersion: string = '2023-12-01-preview';
-  private deploymentName!: string;
-
-  async initialize(config: ProviderConfig): Promise<void> {
-    const credentials = config.credentials as AzureOpenAIConfig;
+  constructor(organizationId: string, config: LLMProviderConfig) {
+    super(organizationId, config);
     
-    if (!credentials.apiKey) {
-      throw new Error('Azure OpenAI API key is required');
-    }
-    if (!credentials.endpoint) {
-      throw new Error('Azure OpenAI endpoint is required');
-    }
-    if (!credentials.deploymentName) {
-      throw new Error('Azure OpenAI deployment name is required');
-    }
-
-    this.apiKey = credentials.apiKey;
-    this.endpoint = credentials.endpoint.replace(/\/+$/, ''); // Remove trailing slashes
-    this.apiVersion = credentials.apiVersion || this.apiVersion;
-    this.deploymentName = credentials.deploymentName;
+    this.metrics = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      averageResponseTime: 0,
+      lastUsed: new Date(),
+      uptime: 100
+    };
   }
 
-  async checkHealth(): Promise<ProviderHealth> {
-    const startTime = Date.now();
-    
+  /**
+   * @description Inicializar Azure OpenAI client
+   */
+  async initialize(): Promise<void> {
     try {
-      // Test with a simple completion request
-      const testRequest: LLMRequest = {
-        model: this.deploymentName,
-        messages: [{ role: 'user', content: 'Hello' }],
-        maxTokens: 1
-      };
+      this.validateCredentials(['apiKey', 'resourceName', 'deploymentName']);
       
-      await this.generateResponse(testRequest);
-      const responseTime = Date.now() - startTime;
+      const credentials = this.getAzureCredentials();
       
-      return {
-        type: this.type,
-        status: 'healthy',
-        responseTime,
-        metadata: {
-          endpoint: this.endpoint,
-          deployment: this.deploymentName,
-          apiVersion: this.apiVersion
-        }
-      };
+      // Configurar Azure OpenAI client
+      this.client = azure({
+        apiKey: credentials.apiKey,
+        resourceName: credentials.resourceName,
+        apiVersion: credentials.apiVersion || '2024-02-01'
+      });
+
+      this.auditLog('initialize', 'azure-client', {
+        resourceName: credentials.resourceName,
+        deploymentName: credentials.deploymentName
+      });
     } catch (error) {
-      return {
-        type: this.type,
-        status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      this.auditLog('initialize_failed', 'azure-client', {
+        error: (error as Error).message
+      });
+      throw error;
     }
   }
 
-  async listModels(): Promise<LLMModel[]> {
-    // Azure OpenAI uses deployments, not models directly
-    // Return the configured deployment as a model
-    return [{
-      id: this.deploymentName,
-      name: this.deploymentName,
-      maxTokens: this.getDeploymentMaxTokens(this.deploymentName),
-      supportsFunctions: true,
-      supportsStreaming: true,
-      costPer1kTokens: this.getDeploymentCost(this.deploymentName)
-    }];
-  }
+  /**
+   * @description Gerar resposta usando Azure OpenAI
+   */
+  async generateResponse(context: LLMGenerationContext): Promise<LLMResponse> {
+    const startTime = Date.now();
+    this.metrics.totalRequests++;
 
-  async generateResponse(request: LLMRequest): Promise<LLMResponse> {
-    const payload = {
-      messages: request.messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        ...(msg.functionCall && { function_call: msg.functionCall })
-      })),
-      max_tokens: request.maxTokens,
-      temperature: request.temperature || 0.7,
-      stream: false,
-      ...(request.functions && { functions: request.functions })
-    };
-
-    const response = await this.makeRequest('/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
-    const choice = response.choices[0];
-    
-    return {
-      content: choice.message.content || '',
-      finishReason: this.mapFinishReason(choice.finish_reason),
-      usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens
-      },
-      ...(choice.message.function_call && {
-        functionCall: {
-          name: choice.message.function_call.name,
-          arguments: JSON.parse(choice.message.function_call.arguments || '{}')
-        }
-      })
-    };
-  }
-
-  async *generateStream(request: LLMRequest): AsyncIterable<LLMResponse> {
-    const payload = {
-      messages: request.messages.map(msg => ({
+    try {
+      const sanitizedContext = this.sanitizeContext(context);
+      const credentials = this.getAzureCredentials();
+      
+      // Converter mensagens para formato AI SDK
+      const messages = sanitizedContext.messages.map(msg => ({
         role: msg.role,
         content: msg.content
-      })),
-      max_tokens: request.maxTokens,
-      temperature: request.temperature || 0.7,
-      stream: true
-    };
+      }));
 
-    const response = await this.makeRequest('/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Accept': 'text/event-stream',
-        'Cache-Control': 'no-cache'
-      }
-    });
+      const result = await this.executeOperation(async () => {
+        return await generateText({
+          model: this.client(credentials.deploymentName),
+          messages,
+          temperature: sanitizedContext.temperature,
+          maxTokens: sanitizedContext.maxTokens,
+          topP: sanitizedContext.topP,
+          frequencyPenalty: sanitizedContext.frequencyPenalty,
+          presencePenalty: sanitizedContext.presencePenalty,
+          // Tools support se disponível
+          tools: sanitizedContext.tools ? this.convertTools(sanitizedContext.tools) : undefined
+        });
+      }, { context: 'generate_response' });
 
-    // Parse SSE stream
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+      const responseTime = Date.now() - startTime;
+      this.updateMetrics(responseTime, true);
 
-    let buffer = '';
-    
+      const response: LLMResponse = {
+        content: result.text,
+        model: credentials.deploymentName,
+        usage: {
+          promptTokens: result.usage?.promptTokens || 0,
+          completionTokens: result.usage?.completionTokens || 0,
+          totalTokens: result.usage?.totalTokens || 0
+        },
+        finishReason: this.mapFinishReason(result.finishReason || 'stop'),
+        toolCalls: result.toolCalls ? this.convertToolCalls(result.toolCalls) : undefined,
+        metadata: {
+          responseTime,
+          provider: 'azure-openai',
+          resourceName: credentials.resourceName
+        }
+      };
+
+      this.auditLog('generate_response_success', 'response', {
+        tokens: response.usage.totalTokens,
+        responseTime,
+        model: response.model
+      });
+
+      return response;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      this.updateMetrics(responseTime, false);
+      
+      this.auditLog('generate_response_failed', 'response', {
+        error: (error as Error).message,
+        responseTime
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * @description Gerar resposta em streaming
+   */
+  async* generateStream(context: LLMGenerationContext): AsyncGenerator<LLMStreamChunk, void, unknown> {
+    const startTime = Date.now();
+    this.metrics.totalRequests++;
+
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const sanitizedContext = this.sanitizeContext(context);
+      const credentials = this.getAzureCredentials();
+      
+      const messages = sanitizedContext.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
 
-        buffer += new TextDecoder().decode(value);
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+      const stream = await this.executeOperation(async () => {
+        return await streamText({
+          model: this.client(credentials.deploymentName),
+          messages,
+          temperature: sanitizedContext.temperature,
+          maxTokens: sanitizedContext.maxTokens,
+          topP: sanitizedContext.topP,
+          frequencyPenalty: sanitizedContext.frequencyPenalty,
+          presencePenalty: sanitizedContext.presencePenalty,
+          tools: sanitizedContext.tools ? this.convertTools(sanitizedContext.tools) : undefined
+        });
+      }, { context: 'generate_stream' });
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') return;
+      let totalTokens = 0;
 
-            try {
-              const parsed = JSON.parse(data);
-              const choice = parsed.choices[0];
-              
-              if (choice.delta.content) {
-                yield {
-                  content: choice.delta.content,
-                  finishReason: 'stop',
-                  usage: {
-                    promptTokens: 0,
-                    completionTokens: 0,
-                    totalTokens: 0
-                  }
-                };
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
-          }
+      for await (const chunk of stream.textStream) {
+        yield {
+          type: 'content',
+          content: chunk
+        };
+      }
+
+      // Yield final chunk with usage
+      const finalResult = await stream.text;
+      const responseTime = Date.now() - startTime;
+      
+      this.updateMetrics(responseTime, true);
+
+      yield {
+        type: 'done',
+        usage: {
+          promptTokens: stream.usage?.promptTokens || 0,
+          completionTokens: stream.usage?.completionTokens || 0,
+          totalTokens: stream.usage?.totalTokens || 0
+        },
+        finishReason: this.mapFinishReason(stream.finishReason || 'stop')
+      };
+
+      this.auditLog('generate_stream_success', 'stream', {
+        tokens: stream.usage?.totalTokens || 0,
+        responseTime,
+        model: credentials.deploymentName
+      });
+
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      this.updateMetrics(responseTime, false);
+      
+      this.auditLog('generate_stream_failed', 'stream', {
+        error: (error as Error).message,
+        responseTime
+      });
+      
+      throw error;
+    }
+  }
+
+  /**
+   * @description Listar modelos disponíveis no Azure OpenAI
+   */
+  async getAvailableModels(): Promise<LLMModel[]> {
+    // Azure OpenAI usa deployments específicos
+    const credentials = this.getAzureCredentials();
+    
+    // Para Azure, retornamos o deployment configurado
+    return [
+      {
+        id: credentials.deploymentName,
+        name: `${credentials.deploymentName} (Azure)`,
+        description: `Azure OpenAI deployment: ${credentials.deploymentName}`,
+        maxTokens: this.getSetting('maxTokens', 4096),
+        supportsFunctions: true,
+        supportsVision: credentials.deploymentName.includes('gpt-4'),
+        pricing: {
+          promptTokens: 0.03, // $0.03 per 1K tokens (aproximado)
+          completionTokens: 0.06 // $0.06 per 1K tokens (aproximado)
         }
       }
-    } finally {
-      reader.releaseLock();
+    ];
+  }
+
+  /**
+   * @description Estimar custo baseado em tokens
+   */
+  async estimateCost(tokens: number, model?: string): Promise<number> {
+    const models = await this.getAvailableModels();
+    const targetModel = models.find(m => m.id === (model || this.getDefaultModel()));
+    
+    if (!targetModel?.pricing) {
+      return this.calculateEstimatedCost({ 
+        promptTokens: tokens * 0.7, 
+        completionTokens: tokens * 0.3, 
+        totalTokens: tokens 
+      }, model || this.getDefaultModel());
     }
-  }
 
-  async estimateCost(request: LLMRequest): Promise<number> {
-    const costs = this.getDeploymentCost(this.deploymentName);
+    // Estimativa: 70% prompt, 30% completion
+    const promptTokens = tokens * 0.7;
+    const completionTokens = tokens * 0.3;
     
-    // Estimate tokens (rough calculation)
-    const inputTokens = request.messages.reduce((acc, msg) => 
-      acc + Math.ceil(msg.content.length / 4), 0
-    );
-    const outputTokens = request.maxTokens || 1000;
-
-    const inputCost = (inputTokens / 1000) * costs.input;
-    const outputCost = (outputTokens / 1000) * costs.output;
-
-    return inputCost + outputCost;
+    return ((promptTokens * targetModel.pricing.promptTokens) + 
+            (completionTokens * targetModel.pricing.completionTokens)) / 1000;
   }
 
-  async destroy(): Promise<void> {
-    // Cleanup if needed
+  /**
+   * @description Verificar se modelo é suportado
+   */
+  async supportsModel(modelId: string): Promise<boolean> {
+    const models = await this.getAvailableModels();
+    return models.some(m => m.id === modelId);
   }
 
-  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
-    const url = `${this.endpoint}/openai/deployments/${this.deploymentName}${endpoint}?api-version=${this.apiVersion}`;
-    
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'api-key': this.apiKey,
-        'Content-Type': 'application/json',
-        ...options.headers
-      }
+  /**
+   * @description Obter métricas de uso
+   */
+  async getMetrics(): Promise<ProviderMetrics> {
+    return { ...this.metrics };
+  }
+
+  /**
+   * @description Cleanup de recursos
+   */
+  async dispose(): Promise<void> {
+    this.client = null;
+    this.auditLog('dispose', 'azure-client', {
+      totalRequests: this.metrics.totalRequests,
+      successRate: this.metrics.totalRequests > 0 
+        ? (this.metrics.successfulRequests / this.metrics.totalRequests) * 100 
+        : 0
     });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(`Azure OpenAI API error: ${response.status} - ${error.error?.message || response.statusText}`);
-    }
-
-    return response.json();
   }
 
-  private getDeploymentMaxTokens(deploymentName: string): number {
-    // Azure deployments typically use GPT-4 or GPT-3.5-turbo models
-    // This would ideally come from deployment configuration
-    if (deploymentName.toLowerCase().includes('gpt-4')) {
-      return 8192;
-    }
-    if (deploymentName.toLowerCase().includes('32k')) {
-      return 32768;
-    }
-    if (deploymentName.toLowerCase().includes('16k')) {
-      return 16384;
-    }
-    return 4096; // Default for GPT-3.5-turbo
+  /**
+   * @description Obter credenciais Azure de forma tipada
+   */
+  private getAzureCredentials(): AzureOpenAICredentials {
+    return {
+      apiKey: this.getCredential('apiKey'),
+      resourceName: this.getCredential('resourceName'),
+      deploymentName: this.getCredential('deploymentName'),
+      apiVersion: this.getCredential('apiVersion') || '2024-02-01'
+    };
   }
 
-  private getDeploymentCost(deploymentName: string): { input: number; output: number } {
-    // Azure pricing can vary by region and contract
-    // These are approximate values - should be configurable
-    if (deploymentName.toLowerCase().includes('gpt-4')) {
-      return { input: 0.03, output: 0.06 };
-    }
-    return { input: 0.0015, output: 0.002 }; // GPT-3.5-turbo default
+  /**
+   * @description Converter tools para formato AI SDK
+   */
+  private convertTools(tools: any[]): any[] {
+    return tools.map(tool => ({
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters
+      }
+    }));
   }
 
-  private mapFinishReason(reason: string): 'stop' | 'length' | 'function_call' {
-    switch (reason) {
-      case 'stop': return 'stop';
-      case 'length': return 'length';
-      case 'function_call': return 'function_call';
-      default: return 'stop';
+  /**
+   * @description Converter tool calls de volta
+   */
+  private convertToolCalls(toolCalls: any[]): any[] {
+    return toolCalls.map(call => ({
+      id: call.id || crypto.randomUUID(),
+      name: call.function?.name || call.name,
+      arguments: call.function?.arguments || call.arguments
+    }));
+  }
+
+  /**
+   * @description Atualizar métricas de uso
+   */
+  private updateMetrics(responseTime: number, success: boolean): void {
+    if (success) {
+      this.metrics.successfulRequests++;
+    } else {
+      this.metrics.failedRequests++;
+    }
+
+    // Calcular média móvel do tempo de resposta
+    const totalSuccessful = this.metrics.successfulRequests;
+    if (totalSuccessful > 0) {
+      this.metrics.averageResponseTime = 
+        ((this.metrics.averageResponseTime * (totalSuccessful - 1)) + responseTime) / totalSuccessful;
+    }
+
+    this.metrics.lastUsed = new Date();
+    
+    // Calcular uptime baseado na taxa de sucesso
+    if (this.metrics.totalRequests > 0) {
+      this.metrics.uptime = (this.metrics.successfulRequests / this.metrics.totalRequests) * 100;
     }
   }
+}
+
+/**
+ * @description Factory para criar Azure OpenAI providers
+ */
+export class AzureOpenAIProviderFactory {
+  create(organizationId: string, config: LLMProviderConfig): AzureOpenAIProvider {
+    return new AzureOpenAIProvider(organizationId, config);
+  }
+
+  getProviderType(): string {
+    return 'azure-openai';
+  }
+
+  validateConfiguration(config: LLMProviderConfig): boolean {
+    const requiredCredentials = ['apiKey', 'resourceName', 'deploymentName'];
+    
+    for (const field of requiredCredentials) {
+      if (!config.credentials[field]) {
+        return false;
+      }
+    }
+
+    // Validar settings essenciais
+    if (!config.settings.defaultModel) {
+      return false;
+    }
+
+    return true;
+  }
+}
+
+/**
+ * @description Helper para criar configuração Azure OpenAI a partir do ambiente
+ */
+export function createAzureOpenAIConfig(
+  organizationId: string,
+  envVars: {
+    AZURE_API_KEY?: string;
+    AZURE_RESOURCE_NAME?: string;
+    AZURE_DEPLOYMENT_NAME?: string;
+    AZURE_API_VERSION?: string;
+  },
+  options: {
+    isPrimary?: boolean;
+    isFallback?: boolean;
+    priority?: number;
+  } = {}
+): LLMProviderConfig {
+  if (!envVars.AZURE_API_KEY || !envVars.AZURE_RESOURCE_NAME || !envVars.AZURE_DEPLOYMENT_NAME) {
+    throw new Error('Missing required Azure OpenAI environment variables');
+  }
+
+  return {
+    id: `azure-openai-${organizationId}`,
+    organizationId,
+    providerType: 'llm',
+    providerName: 'azure-openai',
+    enabled: true,
+    isPrimary: options.isPrimary ?? true,
+    isFallback: options.isFallback ?? false,
+    priority: options.priority ?? 100,
+    credentials: {
+      apiKey: envVars.AZURE_API_KEY,
+      resourceName: envVars.AZURE_RESOURCE_NAME,
+      deploymentName: envVars.AZURE_DEPLOYMENT_NAME,
+      apiVersion: envVars.AZURE_API_VERSION || '2024-02-01'
+    },
+    settings: {
+      defaultModel: envVars.AZURE_DEPLOYMENT_NAME,
+      maxTokens: 4096,
+      temperature: 0.7,
+      timeout: 30000,
+      retryAttempts: 3,
+      supportedModels: [envVars.AZURE_DEPLOYMENT_NAME],
+      apiVersion: envVars.AZURE_API_VERSION || '2024-02-01',
+      region: envVars.AZURE_RESOURCE_NAME.includes('east') ? 'eastus' : 'westus'
+    },
+    metadata: {
+      name: 'Azure OpenAI (Production)',
+      description: `Azure OpenAI deployment: ${envVars.AZURE_DEPLOYMENT_NAME}`,
+      provider: 'microsoft-azure',
+      service: 'openai'
+    },
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
 } 
