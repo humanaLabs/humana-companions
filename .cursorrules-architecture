@@ -1,0 +1,523 @@
+# 🏗️ HUMANA COMPANIONS - PADRÕES DE ARQUITETURA E DESENVOLVIMENTO
+
+**Versão:** 2.0  
+**Data:** 30-1-2025  
+**Aplicação:** Todas as mudanças no código devem seguir RIGOROSAMENTE estas diretrizes  
+**Referência:** Implementação do Service Layer Pattern e Isolamento de Responsabilidades
+
+---
+
+## 🎯 **PRINCÍPIOS FUNDAMENTAIS**
+
+### **1. MULTI-TENANCY RIGOROSO**
+- **SEMPRE** incluir `organizationId` em todas as operações de dados
+- **NUNCA** permitir acesso cross-organization sem validação explícita
+- **OBRIGATÓRIO** validar tenant isolation em todos os métodos de repository
+- **AUTOMÁTICO** aplicar filtros de organização em todas as queries
+
+### **2. ISOLAMENTO DE RESPONSABILIDADES (SRP)**
+- **Uma responsabilidade por classe/serviço/módulo**
+- **Business logic isolada** em Domain Services
+- **Data access isolado** em Repositories
+- **Infrastructure isolada** em Providers
+- **API logic isolada** em Routes com Adapters
+
+### **3. DEPENDENCY INJECTION OBRIGATÓRIO**
+- **Todas as dependências injetadas** via constructor
+- **Interfaces sempre** para abstrações
+- **ServiceContainer** para resolution
+- **Organization-specific** service resolution
+
+---
+
+## 🏛️ **ARQUITETURA MANDATÓRIA**
+
+### **ESTRUTURA DE CAMADAS**
+```
+┌─────────────────────┐
+│   API Routes        │ ← HTTP/REST interface apenas
+├─────────────────────┤
+│   API Adapters      │ ← Bridge para Domain Services
+├─────────────────────┤
+│   Domain Services   │ ← Business logic isolada
+├─────────────────────┤
+│   Repository        │ ← Data access abstraction
+├─────────────────────┤
+│   Infrastructure    │ ← External services (DB, LLM, Storage)
+└─────────────────────┘
+```
+
+### **NUNCA FAÇA:**
+- ❌ Business logic em API routes
+- ❌ Data access direto em Domain Services
+- ❌ Queries sem organizationId
+- ❌ Hard-coded providers
+- ❌ Direct database calls fora do Repository
+- ❌ Cross-domain dependencies
+
+### **SEMPRE FAÇA:**
+- ✅ Use Domain Services para business logic
+- ✅ Use Repositories para data access
+- ✅ Use ServiceContainer para DI
+- ✅ Validate organization access
+- ✅ Propagate ServiceContext
+- ✅ Return OperationResult<T>
+
+---
+
+## 🔒 **MULTI-TENANT SECURITY PATTERNS**
+
+### **REPOSITORY OBRIGATÓRIO**
+```typescript
+// ✅ CORRETO - organizationId sempre presente
+export interface Repository<T> {
+  findById(id: string, organizationId: string): Promise<T | null>;
+  create(entity: Omit<T, 'id'>, organizationId: string): Promise<T>;
+  update(id: string, updates: Partial<T>, organizationId: string): Promise<T>;
+  delete(id: string, organizationId: string): Promise<void>;
+}
+
+// ❌ ERRADO - sem organizationId
+export interface BadRepository<T> {
+  findById(id: string): Promise<T | null>; // NUNCA FAÇA ISSO
+}
+```
+
+### **DOMAIN SERVICE OBRIGATÓRIO**
+```typescript
+// ✅ CORRETO - TenantService base
+export class ChatDomainService extends TenantService<Chat> {
+  constructor(
+    organizationId: string,
+    private repository: Repository<Chat>
+  ) {
+    super(organizationId, repository);
+  }
+
+  async getChat(chatId: string, userId: string): Promise<OperationResult<Chat>> {
+    // Sempre validate organization access
+    const chat = await this.repository.findById(chatId, this.organizationId);
+    if (!chat) throw new Error('Chat not found');
+    
+    await this.validateOrganizationAccess(chat.organizationId);
+    return { success: true, data: chat, context: this.createContext(userId) };
+  }
+}
+```
+
+### **VALIDATION OBRIGATÓRIA**
+```typescript
+// ✅ SEMPRE validar tenant access
+protected async validateOrganizationAccess(resourceOrgId: string): Promise<void> {
+  if (resourceOrgId !== this.organizationId) {
+    throw new Error('Access denied: Resource belongs to different organization');
+  }
+}
+
+// ✅ SEMPRE usar organization context
+protected createContext(userId?: string): ServiceContext {
+  return {
+    organizationId: this.organizationId,
+    userId,
+    timestamp: new Date(),
+    requestId: crypto.randomUUID()
+  };
+}
+```
+
+---
+
+## 🔧 **SERVICE LAYER PATTERNS**
+
+### **TENANT SERVICE BASE**
+```typescript
+// ✅ OBRIGATÓRIO - Todos domain services devem estender
+export abstract class TenantService<T> {
+  constructor(
+    protected organizationId: string,
+    protected repository: Repository<T>,
+    protected config: ServiceConfig = {}
+  ) {}
+
+  protected async withTransaction<R>(operation: () => Promise<R>): Promise<R> {
+    // Transaction management
+  }
+
+  protected async checkPermissions(userId: string, action: string): Promise<void> {
+    // Permission validation
+  }
+
+  protected async validateOrganizationAccess(resourceOrgId: string): Promise<void> {
+    // Tenant isolation validation
+  }
+}
+```
+
+### **REPOSITORY PATTERN**
+```typescript
+// ✅ Interface obrigatória
+export interface Repository<T> {
+  // SEMPRE incluir organizationId
+  findById(id: string, organizationId: string): Promise<T | null>;
+  findByUserId(userId: string, organizationId: string): Promise<T[]>;
+  create(entity: Omit<T, 'id'>, organizationId: string): Promise<T>;
+  update(id: string, updates: Partial<T>, organizationId: string): Promise<T>;
+  delete(id: string, organizationId: string): Promise<void>;
+}
+
+// ✅ Base implementation obrigatória
+export abstract class BaseRepositoryImpl<T> implements Repository<T> {
+  protected ensureTenantIsolation(query: any, organizationId: string): any {
+    if (!query.where) query.where = {};
+    query.where.organizationId = organizationId;
+    return query;
+  }
+
+  protected validateOrganizationId(organizationId: string): void {
+    if (!organizationId) {
+      throw new Error('Organization ID is required for all repository operations');
+    }
+  }
+}
+```
+
+### **DEPENDENCY INJECTION**
+```typescript
+// ✅ ServiceContainer obrigatório
+export class ServiceContainerImpl implements ServiceContainer {
+  resolveWithContext<T>(key: string, context: ServiceContext): T {
+    // Try organization-specific service first
+    const organizationKey = `${key}:${context.organizationId}`;
+    if (this.services.has(organizationKey)) {
+      return this.resolve(organizationKey);
+    }
+    return this.resolve(key); // Fallback
+  }
+}
+
+// ✅ Sempre resolver com context
+const chatService = serviceContainer.resolveWithContext<ChatDomainService>(
+  'chatService', 
+  { organizationId: 'org-123', userId: 'user-456' }
+);
+```
+
+---
+
+## 🔌 **PROVIDER ABSTRACTION PATTERNS**
+
+### **LLM PROVIDER INTERFACE**
+```typescript
+// ✅ OBRIGATÓRIO - Provider abstraction
+export interface LLMProvider {
+  name: string;
+  generateResponse(input: LLMRequest): Promise<LLMResponse>;
+  generateStream(input: LLMRequest): AsyncGenerator<LLMChunk>;
+  validateConfig(config: LLMConfig): Promise<boolean>;
+}
+
+// ✅ NUNCA hard-code providers
+// ❌ ERRADO
+const response = await openai.chat.completions.create({...});
+
+// ✅ CORRETO
+const provider = container.resolve<LLMProvider>('llmProvider');
+const response = await provider.generateResponse(request);
+```
+
+### **STORAGE PROVIDER INTERFACE**
+```typescript
+// ✅ OBRIGATÓRIO - Storage abstraction
+export interface StorageProvider {
+  upload(file: File, path: string): Promise<string>;
+  download(path: string): Promise<Buffer>;
+  delete(path: string): Promise<void>;
+  getSignedUrl(path: string, expiry: number): Promise<string>;
+}
+```
+
+---
+
+## 📊 **ERROR HANDLING PATTERNS**
+
+### **OPERATION RESULT OBRIGATÓRIO**
+```typescript
+// ✅ SEMPRE retornar OperationResult
+export interface OperationResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  context: ServiceContext;
+}
+
+// ✅ Pattern obrigatório
+async createChat(request: CreateChatRequest): Promise<OperationResult<Chat>> {
+  const context = this.createContext(request.userId);
+  
+  try {
+    // Business logic
+    const chat = await this.repository.create(data, this.organizationId);
+    
+    return {
+      success: true,
+      data: chat,
+      context
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      context
+    };
+  }
+}
+```
+
+### **FAIL-SAFE DEFAULTS**
+```typescript
+// ✅ SEMPRE configurar defaults seguros
+this.config = {
+  enableLogging: true,    // Default seguro
+  timeout: 30000,        // Timeout razoável
+  retryAttempts: 3,      // Resilience
+  ...config
+};
+
+// ✅ RETRY com exponential backoff
+protected async retry<T>(operation: () => Promise<T>): Promise<T> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i < attempts - 1) {
+        await this.delay(Math.pow(2, i) * 1000); // Exponential backoff
+      }
+    }
+  }
+  throw lastError;
+}
+```
+
+---
+
+## 🧪 **TESTING PATTERNS**
+
+### **MOCKABLE DEPENDENCIES**
+```typescript
+// ✅ SEMPRE design para testabilidade
+export class ChatDomainService extends TenantService<Chat> {
+  constructor(
+    organizationId: string,
+    private repository: Repository<Chat>,      // Mockable
+    private quotaService: QuotaService,        // Mockable
+    private aiProvider: LLMProvider            // Mockable
+  ) {
+    super(organizationId, repository);
+  }
+}
+
+// ✅ Easy mocking
+const mockRepository = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  // ... other mocks
+};
+
+const service = new ChatDomainService('org-123', mockRepository, mockQuota, mockAI);
+```
+
+### **UNIT TEST PATTERN**
+```typescript
+// ✅ Test pattern obrigatório
+describe('ChatDomainService', () => {
+  let service: ChatDomainService;
+  let mockRepository: jest.Mocked<Repository<Chat>>;
+
+  beforeEach(() => {
+    mockRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      // ... other mocks
+    };
+    
+    service = new ChatDomainService('org-123', mockRepository);
+  });
+
+  test('should create chat with proper organization isolation', async () => {
+    const result = await service.createChat({
+      userId: 'user-123',
+      title: 'Test Chat'
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-123'
+      }),
+      'org-123'
+    );
+  });
+});
+```
+
+---
+
+## 📁 **ESTRUTURA DE ARQUIVOS OBRIGATÓRIA**
+
+### **SERVICE LAYER ORGANIZATION**
+```
+lib/services/
+├── base/
+│   ├── tenant-service.ts          ← Base para todos services
+│   └── service-config.ts          ← Configurações base
+├── repositories/
+│   ├── base-repository.ts         ← Repository interface
+│   ├── chat-repository.ts         ← Chat data access
+│   └── message-repository.ts      ← Message data access
+├── domain/
+│   ├── chat-domain-service.ts     ← Chat business logic
+│   ├── document-domain-service.ts ← Document business logic
+│   └── companion-domain-service.ts← Companion business logic
+├── providers/
+│   ├── llm/
+│   │   ├── base-llm-provider.ts   ← LLM interface
+│   │   ├── openai-provider.ts     ← OpenAI implementation
+│   │   └── azure-provider.ts      ← Azure implementation
+│   └── storage/
+│       ├── base-storage-provider.ts
+│       ├── s3-provider.ts
+│       └── azure-blob-provider.ts
+├── container/
+│   └── service-container.ts       ← Dependency injection
+├── adapters/
+│   ├── chat-api-adapter.ts        ← API bridge
+│   └── document-api-adapter.ts    ← API bridge
+├── types/
+│   └── service-context.ts         ← Common types
+└── index.ts                       ← Export organization
+```
+
+### **API ORGANIZATION**
+```
+app/api/
+├── chat/
+│   └── route.ts                   ← Use ChatApiAdapter
+├── documents/
+│   └── route.ts                   ← Use DocumentApiAdapter
+└── companions/
+    └── route.ts                   ← Use CompanionApiAdapter
+```
+
+---
+
+## 🔧 **MIGRATION PATTERNS**
+
+### **GRADUAL ADOPTION**
+```typescript
+// ✅ Pattern para migrar APIs existentes
+export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return new ChatSDKError('unauthorized:chat').toResponse();
+  }
+
+  try {
+    // ✅ Use adapter para migração gradual
+    const adapter = await createChatApiAdapter(session);
+    const requestBody = await request.json();
+    const result = await adapter.createChatFromRequest(requestBody);
+    
+    if (result.success) {
+      return Response.json({ chatId: result.chatId });
+    } else {
+      return Response.json({ error: result.error }, { status: 400 });
+    }
+  } catch (error) {
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+### **BACKWARD COMPATIBILITY**
+```typescript
+// ✅ Manter compatibilidade durante migração
+export class ChatApiAdapter {
+  // ✅ Métodos que mantêm interface existente
+  async createChatFromRequest(requestBody: PostRequestBody) {
+    // Converte para domain service call
+    const result = await this.chatService.createChat({
+      userId: this.session.user!.id,
+      title: requestBody.title,
+      // ... outros campos
+    });
+    
+    // Retorna formato esperado pela API existente
+    return {
+      success: result.success,
+      chatId: result.data?.id,
+      error: result.error
+    };
+  }
+}
+```
+
+---
+
+## 🚨 **VALIDAÇÃO E ENFORCEMENT**
+
+### **ANTES DE CADA COMMIT:**
+1. ✅ Verificar se `organizationId` está presente em todas as queries
+2. ✅ Confirmar que business logic está em Domain Services
+3. ✅ Validar que repositories implementam tenant isolation
+4. ✅ Checar se dependencies são injetadas via constructor
+5. ✅ Confirmar que retorna `OperationResult<T>`
+6. ✅ Verificar se há testes unitários para novos services
+
+### **CODE REVIEW CHECKLIST:**
+- [ ] `organizationId` obrigatório em todos métodos de repository?
+- [ ] Business logic isolada em Domain Service?
+- [ ] Dependency injection configurada?
+- [ ] Tenant validation implementada?
+- [ ] Error handling com `OperationResult<T>`?
+- [ ] Tests unitários incluídos?
+- [ ] Documentation atualizada?
+
+### **AUTOMATED CHECKS:**
+```typescript
+// ✅ Lint rules sugeridas
+{
+  "rules": {
+    "no-direct-db-access": "error",        // Proibir DB direto
+    "require-organization-id": "error",    // Exigir organizationId
+    "no-hardcoded-providers": "error",     // Proibir providers hard-coded
+    "require-dependency-injection": "error" // Exigir DI
+  }
+}
+```
+
+---
+
+## 🎯 **RESUMO EXECUTIVO**
+
+### **DIRETRIZES INEGOCIÁVEIS:**
+1. **Multi-tenancy rigoroso** - `organizationId` sempre
+2. **Isolamento total** - SRP em todas as classes
+3. **Dependency injection** - Abstrações sempre
+4. **Fail-safe defaults** - Resilience em tudo
+5. **Testabilidade máxima** - Easy mocking
+6. **Provider abstraction** - BYOC ready
+7. **Gradual migration** - Backward compatibility
+
+### **BENEFÍCIOS GARANTIDOS:**
+- 🔒 **Zero vazamento** entre organizations
+- 🧪 **90%+ testabilidade** com mocking fácil
+- 🔄 **Flexibilidade total** para BYOC
+- 📈 **Escalabilidade** sem refactor
+- 🛡️ **Segurança** by design
+- 🚀 **Performance** otimizada
+
+---
+
+**📋 LEMBRE-SE: Estas diretrizes são OBRIGATÓRIAS para todas as mudanças no código. Qualquer desvio deve ser justificado e aprovado pela arquitetura.**
+
+**🎯 OBJETIVO: Garantir que o Humana Companions seja a plataforma multi-tenant mais robusta e flexível do mercado.** 

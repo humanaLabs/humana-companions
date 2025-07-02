@@ -1,5 +1,34 @@
 # Humana Companions - Intelligent Context Rules
 
+## 🚨 MANDATORY ARCHITECTURE STANDARDS (HIGHEST PRIORITY)
+
+**⚠️ CRITICAL: These rules must be applied to EVERY code change, regardless of file type or context.**
+
+### 🏗️ Architecture Standards - ALWAYS ACTIVE
+**Load comprehensive architecture guidelines from `.cursorrules-architecture`:**
+- **Multi-tenant security patterns** - organizationId ALWAYS required
+- **Service Layer Pattern** - Domain Services, Repositories, Providers
+- **Dependency Injection** - ServiceContainer with organization-specific resolution
+- **Fail-safe defaults** - Error handling, retry mechanisms, resilience
+- **Provider abstraction** - BYOC ready, no hard-coded providers
+- **Testing patterns** - 90%+ testability with easy mocking
+
+**🔒 NON-NEGOTIABLE RULES:**
+1. **NEVER** create queries without `organizationId`
+2. **ALWAYS** use Domain Services for business logic
+3. **ALWAYS** use Repository pattern for data access
+4. **ALWAYS** inject dependencies via constructor
+5. **ALWAYS** return `OperationResult<T>` from service methods
+6. **ALWAYS** validate tenant isolation
+
+**📋 BEFORE ANY CODE CHANGE:**
+- Verify multi-tenant compliance
+- Ensure service layer isolation
+- Check dependency injection
+- Validate error handling patterns
+
+---
+
 ## 🎯 Context-Aware Rule Loading
 
 **The AI should automatically load specific context rules based on the file being edited:**
@@ -9,18 +38,28 @@
 - Load the comprehensive frontend guidelines from `.cursorrules-frontend`
 - Apply design system rules, component patterns, and UI/UX best practices
 - Focus on responsive design, accessibility, and React patterns
+- **PLUS: Always apply architecture standards above**
 
 ### Backend Development  
 **When working with API/Backend files** (app/api/, lib/db/, lib/auth/, *.sql, drizzle.*, middleware.ts):
 - Load the comprehensive backend guidelines from `.cursorrules-backend`
 - Apply database patterns, API design, authentication, and server-side best practices
 - Focus on security, multi-tenancy, and performance
+- **PLUS: Always apply architecture standards above**
+
+### Service Layer Development
+**When working with Service files** (lib/services/, *-service.ts, *-repository.ts, *-provider.ts):
+- **MANDATORY: Load architecture guidelines from `.cursorrules-architecture`**
+- Apply Domain Service patterns, Repository isolation, Provider abstraction
+- Enforce multi-tenant security, dependency injection, testing patterns
+- Focus on business logic isolation and BYOC preparation
 
 ### AI/LLM Development
 **When working with AI files** (lib/ai/, *ai.ts, *tool.ts, *mcp.ts):
 - Load the comprehensive AI guidelines from `.cursorrules-ai`
 - Apply AI SDK patterns, prompt engineering, and provider management
 - Focus on LLM integrations, streaming, and context management
+- **PLUS: Always apply architecture standards above**
 
 ### Documentation
 **When working with documentation** (projeto/, *.md, docs/, README, blueprint):
@@ -41,6 +80,7 @@
 - **Database**: Drizzle ORM with PostgreSQL and multi-tenancy
 - **AI**: Vercel AI SDK with multiple providers (OpenAI, Anthropic, Azure)
 - **Authentication**: NextAuth.js v5 with RBAC permissions
+- **Architecture**: Service Layer Pattern with strict multi-tenant isolation
 
 ## 🎨 Design System (Always Active)
 
