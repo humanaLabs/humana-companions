@@ -57,7 +57,7 @@ export function CompanionSelector({
           )}
           disabled={isLoading}
         >
-          <span className="text-xs font-medium">
+          <span className="text-sm font-medium">
             {isLoading 
               ? 'Carregando...' 
               : selectedCompanion?.name || 'Companion Super Hero'

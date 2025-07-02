@@ -29,7 +29,7 @@ import {
 } from '@/components/icons';
 import { BarChart3 } from 'lucide-react';
 import { SidebarHistory } from '@/components/sidebar-history';
-import { SidebarUserNav } from '@/components/sidebar-user-nav';
+
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -591,8 +591,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </div>
             </div>
           )}
-
-        {user && <SidebarUserNav user={user} />}
       </SidebarFooter>
     </Sidebar>
   );

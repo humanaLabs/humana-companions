@@ -423,7 +423,7 @@ function ChatInner({
         />
 
         <div className="flex-shrink-0">
-          <form className="flex mx-auto px-2 md:px-4 bg-background pb-4 md:pb-4 pt-2 md:pt-0 gap-2 w-full md:max-w-3xl">
+                      <form className="flex mx-auto px-2 md:px-4 bg-background pb-4 md:pb-4 pt-2 md:pt-0 gap-2 w-full md:max-w-3xl">
             {!isReadonly &&
               (ENABLE_MESSAGE_LIMITS && inputBlocked ? (
                 <Tooltip className="relative w-full">
