@@ -25,6 +25,7 @@ import {
   ChevronDownIcon,
   MoreIcon,
   TrashIcon,
+  SparklesIcon,
 } from '@/components/icons';
 import { BarChart3 } from 'lucide-react';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -303,7 +304,21 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         </div>
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">My Companion</TooltipContent>
+                    <TooltipContent side="right">My Companions</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href="/studio"
+                        onClick={() => setOpenMobile(false)}
+                        className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                      >
+                        <div className="flex items-center justify-center w-6 h-6">
+                          <SparklesIcon size={16} />
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">Org Studio</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -347,7 +362,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </TooltipTrigger>
                     <TooltipContent side="right">Aplicativos</TooltipContent>
                   </Tooltip>
-                  {/* Pastas de Projetos - Collapsed */}
+                  {/* Organizer - Collapsed */}
                   {folders.map((folder) => (
                     <Tooltip key={folder.id}>
                       <TooltipTrigger asChild>
@@ -377,7 +392,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <div className="flex items-center justify-center w-6 h-6">
                       <HomeIcon size={16} />
                     </div>
-                    <span className="flex-1">My Companion</span>
+                    <span className="flex-1">My Companions</span>
+                  </Link>
+                  <Link
+                    href="/studio"
+                    onClick={() => setOpenMobile(false)}
+                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center justify-center w-6 h-6">
+                      <SparklesIcon size={16} />
+                    </div>
+                    <span className="flex-1">Org Studio</span>
                   </Link>
                   <Link
                     href="/data-room"
@@ -420,7 +445,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <span className="flex-1">Quotas</span>
                   </Link>
 
-                  {/* Seção Pastas de Projetos - Expanded */}
+                  {/* Seção Organizer - Expanded */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group w-full cursor-pointer">
                       <button
@@ -435,7 +460,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                             <ChevronDownIcon size={16} />
                           </div>
                         </div>
-                        <span className="flex-1 text-left">Pastas</span>
+                        <span className="flex-1 text-left">Organizer</span>
                       </button>
                       <button
                         type="button"

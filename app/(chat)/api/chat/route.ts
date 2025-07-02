@@ -159,11 +159,14 @@ export async function POST(request: Request) {
 
     // 🛡️ VERIFICAÇÃO DE QUOTA - Bloquear se limites atingidos
     try {
-      // Criar NextRequest mock com headers necessários
-      const mockRequest = Object.assign(request, {
-        headers: new Headers(request.headers)
-      });
-      mockRequest.headers.set('x-organization-id', finalOrgId);
+      // Criar NextRequest mock com headers necessários (não modificar o original)
+      const mockHeaders = new Headers(request.headers);
+      mockHeaders.set('x-organization-id', finalOrgId);
+      
+      const mockRequest = {
+        ...request,
+        headers: mockHeaders
+      };
       
       const quotaCheck = await checkQuotaBeforeAction({ 
         request: mockRequest as any, 

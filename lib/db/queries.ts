@@ -2583,29 +2583,47 @@ export async function incrementUsage({
     // Garantir que existe um registro de uso para este usuário/organização/mês
     await initializeUserUsage({ userId, organizationId, month, year });
 
-    // Mapear tipo de uso para campo na tabela
+    // Usar abordagem mais simples para evitar erros de SQL - buscar valor atual e incrementar
+    const currentUsage = await db
+      .select()
+      .from(usageTracking)
+      .where(
+        and(
+          eq(usageTracking.userId, userId),
+          eq(usageTracking.organizationId, organizationId),
+          eq(usageTracking.month, month),
+          eq(usageTracking.year, year)
+        )
+      )
+      .limit(1);
+
+    if (currentUsage.length === 0) {
+      throw new Error('Registro de uso não encontrado após inicialização');
+    }
+
+    const current = currentUsage[0];
     const updateFields: any = {};
     
     switch (usageType) {
       case 'messages_daily':
         // Para mensagens diárias, incrementar ambos daily e monthly
-        updateFields.dailyMessagesUsed = sql`${usageTracking.dailyMessagesUsed} + 1`;
-        updateFields.monthlyMessagesUsed = sql`${usageTracking.monthlyMessagesUsed} + 1`;
+        updateFields.dailyMessagesUsed = current.dailyMessagesUsed + 1;
+        updateFields.monthlyMessagesUsed = current.monthlyMessagesUsed + 1;
         break;
       case 'messages_monthly':
-        updateFields.monthlyMessagesUsed = sql`${usageTracking.monthlyMessagesUsed} + ${amount}`;
+        updateFields.monthlyMessagesUsed = current.monthlyMessagesUsed + amount;
         break;
       case 'companions':
-        updateFields.companionsCount = sql`${usageTracking.companionsCount} + ${amount}`;
+        updateFields.companionsCount = current.companionsCount + amount;
         break;
       case 'documents':
-        updateFields.documentsCount = sql`${usageTracking.documentsCount} + ${amount}`;
+        updateFields.documentsCount = current.documentsCount + amount;
         break;
       case 'storage':
-        updateFields.totalStorageUsedMb = sql`${usageTracking.totalStorageUsedMb} + ${amount}`;
+        updateFields.totalStorageUsedMb = current.totalStorageUsedMb + amount;
         break;
       case 'mcp_servers':
-        updateFields.mcpServersCount = sql`${usageTracking.mcpServersCount} + ${amount}`;
+        updateFields.mcpServersCount = current.mcpServersCount + amount;
         break;
       default:
         throw new Error(`Tipo de uso não suportado: ${usageType}`);

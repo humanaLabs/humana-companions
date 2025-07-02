@@ -13,11 +13,21 @@ import {
 } from './models.test';
 import { createAzureModel, createAzureImageModel, isAzureConfigured } from './azure-config';
 
+// Cache para evitar recriação de modelos a cada requisição
+let azureModelsCache: Record<string, any> | null = null;
+let azureImageModelsCache: Record<string, any> | null = null;
+
 // Função auxiliar para configurar o modelo GPT-4o do Azure
 function getValidAzureModels() {
+  // Retornar do cache se já foi criado
+  if (azureModelsCache) {
+    return azureModelsCache;
+  }
+
   if (!isAzureConfigured) {
     console.warn('⚠️  Azure OpenAI não está configurado. Configure AZURE_API_KEY no arquivo .env.local');
-    return {};
+    azureModelsCache = {};
+    return azureModelsCache;
   }
   
   const models: Record<string, any> = {};
@@ -40,12 +50,22 @@ function getValidAzureModels() {
     console.error('❌ Falha ao criar modelo Azure GPT-4o');
   }
   
+  // Cachear para próximas requisições
+  azureModelsCache = models;
   return models;
 }
 
 // Função auxiliar para modelos de imagem válidos do Azure
 function getValidAzureImageModels() {
-  if (!isAzureConfigured) return {};
+  // Retornar do cache se já foi criado
+  if (azureImageModelsCache) {
+    return azureImageModelsCache;
+  }
+
+  if (!isAzureConfigured) {
+    azureImageModelsCache = {};
+    return azureImageModelsCache;
+  }
   
   const models: Record<string, any> = {};
   
@@ -54,6 +74,8 @@ function getValidAzureImageModels() {
     models['image-model'] = azureDalle3;
   }
   
+  // Cachear para próximas requisições
+  azureImageModelsCache = models;
   return models;
 }
 

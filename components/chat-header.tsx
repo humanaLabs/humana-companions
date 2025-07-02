@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 
-import { ModelSelector } from '@/components/model-selector';
 import { CompanionSelector } from '@/components/companion-selector';
 import { McpSelector } from '@/components/mcp-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
@@ -16,7 +15,6 @@ import type { Session } from 'next-auth';
 
 function PureChatHeader({
   chatId,
-  selectedModelId,
   selectedCompanionId,
   onCompanionChange,
   selectedMcpServerIds,
@@ -25,7 +23,6 @@ function PureChatHeader({
   session,
 }: {
   chatId: string;
-  selectedModelId: string;
   selectedCompanionId?: string;
   onCompanionChange: (companionId: string | undefined) => void;
   selectedMcpServerIds: string[];
@@ -46,11 +43,6 @@ function PureChatHeader({
 
       {!isReadonly && (
         <>
-          <ModelSelector
-            session={session}
-            selectedModelId={selectedModelId}
-            className="flex md:flex"
-          />
           <CompanionSelector
             selectedCompanionId={selectedCompanionId}
             onCompanionChange={onCompanionChange}
@@ -89,7 +81,6 @@ function PureChatHeader({
 
 export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return (
-    prevProps.selectedModelId === nextProps.selectedModelId &&
     prevProps.selectedCompanionId === nextProps.selectedCompanionId &&
     JSON.stringify(prevProps.selectedMcpServerIds) ===
       JSON.stringify(nextProps.selectedMcpServerIds)

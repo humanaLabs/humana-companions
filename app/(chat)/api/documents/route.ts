@@ -102,10 +102,13 @@ export async function POST(request: NextRequest) {
 
     // 🛡️ VERIFICAÇÃO DE QUOTA - Documentos
     try {
-      const mockRequest = Object.assign(request, {
-        headers: new Headers(request.headers)
-      });
-      mockRequest.headers.set('x-organization-id', finalOrganizationId);
+      const mockHeaders = new Headers(request.headers);
+      mockHeaders.set('x-organization-id', finalOrganizationId);
+      
+      const mockRequest = {
+        ...request,
+        headers: mockHeaders
+      };
       
       const quotaCheck = await checkQuotaBeforeAction({ 
         request: mockRequest as any, 

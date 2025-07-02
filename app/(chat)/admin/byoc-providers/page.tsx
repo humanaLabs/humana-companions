@@ -310,7 +310,55 @@ export default function BYOCProvidersPage() {
         </TabsList>
 
         {/* LLM Providers */}
-        <TabsContent value="llm">
+        <TabsContent value="llm" className="space-y-6">
+          {/* LLM Ativo Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                LLM Ativo
+              </CardTitle>
+              <CardDescription>
+                Selecione o modelo de LLM que será usado por padrão na organização
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="active-llm">Modelo Ativo</Label>
+                  <Select
+                    value={config.llm?.credentials?.defaultModel || 'gpt-4o'}
+                    onValueChange={(value) => updateProviderConfig('llm', {
+                      credentials: { 
+                        ...config.llm?.credentials, 
+                        defaultModel: value 
+                      }
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o modelo ativo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4o">GPT-4o (Azure)</SelectItem>
+                      <SelectItem value="gpt-4">GPT-4 (Azure)</SelectItem>
+                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Azure)</SelectItem>
+                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Azure)</SelectItem>
+                      <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                      <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="text-sm text-muted-foreground">
+                    Modelo atualmente ativo: <span className="font-medium">{config.llm?.credentials?.defaultModel || 'GPT-4o (Azure)'}</span>
+                  </div>
+                  {getHealthBadge('llm', config.llm?.type)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Provider Configuration */}
           <LLMProviderConfig
             config={config.llm}
             availableProviders={availableProviders.llm || []}

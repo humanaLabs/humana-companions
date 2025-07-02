@@ -401,7 +401,6 @@ function ChatInner({
       <div className="flex flex-col min-w-0 h-dvh md:h-dvh bg-background">
         <ChatHeader
           chatId={id}
-          selectedModelId={initialChatModel}
           selectedCompanionId={selectedCompanionId}
           onCompanionChange={setSelectedCompanionId}
           selectedMcpServerIds={selectedMcpServerIds}
