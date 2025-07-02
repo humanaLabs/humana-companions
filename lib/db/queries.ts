@@ -1,7 +1,7 @@
 // @ts-nocheck - Temporarily disable type checking due to drizzle-orm version conflicts
 import 'server-only';
 
-import { and, asc, count, desc, eq, gt, gte, inArray, lt } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, inArray, lt, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -25,6 +25,9 @@ import {
   companionInteraction,
   companionPerformance,
   mcpCycleReport,
+  userQuotas,
+  usageTracking,
+  quotaAlerts,
 } from './schema';
 import { generateHashedPassword, generateUUID } from './utils';
 import type { VisibilityType } from '@/components/visibility-selector';
@@ -1972,5 +1975,565 @@ export async function getOrganizationForUser(
     } else {
       return await ensureDefaultOrganization();
     }
+  }
+}
+
+// ========================================
+// QUOTA SYSTEM QUERIES
+// ========================================
+
+/**
+ * Get user quota by user and organization
+ */
+export async function getUserQuota({
+  userId,
+  organizationId,
+}: {
+  userId: string;
+  organizationId: string;
+}) {
+  try {
+    const [quota] = await db
+      .select()
+      .from(userQuotas)
+      .where(
+        and(
+          eq(userQuotas.userId, userId),
+          eq(userQuotas.organizationId, organizationId)
+        )
+      )
+      .limit(1);
+
+    return quota;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get user quota',
+    );
+  }
+}
+
+/**
+ * Create or update user quota
+ */
+export async function upsertUserQuota({
+  userId,
+  organizationId,
+  monthlyMessagesLimit,
+  dailyMessagesLimit,
+  maxCompanions,
+  maxCustomCompanions,
+  maxDocuments,
+  maxDocumentSizeMb,
+  totalStorageMb,
+  maxMcpServers,
+  quotaType,
+}: {
+  userId: string;
+  organizationId: string;
+  monthlyMessagesLimit?: number;
+  dailyMessagesLimit?: number;
+  maxCompanions?: number;
+  maxCustomCompanions?: number;
+  maxDocuments?: number;
+  maxDocumentSizeMb?: number;
+  totalStorageMb?: number;
+  maxMcpServers?: number;
+  quotaType?: string;
+}) {
+  try {
+    // First try to get existing quota
+    const existingQuota = await getUserQuota({ userId, organizationId });
+
+    if (existingQuota) {
+      // Update existing quota
+      const [updatedQuota] = await db
+        .update(userQuotas)
+        .set({
+          monthlyMessagesLimit: monthlyMessagesLimit ?? existingQuota.monthlyMessagesLimit,
+          dailyMessagesLimit: dailyMessagesLimit ?? existingQuota.dailyMessagesLimit,
+          maxCompanions: maxCompanions ?? existingQuota.maxCompanions,
+          maxCustomCompanions: maxCustomCompanions ?? existingQuota.maxCustomCompanions,
+          maxDocuments: maxDocuments ?? existingQuota.maxDocuments,
+          maxDocumentSizeMb: maxDocumentSizeMb ?? existingQuota.maxDocumentSizeMb,
+          totalStorageMb: totalStorageMb ?? existingQuota.totalStorageMb,
+          maxMcpServers: maxMcpServers ?? existingQuota.maxMcpServers,
+          quotaType: quotaType ?? existingQuota.quotaType,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(userQuotas.userId, userId),
+            eq(userQuotas.organizationId, organizationId)
+          )
+        )
+        .returning();
+
+      return updatedQuota;
+    } else {
+      // Create new quota with defaults
+      const [newQuota] = await db
+        .insert(userQuotas)
+        .values({
+          userId,
+          organizationId,
+          monthlyMessagesLimit: monthlyMessagesLimit ?? 1000,
+          dailyMessagesLimit: dailyMessagesLimit ?? 100,
+          maxCompanions: maxCompanions ?? 5,
+          maxCustomCompanions: maxCustomCompanions ?? 2,
+          maxDocuments: maxDocuments ?? 100,
+          maxDocumentSizeMb: maxDocumentSizeMb ?? 10,
+          totalStorageMb: totalStorageMb ?? 500,
+          maxMcpServers: maxMcpServers ?? 3,
+          quotaType: quotaType ?? 'standard',
+        })
+        .returning();
+
+      return newQuota;
+    }
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to upsert user quota',
+    );
+  }
+}
+
+/**
+ * Get current usage tracking for user
+ */
+export async function getUserUsage({
+  userId,
+  organizationId,
+  month,
+  year,
+}: {
+  userId: string;
+  organizationId: string;
+  month?: number;
+  year?: number;
+}) {
+  try {
+    const currentMonth = month ?? new Date().getMonth() + 1;
+    const currentYear = year ?? new Date().getFullYear();
+
+    const [usage] = await db
+      .select()
+      .from(usageTracking)
+      .where(
+        and(
+          eq(usageTracking.userId, userId),
+          eq(usageTracking.organizationId, organizationId),
+          eq(usageTracking.currentMonth, currentMonth),
+          eq(usageTracking.currentYear, currentYear)
+        )
+      )
+      .limit(1);
+
+    return usage;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get user usage',
+    );
+  }
+}
+
+/**
+ * Initialize or reset usage tracking for user
+ */
+export async function initializeUserUsage({
+  userId,
+  organizationId,
+  month,
+  year,
+}: {
+  userId: string;
+  organizationId: string;
+  month?: number;
+  year?: number;
+}) {
+  try {
+    const currentMonth = month ?? new Date().getMonth() + 1;
+    const currentYear = year ?? new Date().getFullYear();
+
+    const [usage] = await db
+      .insert(usageTracking)
+      .values({
+        userId,
+        organizationId,
+        currentMonth,
+        currentYear,
+        monthlyMessagesUsed: 0,
+        dailyMessagesUsed: 0,
+        companionsCount: 0,
+        documentsCount: 0,
+        totalStorageUsedMb: 0,
+        mcpServersCount: 0,
+      })
+      .onConflictDoUpdate({
+        target: [
+          usageTracking.userId,
+          usageTracking.organizationId,
+          usageTracking.currentMonth,
+          usageTracking.currentYear,
+        ],
+        set: {
+          lastUpdated: new Date(),
+        },
+      })
+      .returning();
+
+    return usage;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to initialize user usage',
+    );
+  }
+}
+
+/**
+ * Increment message usage for user
+ */
+export async function incrementMessageUsage({
+  userId,
+  organizationId,
+}: {
+  userId: string;
+  organizationId: string;
+}) {
+  try {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    const today = new Date().toISOString().split('T')[0];
+
+    // First ensure usage tracking exists
+    await initializeUserUsage({ userId, organizationId, month: currentMonth, year: currentYear });
+
+    // Get current usage
+    const currentUsage = await getUserUsage({ userId, organizationId, month: currentMonth, year: currentYear });
+
+    if (!currentUsage) {
+      throw new Error('Failed to initialize usage tracking');
+    }
+
+    // Check if we need to reset daily counter
+    const shouldResetDaily = currentUsage.lastDailyReset !== today;
+
+    const [updatedUsage] = await db
+      .update(usageTracking)
+      .set({
+        monthlyMessagesUsed: currentUsage.monthlyMessagesUsed + 1,
+        dailyMessagesUsed: shouldResetDaily ? 1 : currentUsage.dailyMessagesUsed + 1,
+        lastMessageDate: today,
+        lastDailyReset: shouldResetDaily ? today : currentUsage.lastDailyReset,
+        lastUpdated: new Date(),
+      })
+      .where(
+        and(
+          eq(usageTracking.userId, userId),
+          eq(usageTracking.organizationId, organizationId),
+          eq(usageTracking.currentMonth, currentMonth),
+          eq(usageTracking.currentYear, currentYear)
+        )
+      )
+      .returning();
+
+    return updatedUsage;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to increment message usage',
+    );
+  }
+}
+
+/**
+ * Update resource counts in usage tracking
+ */
+export async function updateResourceUsage({
+  userId,
+  organizationId,
+  companionsCount,
+  documentsCount,
+  totalStorageUsedMb,
+  mcpServersCount,
+}: {
+  userId: string;
+  organizationId: string;
+  companionsCount?: number;
+  documentsCount?: number;
+  totalStorageUsedMb?: number;
+  mcpServersCount?: number;
+}) {
+  try {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+
+    // Ensure usage tracking exists
+    await initializeUserUsage({ userId, organizationId, month: currentMonth, year: currentYear });
+
+    const updateData: any = {
+      lastUpdated: new Date(),
+    };
+
+    if (companionsCount !== undefined) updateData.companionsCount = companionsCount;
+    if (documentsCount !== undefined) updateData.documentsCount = documentsCount;
+    if (totalStorageUsedMb !== undefined) updateData.totalStorageUsedMb = totalStorageUsedMb;
+    if (mcpServersCount !== undefined) updateData.mcpServersCount = mcpServersCount;
+
+    const [updatedUsage] = await db
+      .update(usageTracking)
+      .set(updateData)
+      .where(
+        and(
+          eq(usageTracking.userId, userId),
+          eq(usageTracking.organizationId, organizationId),
+          eq(usageTracking.currentMonth, currentMonth),
+          eq(usageTracking.currentYear, currentYear)
+        )
+      )
+      .returning();
+
+    return updatedUsage;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to update resource usage',
+    );
+  }
+}
+
+/**
+ * Check if user is within quota limits
+ */
+export async function checkQuotaLimits({
+  userId,
+  organizationId,
+  resourceType,
+}: {
+  userId: string;
+  organizationId: string;
+  resourceType: 'messages_daily' | 'messages_monthly' | 'companions' | 'documents' | 'storage' | 'mcp_servers';
+}) {
+  try {
+    const quota = await getUserQuota({ userId, organizationId });
+    const usage = await getUserUsage({ userId, organizationId });
+
+    if (!quota) {
+      // No quota defined - create default quota
+      await upsertUserQuota({ userId, organizationId });
+      return { allowed: true, remaining: Infinity };
+    }
+
+    if (!usage) {
+      // No usage tracked yet - initialize
+      await initializeUserUsage({ userId, organizationId });
+      return { allowed: true, remaining: getQuotaLimit(quota, resourceType) };
+    }
+
+    const limit = getQuotaLimit(quota, resourceType);
+    const used = getUsageAmount(usage, resourceType);
+    const remaining = Math.max(0, limit - used);
+
+    return {
+      allowed: remaining > 0,
+      remaining,
+      used,
+      limit,
+    };
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to check quota limits',
+    );
+  }
+}
+
+function getQuotaLimit(quota: any, resourceType: string): number {
+  switch (resourceType) {
+    case 'messages_daily':
+      return quota.dailyMessagesLimit;
+    case 'messages_monthly':
+      return quota.monthlyMessagesLimit;
+    case 'companions':
+      return quota.maxCompanions;
+    case 'documents':
+      return quota.maxDocuments;
+    case 'storage':
+      return quota.totalStorageMb;
+    case 'mcp_servers':
+      return quota.maxMcpServers;
+    default:
+      return 0;
+  }
+}
+
+function getUsageAmount(usage: any, resourceType: string): number {
+  switch (resourceType) {
+    case 'messages_daily':
+      return usage.dailyMessagesUsed;
+    case 'messages_monthly':
+      return usage.monthlyMessagesUsed;
+    case 'companions':
+      return usage.companionsCount;
+    case 'documents':
+      return usage.documentsCount;
+    case 'storage':
+      return usage.totalStorageUsedMb;
+    case 'mcp_servers':
+      return usage.mcpServersCount;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Get quota alerts for user
+ */
+export async function getUserQuotaAlerts({
+  userId,
+  organizationId,
+}: {
+  userId: string;
+  organizationId: string;
+}) {
+  try {
+    return await db
+      .select()
+      .from(quotaAlerts)
+      .where(
+        and(
+          eq(quotaAlerts.userId, userId),
+          eq(quotaAlerts.organizationId, organizationId),
+          eq(quotaAlerts.isEnabled, true)
+        )
+      );
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get quota alerts',
+    );
+  }
+}
+
+/**
+ * Create or update quota alert
+ */
+export async function upsertQuotaAlert({
+  userId,
+  organizationId,
+  alertType,
+  thresholdPercentage,
+  isEnabled = true,
+}: {
+  userId: string;
+  organizationId: string;
+  alertType: string;
+  thresholdPercentage: number;
+  isEnabled?: boolean;
+}) {
+  try {
+    const [alert] = await db
+      .insert(quotaAlerts)
+      .values({
+        userId,
+        organizationId,
+        alertType,
+        thresholdPercentage,
+        isEnabled,
+      })
+      .onConflictDoUpdate({
+        target: [quotaAlerts.userId, quotaAlerts.organizationId, quotaAlerts.alertType],
+        set: {
+          thresholdPercentage,
+          isEnabled,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    return alert;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to upsert quota alert',
+    );
+  }
+}
+
+/**
+ * Incrementar uso genérico - função usada pelo middleware de enforcement
+ */
+export async function incrementUsage({
+  userId,
+  organizationId,
+  usageType,
+  amount = 1,
+}: {
+  userId: string;
+  organizationId: string;
+  usageType: 'messages_daily' | 'messages_monthly' | 'companions' | 'documents' | 'storage' | 'mcp_servers';
+  amount?: number;
+}) {
+  try {
+    const currentDate = new Date();
+    const month = currentDate.getMonth() + 1;
+    const year = currentDate.getFullYear();
+
+    // Garantir que existe um registro de uso para este usuário/organização/mês
+    await initializeUserUsage({ userId, organizationId, month, year });
+
+    // Mapear tipo de uso para campo na tabela
+    const updateFields: any = {};
+    
+    switch (usageType) {
+      case 'messages_daily':
+        // Para mensagens diárias, incrementar ambos daily e monthly
+        updateFields.dailyMessagesUsed = sql`${usageTracking.dailyMessagesUsed} + 1`;
+        updateFields.monthlyMessagesUsed = sql`${usageTracking.monthlyMessagesUsed} + 1`;
+        break;
+      case 'messages_monthly':
+        updateFields.monthlyMessagesUsed = sql`${usageTracking.monthlyMessagesUsed} + ${amount}`;
+        break;
+      case 'companions':
+        updateFields.companionsCount = sql`${usageTracking.companionsCount} + ${amount}`;
+        break;
+      case 'documents':
+        updateFields.documentsCount = sql`${usageTracking.documentsCount} + ${amount}`;
+        break;
+      case 'storage':
+        updateFields.totalStorageUsedMb = sql`${usageTracking.totalStorageUsedMb} + ${amount}`;
+        break;
+      case 'mcp_servers':
+        updateFields.mcpServersCount = sql`${usageTracking.mcpServersCount} + ${amount}`;
+        break;
+      default:
+        throw new Error(`Tipo de uso não suportado: ${usageType}`);
+    }
+
+    updateFields.updatedAt = new Date();
+
+    // Atualizar o registro de uso
+    await db
+      .update(usageTracking)
+      .set(updateFields)
+      .where(
+        and(
+          eq(usageTracking.userId, userId),
+          eq(usageTracking.organizationId, organizationId),
+          eq(usageTracking.month, month),
+          eq(usageTracking.year, year)
+        )
+      );
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao incrementar uso:', error);
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to increment usage',
+    );
   }
 }

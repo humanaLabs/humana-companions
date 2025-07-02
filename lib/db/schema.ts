@@ -12,6 +12,8 @@ import {
   integer,
   jsonb,
   real,
+  unique,
+  date,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -709,7 +711,7 @@ export const learningLesson = pgTable('LearningLesson', {
 export const userLearningProgress = pgTable(
   'UserLearningProgress',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: uuid('id').defaultRandom(),
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
@@ -824,3 +826,105 @@ export const forumPost = pgTable('ForumPost', {
   createdAt: timestamp('createdAt').defaultNow().notNull(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
 });
+
+// ========================================
+// QUOTA SYSTEM TABLES
+// ========================================
+
+// User Quotas - Limites por usuário
+export const userQuotas = pgTable('user_quotas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => user.id),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organization.id),
+
+  // Limites de mensagens
+  monthlyMessagesLimit: integer('monthly_messages_limit').notNull().default(1000),
+  dailyMessagesLimit: integer('daily_messages_limit').notNull().default(100),
+
+  // Limites de companions
+  maxCompanions: integer('max_companions').notNull().default(5),
+  maxCustomCompanions: integer('max_custom_companions').notNull().default(2),
+
+  // Limites de documentos
+  maxDocuments: integer('max_documents').notNull().default(100),
+  maxDocumentSizeMb: integer('max_document_size_mb').notNull().default(10),
+  totalStorageMb: integer('total_storage_mb').notNull().default(500),
+
+  // Limites de MCP servers
+  maxMcpServers: integer('max_mcp_servers').notNull().default(3),
+
+  // Metadata
+  quotaType: varchar('quota_type', { length: 50 }).notNull().default('standard'), // standard, premium, enterprise
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  userOrgUnique: unique().on(table.userId, table.organizationId),
+}));
+
+// Usage Tracking - Rastreamento de uso
+export const usageTracking = pgTable('usage_tracking', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => user.id),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organization.id),
+
+  // Período de referência  
+  currentMonth: integer('current_month').notNull(),
+  currentYear: integer('current_year').notNull(),
+
+  // Uso de mensagens
+  monthlyMessagesUsed: integer('monthly_messages_used').notNull().default(0),
+  dailyMessagesUsed: integer('daily_messages_used').notNull().default(0),
+  lastMessageDate: date('last_message_date'),
+
+  // Uso de recursos
+  companionsCount: integer('companions_count').notNull().default(0),
+  documentsCount: integer('documents_count').notNull().default(0),
+  totalStorageUsedMb: integer('total_storage_used_mb').notNull().default(0),
+  mcpServersCount: integer('mcp_servers_count').notNull().default(0),
+
+  // Metadata
+  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
+  lastDailyReset: date('last_daily_reset'),
+}, (table) => ({
+  userOrgMonthUnique: unique().on(table.userId, table.organizationId, table.currentMonth, table.currentYear),
+}));
+
+// Quota Alerts - Alertas de limite
+export const quotaAlerts = pgTable('quota_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => user.id),
+  organizationId: uuid('organization_id')
+    .notNull()
+    .references(() => organization.id),
+
+  // Tipo e configuração do alerta
+  alertType: varchar('alert_type', { length: 50 }).notNull(), // messages, storage, companions, etc
+  thresholdPercentage: integer('threshold_percentage').notNull().default(80), // Alertar em 80% do limite
+  isEnabled: boolean('is_enabled').notNull().default(true),
+
+  // Estado do alerta
+  lastTriggered: timestamp('last_triggered'),
+  triggerCount: integer('trigger_count').notNull().default(0),
+
+  // Metadata
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ========================================
+// TYPE EXPORTS - QUOTA SYSTEM
+// ========================================
+
+export type UserQuota = InferSelectModel<typeof userQuotas>;
+export type UsageTracking = InferSelectModel<typeof usageTracking>;
+export type QuotaAlert = InferSelectModel<typeof quotaAlerts>;

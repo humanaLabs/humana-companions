@@ -31,7 +31,7 @@ export default function AdminPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-6xl w-full mx-auto space-y-6">
           {/* Cards Principais */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {/* Gestão de Usuários */}
             <Link href="/admin/users" className="group">
               <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
@@ -51,6 +51,32 @@ export default function AdminPage() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">CRUD completo</span>
+                  <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                    Acessar →
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Gestão de Quotas */}
+            <Link href="/admin/quotas" className="group">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="text-muted-foreground text-2xl">
+                    📊
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      Quotas
+                    </span>
+                  </div>
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Quotas</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configure limites e monitore o uso de recursos
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Controle de uso</span>
                   <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     Acessar →
                   </div>

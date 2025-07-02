@@ -25,6 +25,7 @@ import {
   MoreIcon,
   TrashIcon,
 } from '@/components/icons';
+import { BarChart3 } from 'lucide-react';
 import { SidebarHistory } from '@/components/sidebar-history';
 import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
@@ -421,6 +422,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <BoxIcon size={16} />
                     </div>
                     <span className="flex-1">Aplicativos</span>
+                  </Link>
+                  <Link
+                    href="/quotas"
+                    onClick={() => setOpenMobile(false)}
+                    className="flex items-center gap-3 px-2 py-2 text-sm text-foreground hover:bg-muted rounded-lg transition-colors group"
+                  >
+                    <div className="flex items-center justify-center w-6 h-6">
+                      <BarChart3 size={16} />
+                    </div>
+                    <span className="flex-1">Quotas</span>
                   </Link>
 
                   {/* Seção Pastas de Projetos - Expanded */}

@@ -10,6 +10,8 @@ import {
   DEFAULT_ORGANIZATION_ID,
 } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
+import { checkQuotaBeforeAction } from '@/lib/middleware/quota-enforcement';
+import { incrementUsage } from '@/lib/db/queries';
 
 // Schema de validação para criação de documentos
 const createDocumentSchema = z.object({
@@ -98,6 +100,38 @@ export async function POST(request: NextRequest) {
     // Assert that organizationId is now definitely a string
     const finalOrganizationId: string = organizationId;
 
+    // 🛡️ VERIFICAÇÃO DE QUOTA - Documentos
+    try {
+      const mockRequest = Object.assign(request, {
+        headers: new Headers(request.headers)
+      });
+      mockRequest.headers.set('x-organization-id', finalOrganizationId);
+      
+      const quotaCheck = await checkQuotaBeforeAction({ 
+        request: mockRequest as any, 
+        config: { 
+          quotaType: 'documents', 
+          actionType: 'create' 
+        } 
+      });
+      
+      if (!quotaCheck.allowed && quotaCheck.error) {
+        return NextResponse.json(
+          {
+            error: quotaCheck.error.message,
+            quotaType: quotaCheck.error.quotaType,
+            current: quotaCheck.error.current,
+            limit: quotaCheck.error.limit,
+            type: 'quota_exceeded'
+          },
+          { status: 429 }
+        );
+      }
+    } catch (quotaError) {
+      console.error('Erro na verificação de quota de documentos:', quotaError);
+      // Continuar com a operação se houver erro na verificação
+    }
+
     const body = await request.json();
     const validatedData = createDocumentSchema.parse(body);
 
@@ -118,6 +152,19 @@ export async function POST(request: NextRequest) {
         kind: document.kind,
         createdAt: document.createdAt,
       });
+
+    // 📊 TRACKING DE USO - Incrementar contador de documentos
+    try {
+      await incrementUsage({
+        userId: session.user.id,
+        organizationId: finalOrganizationId,
+        usageType: 'documents',
+        amount: 1,
+      });
+      console.log('✅ Criação de documento registrada');
+    } catch (trackingError) {
+      console.error('❌ Erro ao registrar criação de documento:', trackingError);
+    }
 
     return NextResponse.json(
       {

@@ -47,6 +47,8 @@ import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
 import { companionToSystemPrompt } from '@/lib/ai/companion-prompt';
 import { getOrganizationId } from '@/lib/tenant-context';
+import { checkQuotaBeforeAction } from '@/lib/middleware/quota-enforcement';
+import { incrementUsage } from '@/lib/db/queries';
 
 // Flag para controlar se a lógica de limites está ativa
 const ENABLE_MESSAGE_LIMITS = false;
@@ -155,6 +157,42 @@ export async function POST(request: Request) {
       organizationId,
     );
 
+    // 🛡️ VERIFICAÇÃO DE QUOTA - Bloquear se limites atingidos
+    try {
+      // Criar NextRequest mock com headers necessários
+      const mockRequest = Object.assign(request, {
+        headers: new Headers(request.headers)
+      });
+      mockRequest.headers.set('x-organization-id', finalOrgId);
+      
+      const quotaCheck = await checkQuotaBeforeAction({ 
+        request: mockRequest as any, 
+        config: { 
+          quotaType: 'messages_daily', 
+          actionType: 'send' 
+        } 
+      });
+      
+      if (!quotaCheck.allowed && quotaCheck.error) {
+        return new Response(
+          JSON.stringify({
+            error: quotaCheck.error.message,
+            quotaType: quotaCheck.error.quotaType,
+            current: quotaCheck.error.current,
+            limit: quotaCheck.error.limit,
+            type: 'quota_exceeded'
+          }),
+          { 
+            status: 429,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    } catch (quotaError) {
+      console.error('Erro na verificação de quota:', quotaError);
+      // Continuar com a operação se houver erro na verificação de quota
+    }
+
     const chat = await getChatById({ id, organizationId: finalOrgId });
 
     if (!chat) {
@@ -208,6 +246,20 @@ export async function POST(request: Request) {
         },
       ],
     });
+
+    // 📊 TRACKING DE USO - Incrementar contador de mensagens
+    try {
+      await incrementUsage({
+        userId: session.user.id,
+        organizationId: finalOrgId,
+        usageType: 'messages_daily',
+        amount: 1,
+      });
+      console.log('✅ Uso de mensagem registrado');
+    } catch (trackingError) {
+      console.error('❌ Erro ao registrar uso de mensagem:', trackingError);
+      // Não falhar a operação por erro de tracking
+    }
 
     const streamId = generateUUID();
     await createStreamId({ streamId, chatId: id, organizationId: finalOrgId });
