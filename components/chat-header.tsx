@@ -52,7 +52,7 @@ function PureChatHeader({
   const isGuest = guestRegex.test(data?.user?.email ?? '');
 
   return (
-    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 border-b border-border/40 md:border-b-0">
+    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2 border-b border-border/40 md:border-b-0 z-40">
       {(state === 'collapsed' || !open || windowWidth < 768) && (
         <SidebarToggle />
       )}
@@ -121,7 +121,7 @@ function PureChatHeader({
               data-testid="user-menu-dropdown"
               side="bottom"
               align="end"
-              className="w-[200px] mr-2"
+              className="w-[200px] mr-2 z-[100]"
             >
               {/* User Info Section */}
               <div className="px-3 py-2 border-b">

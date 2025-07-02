@@ -409,21 +409,23 @@ function ChatInner({
           session={session}
         />
 
-        <Messages
-          chatId={id}
-          status={status}
-          votes={votes}
-          messages={messages}
-          setMessages={setMessages}
-          reload={reload}
-          isReadonly={isReadonly}
-          isArtifactVisible={isArtifactVisible}
-          session={session}
-          selectedCompanionId={selectedCompanionId}
-        />
+        <div className="flex-1 overflow-hidden">
+          <Messages
+            chatId={id}
+            status={status}
+            votes={votes}
+            messages={messages}
+            setMessages={setMessages}
+            reload={reload}
+            isReadonly={isReadonly}
+            isArtifactVisible={isArtifactVisible}
+            session={session}
+            selectedCompanionId={selectedCompanionId}
+          />
+        </div>
 
-        <div className="flex-shrink-0">
-                      <form className="flex mx-auto px-2 md:px-4 bg-background pb-4 md:pb-4 pt-2 md:pt-0 gap-2 w-full md:max-w-3xl">
+        <div className="flex-shrink-0 bg-background">
+          <form className="flex mx-auto px-2 md:px-4 py-4 gap-2 w-full md:max-w-3xl">
             {!isReadonly &&
               (ENABLE_MESSAGE_LIMITS && inputBlocked ? (
                 <Tooltip className="relative w-full">

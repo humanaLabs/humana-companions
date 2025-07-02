@@ -79,7 +79,6 @@ function PureMultimodalInput({
 
   const resetHeight = () => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = '40px';
     }
   };
@@ -253,11 +252,15 @@ function PureMultimodalInput({
           onClick={onInputClick}
           onFocus={onInputClick}
           className={cx(
-            'min-h-[40px] max-h-[120px] md:max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 md:pb-10 pr-12 md:pr-10 pl-10 md:pl-10 dark:border-zinc-700',
-            (attachments.length > 0 || uploadQueue.length > 0) && 'pt-20',
+            'h-[40px] max-h-[120px] md:max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pr-12 md:pr-10 pl-10 md:pl-10 dark:border-zinc-700',
             className,
           )}
-          rows={2}
+          style={{ 
+            lineHeight: '1.2',
+            paddingTop: '18px',
+            paddingBottom: '10px'
+          }}
+          rows={1}
           autoFocus
           onKeyDown={(event) => {
             if (
@@ -281,7 +284,7 @@ function PureMultimodalInput({
         {(attachments.length > 0 || uploadQueue.length > 0) && (
           <div
             data-testid="attachments-preview"
-            className="absolute top-3 left-3 right-14 flex flex-row gap-2 overflow-x-auto items-start z-10 max-h-16 scrollbar-none"
+            className="absolute top-1 left-2 right-14 flex flex-row gap-2 overflow-x-auto items-start z-10 max-h-6 scrollbar-none"
           >
             {attachments.map((attachment) => (
               <PreviewAttachment key={attachment.url} attachment={attachment} />
