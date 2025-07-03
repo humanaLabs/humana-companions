@@ -43,6 +43,9 @@ export async function GET(request: NextRequest) {
     const context: ServiceContext = {
       organizationId,
       userId: session.user.id,
+      userType: session.user.isMasterAdmin ? 'master' : 'admin',
+      permissions: [],
+      isMasterAdmin: session.user.isMasterAdmin || false,
       timestamp: new Date(),
       requestId: `byoc-get-${Date.now()}`
     };
@@ -214,6 +217,9 @@ export async function POST(request: NextRequest) {
     const context: ServiceContext = {
       organizationId,
       userId: session.user.id,
+      userType: session.user.isMasterAdmin ? 'master' : 'admin',
+      permissions: [],
+      isMasterAdmin: session.user.isMasterAdmin || false,
       timestamp: new Date(),
       requestId: `byoc-save-${Date.now()}`
     };

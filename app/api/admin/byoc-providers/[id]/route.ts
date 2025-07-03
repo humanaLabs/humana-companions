@@ -6,7 +6,7 @@ import type { ServiceContext } from '@/lib/services/types/service-context';
 // DELETE - Deletar configuração específica
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,7 +14,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configId = params.id;
+    const { id: configId } = await params;
     if (!configId) {
       return NextResponse.json(
         { error: 'Configuration ID is required' }, 
@@ -27,6 +27,9 @@ export async function DELETE(
     const context: ServiceContext = {
       organizationId,
       userId: session.user.id,
+      userType: session.user.isMasterAdmin ? 'master' : 'admin',
+      permissions: [],
+      isMasterAdmin: session.user.isMasterAdmin || false,
       timestamp: new Date(),
       requestId: `byoc-delete-${Date.now()}`
     };
@@ -64,7 +67,7 @@ export async function DELETE(
 // GET - Buscar configuração específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -72,7 +75,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configId = params.id;
+    const { id: configId } = await params;
     if (!configId) {
       return NextResponse.json(
         { error: 'Configuration ID is required' }, 
@@ -85,6 +88,9 @@ export async function GET(
     const context: ServiceContext = {
       organizationId,
       userId: session.user.id,
+      userType: session.user.isMasterAdmin ? 'master' : 'admin',
+      permissions: [],
+      isMasterAdmin: session.user.isMasterAdmin || false,
       timestamp: new Date(),
       requestId: `byoc-get-single-${Date.now()}`
     };

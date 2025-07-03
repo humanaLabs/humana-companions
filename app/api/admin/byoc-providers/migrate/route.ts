@@ -26,12 +26,22 @@ export async function POST(request: NextRequest) {
     const context: ServiceContext = {
       organizationId,
       userId: session.user.id,
+      userType: session.user.isMasterAdmin ? 'master' : 'admin',
+      permissions: [],
+      isMasterAdmin: session.user.isMasterAdmin || false,
       timestamp: new Date(),
       requestId: `byoc-migrate-${Date.now()}`
     };
 
     const service = new ProviderConfigurationService(context);
     
+    // TODO: Implement migrateProvider method in ProviderConfigurationService
+    return NextResponse.json(
+      { error: 'Provider migration feature not implemented yet' }, 
+      { status: 501 }
+    );
+
+    /*
     const result = await service.migrateProvider({
       fromProviderId,
       toProviderId,
@@ -63,6 +73,7 @@ export async function POST(request: NextRequest) {
         : 'Provider migration completed successfully',
       migration: result.data
     });
+    */
 
   } catch (error) {
     console.error('Error during provider migration:', error);

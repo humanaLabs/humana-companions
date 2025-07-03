@@ -594,6 +594,47 @@ export class ProviderHelper {
  */
 export const providerManager = ProviderManager.getInstance();
 
+/**
+ * @description Check health of a provider configuration
+ */
+export async function checkProviderHealth(
+  type: string,
+  config: any
+): Promise<{
+  healthy: boolean;
+  error?: string;
+  responseTime?: number;
+}> {
+  const startTime = Date.now();
+  
+  try {
+    // TODO: Implement actual health check based on provider type
+    // For now, return a basic validation
+    
+    if (!config || !config.type) {
+      return {
+        healthy: false,
+        error: 'Invalid provider configuration',
+        responseTime: Date.now() - startTime
+      };
+    }
+
+    // Simulate health check
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    return {
+      healthy: true,
+      responseTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      responseTime: Date.now() - startTime
+    };
+  }
+}
+
 export class ServiceProviderFactory {
   private readonly providerRegistry = new Map<string, any>();
 

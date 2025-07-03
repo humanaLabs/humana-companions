@@ -117,12 +117,16 @@ export async function createOrganizationApiAdapter(
 export function createOrganizationContext(
   organizationId: string,
   userId: string,
-  requestId?: string
+  requestId?: string,
+  timestamp?: Date
 ): ServiceContext {
   return {
     organizationId,
     userId,
+    userType: 'admin', // Default type for organization operations
+    permissions: [],
+    isMasterAdmin: false,
     requestId: requestId || crypto.randomUUID(),
-    timestamp: new Date()
+    timestamp: timestamp || new Date()
   };
 } 

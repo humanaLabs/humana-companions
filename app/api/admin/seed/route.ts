@@ -11,21 +11,25 @@ async function createTestUsers() {
     {
       email: 'master@humana.com',
       password: 'password123', // Em produção, usar hash
+      organizationId: 'org-master',
       isMasterAdmin: true,
     },
     {
       email: 'admin@humana.com', 
       password: 'password123',
+      organizationId: 'org-demo',
       isMasterAdmin: false,
     },
     {
       email: 'user1@humana.com',
       password: 'password123',
+      organizationId: 'org-demo',
       isMasterAdmin: false,
     },
     {
       email: 'user2@humana.com',
       password: 'password123',
+      organizationId: 'org-demo',
       isMasterAdmin: false,
     },
   ];
