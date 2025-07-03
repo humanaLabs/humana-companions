@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { PermissionsProvider } from '@/hooks/use-permissions';
+import { OrganizationProvider } from '@/hooks/use-organization-context';
 import { FoldersProvider } from '@/contexts/folders-context';
 import { auth } from '../(auth)/auth';
 import Script from 'next/script';
@@ -24,12 +25,14 @@ export default async function Layout({
         strategy="beforeInteractive"
       />
       <PermissionsProvider>
-        <FoldersProvider user={session?.user}>
-          <SidebarProvider defaultOpen={!isCollapsed}>
-            <AppSidebar user={session?.user} />
-            <SidebarInset>{children}</SidebarInset>
-          </SidebarProvider>
-        </FoldersProvider>
+        <OrganizationProvider>
+          <FoldersProvider user={session?.user}>
+            <SidebarProvider defaultOpen={!isCollapsed}>
+              <AppSidebar user={session?.user} />
+              <SidebarInset>{children}</SidebarInset>
+            </SidebarProvider>
+          </FoldersProvider>
+        </OrganizationProvider>
       </PermissionsProvider>
     </>
   );

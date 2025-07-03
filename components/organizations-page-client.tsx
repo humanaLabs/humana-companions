@@ -42,7 +42,8 @@ export function OrganizationsPageClient() {
       const response = await fetch('/api/organizations');
       if (response.ok) {
         const data = await response.json();
-        setOrganizations(data);
+        console.log('📊 Organizations API response:', data);
+        setOrganizations(data.organizations || []);
       }
     } catch (error) {
       console.error('Error fetching organizations:', error);

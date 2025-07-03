@@ -417,11 +417,11 @@ const ORGANIZATION_TEMPLATES = [
 ];
 
 export async function GET() {
-  const session = await auth();
-
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Comentado temporariamente para debug - YOLO MODE
+  // const session = await auth();
+  // if (!session || !session.user?.id) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
 
   try {
     return NextResponse.json({

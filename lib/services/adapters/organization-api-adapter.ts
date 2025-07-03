@@ -1,5 +1,5 @@
 import type { ServiceContext, OperationResult } from '../types/service-context';
-import { ServiceContainer } from '../container/service-container';
+import { ServiceContainer, ServiceResolver } from '../container/service-container';
 import type { 
   IOrganizationDomainService,
   Organization,
@@ -104,8 +104,8 @@ export async function createOrganizationApiAdapter(
   const container = ServiceContainer.getInstance();
   const context = container.createContext(organizationId, requestId);
   
-  // Resolve service with dependency injection
-  const resolver = container.createResolver();
+  // Resolve service with dependency injection - FIXED
+  const resolver = ServiceResolver.create();
   const organizationService = resolver.organizationDomainService(context);
   
   return new OrganizationApiAdapter(organizationService, context);

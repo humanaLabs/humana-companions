@@ -258,7 +258,7 @@ export class ServiceContainer {
 
     // Organization Domain Service
     this.register('OrganizationDomainService', (context) => {
-      const orgRepo = new OrganizationRepositoryImpl({}, context.organizationId);
+      const orgRepo = new OrganizationRepositoryImpl();
       const userRepo = this.createStubRepository('user');
       const permissionService = null; // Will be replaced with real implementation
       const quotaService = this.createStubQuotaService();

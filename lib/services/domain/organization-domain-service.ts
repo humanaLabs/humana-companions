@@ -202,19 +202,41 @@ export class OrganizationDomainService extends TenantService<Organization> imple
 
   async getOrganizationsForUser(userId: string, context: ServiceContext): Promise<OperationResult<Organization[]>> {
     try {
-      // Multi-tenant isolation: user can only see orgs from their tenant
-      const organizations = await this.orgRepo.findByUserId(userId, this.organizationId);
+      console.log('🔍 Getting organizations for user:', userId);
       
-      // Apply access control
-      const accessibleOrgs = await Promise.all(
-        organizations.map(async (org) => {
-          const hasAccess = await this.validateOrganizationAccess(userId, org.id);
-          return hasAccess ? org : null;
-        })
-      );
+      // Check if user is master admin first
+      const user = await this.userRepo.findById(userId);
+      const isMasterAdmin = user?.isMasterAdmin || false;
+      
+      console.log('👑 User is master admin?', isMasterAdmin);
+      
+      let organizations: Organization[] = [];
+      
+      if (isMasterAdmin) {
+        // Master admins can see all organizations
+        organizations = await this.orgRepo.findByMasterAdmin(userId);
+        console.log('📊 Master admin organizations found:', organizations.length);
+      } else {
+        // Multi-tenant isolation: user can only see orgs from their tenant
+        organizations = await this.orgRepo.findByUserId(userId, this.organizationId);
+        console.log('📊 Regular user organizations found:', organizations.length);
+      }
 
-      return OperationResultHelper.success(accessibleOrgs.filter(Boolean) as Organization[]);
+      // Apply access control for non-master admins
+      if (!isMasterAdmin) {
+        const accessibleOrgs = await Promise.all(
+          organizations.map(async (org) => {
+            const hasAccess = await this.validateOrganizationAccess(userId, org.id);
+            return hasAccess ? org : null;
+          })
+        );
+        organizations = accessibleOrgs.filter(Boolean) as Organization[];
+      }
+
+      console.log('✅ Final organizations list:', organizations.length);
+      return OperationResultHelper.success(organizations);
     } catch (error) {
+      console.error('❌ Error in getOrganizationsForUser:', error);
       return OperationResultHelper.failure('FETCH_FAILED', (error as Error).message);
     }
   }

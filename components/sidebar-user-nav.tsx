@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, Building2 } from 'lucide-react';
 import Image from 'next/image';
 import type { User } from 'next-auth';
 import { signOut, useSession } from 'next-auth/react';
@@ -25,14 +25,31 @@ import { useRouter } from 'next/navigation';
 import { toast } from './toast';
 import { LoaderIcon } from './icons';
 import { guestRegex } from '@/lib/constants';
+import { useOrganizationContext } from '@/hooks/use-organization-context';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export function SidebarUserNav({ user }: { user: User }) {
   const router = useRouter();
   const { data, status } = useSession();
   const { setTheme, resolvedTheme } = useTheme();
   const { state } = useSidebar();
+  const { currentOrganization, organizations, switchOrganization } = useOrganizationContext();
+  const { isMasterAdmin } = usePermissions();
 
   const isGuest = guestRegex.test(data?.user?.email ?? '');
+
+  // DEBUG TEMPORÁRIO: Verificar valores
+  console.log('🔍 SIDEBAR DEBUG:', {
+    isMasterAdmin,
+    organizationsLength: organizations.length,
+    organizations: organizations.map(o => ({ id: o.id, name: o.name })),
+    currentOrganization: currentOrganization ? { id: currentOrganization.id, name: currentOrganization.name } : null,
+    userEmail: data?.user?.email,
+    showOrgSelector: isMasterAdmin || organizations.length > 1
+  });
+
+  // Mostrar seletor de organização se for master admin ou se houver múltiplas orgs
+  const showOrgSelector = isMasterAdmin || organizations.length > 1;
 
   return (
     <SidebarMenu>
@@ -77,6 +94,13 @@ export function SidebarUserNav({ user }: { user: User }) {
                           {user.id}
                         </span>
                       )}
+                      {/* Organização Atual */}
+                      {showOrgSelector && currentOrganization && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 truncate w-full mt-0.5">
+                          <Building2 className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{currentOrganization.name}</span>
+                        </div>
+                      )}
                     </div>
                     <ChevronUp className="ml-auto" />
                   </>
@@ -91,9 +115,39 @@ export function SidebarUserNav({ user }: { user: User }) {
             className={cn(
               'w-[calc(var(--sidebar-width-icon)_-_8px)]',
               'sm:w-[160px]',
-              state === 'expanded' ? 'md:w-[calc(100%-16px)]' : 'md:w-[180px]',
+              state === 'expanded' ? 'md:w-[calc(100%-16px)]' : 'md:w-[220px]',
             )}
           >
+            {/* Seletor de Organização para Master Admin */}
+            {showOrgSelector && (
+              <>
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  Organização Ativa
+                </div>
+                {organizations.map((org) => {
+                  const isSelected = currentOrganization?.id === org.id;
+                  return (
+                    <DropdownMenuItem
+                      key={org.id}
+                      className="cursor-pointer"
+                      onSelect={() => switchOrganization(org.id)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center min-w-0">
+                          <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">{org.name}</span>
+                        </div>
+                        {isSelected && (
+                          <span className="text-primary text-xs">✓</span>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+                <DropdownMenuSeparator />
+              </>
+            )}
+
             <DropdownMenuItem
               data-testid="user-nav-item-preferences"
               className="cursor-pointer"

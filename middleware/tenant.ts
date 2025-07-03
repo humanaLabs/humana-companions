@@ -14,6 +14,13 @@ interface TenantError {
   code: string;
 }
 
+const publicPaths = [
+  '/login',
+  '/register', 
+  '/api/auth',
+  '/api/organizations/templates',
+];
+
 /**
  * Get organization ID for user dynamically
  */
@@ -40,192 +47,139 @@ async function getOrganizationForUser(
  * - Request context must be injected with tenant information
  * - Performance overhead must be < 50ms
  */
-export async function tenantMiddleware(
-  request: NextRequest,
-): Promise<NextResponse> {
-  const startTime = performance.now();
+export async function tenantMiddleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // Skip public paths
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
 
   try {
-    // 1. Get session token from NextAuth with production-safe configuration
-    const token = await getToken({
-      req: request,
-      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-      cookieName:
-        process.env.NODE_ENV === 'production'
-          ? '__Secure-next-auth.session-token'
-          : 'next-auth.session-token',
+    // TENTAR MÚLTIPLAS FORMAS DE OBTER O TOKEN
+    console.log('🔍 TENTANDO OBTER TOKEN...');
+    
+    // Método 1: getToken padrão
+    const token = await getToken({ 
+      req: request, 
+      secret: process.env.AUTH_SECRET 
     });
 
-    // Log token status for debugging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Token check:', {
-        hasToken: !!token,
-        userId: token?.id,
-        email: token?.email,
-        pathname: request.nextUrl.pathname,
+    // Método 2: getToken com raw: true
+    const tokenRaw = await getToken({ 
+      req: request, 
+      secret: process.env.AUTH_SECRET,
+      raw: true
+    });
+
+    console.log('🔍 MÉTODO 1 - TOKEN PADRÃO:', !!token);
+    console.log('🔍 MÉTODO 2 - TOKEN RAW:', !!tokenRaw);
+
+    if (!token) {
+      console.warn('🚨 No token found in tenant middleware');
+      return NextResponse.next();
+    }
+
+    // DEBUG EXTREMAMENTE DETALHADO DO TOKEN
+    console.log('🔍 TOKEN RAW COMPLETE:', JSON.stringify(token, null, 2));
+    console.log('🔍 TOKEN FIELDS MANUAL CHECK:', {
+      'token.type': token.type,
+      'token.isMasterAdmin': token.isMasterAdmin,
+      'token.organizationId': token.organizationId,
+      'token["isMasterAdmin"]': token['isMasterAdmin'],
+      'token["organizationId"]': token['organizationId'],
+      hasOwnPropertyIsMasterAdmin: token.hasOwnProperty('isMasterAdmin'),
+      hasOwnPropertyOrganizationId: token.hasOwnProperty('organizationId'),
+    });
+
+    const response = NextResponse.next();
+    
+    // Injetar informações do usuário nos headers
+    response.headers.set('x-user-id', token.sub || '');
+    response.headers.set('x-user-email', token.email || '');
+    response.headers.set('x-user-type', token.type as string || 'regular');
+    
+    // DEBUG: Log detalhado do token
+    console.log('🔍 TOKEN DEBUG:', {
+      sub: token.sub,
+      email: token.email,
+      userType: token.type,           // ✅ CORRIGIDO: token.type ao invés de token.userType
+      isMasterAdmin: token.isMasterAdmin,
+      organizationId: token.organizationId,
+      allTokenKeys: Object.keys(token),
+    });
+    
+    // === CONTEXT SWITCHING ORGANIZACIONAL ===
+    
+    // 1. Primeiro, tentar obter organizationId do cookie (set pelo frontend)
+    const selectedOrgFromCookie = request.cookies.get('selected-organization-id')?.value;
+    
+    // 2. Fallback: usar organizationId do token (organização padrão do usuário)
+    const userDefaultOrg = token.organizationId as string;
+    
+    // 3. Para Master Admins, permitir switching
+    const isMasterAdmin = token.isMasterAdmin === true;
+    
+    let activeOrganizationId: string | null = null;
+    
+    if (isMasterAdmin) {
+      // Master Admin pode ter qualquer organização ativa
+      activeOrganizationId = selectedOrgFromCookie || userDefaultOrg || null;
+      
+      console.log('🔑 Master Admin context:', {
+        selectedFromCookie: selectedOrgFromCookie,
+        userDefault: userDefaultOrg,
+        active: activeOrganizationId,
+      });
+    } else {
+      // Usuário regular usa sempre sua organização padrão
+      activeOrganizationId = userDefaultOrg;
+      
+      console.log('👤 Regular user context:', {
+        organizationId: activeOrganizationId,
       });
     }
-
-    // 2. Validate session exists - be more lenient with certain endpoints
-    if (!token) {
-      // Some endpoints can work without authentication in specific cases
-      const publicEndpoints = ['/api/auth', '/api/health', '/api/ping'];
-
-      const isPublicEndpoint = publicEndpoints.some((endpoint) =>
-        request.nextUrl.pathname.startsWith(endpoint),
-      );
-
-      if (isPublicEndpoint) {
-        return NextResponse.next();
-      }
-
-      console.error('❌ No token found for:', request.nextUrl.pathname);
-      return createErrorResponse(
-        {
-          error: 'Authentication required',
-          code: 'MISSING_SESSION',
-        },
-        401,
-      );
+    
+    // 4. Injetar organizationId ativo nos headers
+    if (activeOrganizationId) {
+      response.headers.set('x-organization-id', activeOrganizationId);
+      
+      console.log('🏢 Active organization set:', {
+        userId: token.sub,
+        organizationId: activeOrganizationId,
+        isMasterAdmin,
+        path: pathname,
+      });
+    } else {
+      console.warn('⚠️ No active organization found:', {
+        userId: token.sub,
+        isMasterAdmin,
+        path: pathname,
+      });
     }
-
-    // 3. Allow access to user permissions endpoint without organization context
-    // This is needed for checking if user can create organizations
-    if (request.nextUrl.pathname === '/api/user/permissions') {
-      const response = NextResponse.next();
-
-      // Still inject available context headers
-      response.headers.set('x-user-id', token.id as string);
-      response.headers.set('x-user-type', (token.type as string) || 'regular');
-      response.headers.set('x-user-email', token.email as string);
-      if (token.organizationId) {
-        response.headers.set(
-          'x-organization-id',
-          token.organizationId as string,
+    
+    // 5. Para APIs administrativas, validar contexto organizacional
+    if (pathname.startsWith('/api/admin/') && !pathname.includes('master')) {
+      if (!activeOrganizationId) {
+        console.error('🚨 Admin API requires organization context:', pathname);
+        return new NextResponse(
+          JSON.stringify({ 
+            error: 'Organization context required',
+            code: 'MISSING_ORGANIZATION_CONTEXT'
+          }),
+          { 
+            status: 400, 
+            headers: { 'content-type': 'application/json' } 
+          }
         );
       }
-
-      return response;
-    }
-
-    // 4. Get or determine organizationId
-    let organizationId = token.organizationId as string;
-
-    if (!organizationId) {
-      // If organizationId is not in session, determine it dynamically
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`📋 Determinando organização para usuário ${token.email}`);
-      }
-      organizationId = await getOrganizationForUser(
-        token.id as string,
-        token.email as string,
-      );
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🏢 Organização determinada: ${organizationId}`);
-      }
-    }
-
-    // 5. Extract organization from path if present
-    const pathOrganizationId = extractOrganizationFromPath(
-      request.nextUrl.pathname,
-    );
-
-    // 6. Validate cross-tenant access - be more lenient in production
-    if (!validateOrganizationAccess(organizationId, pathOrganizationId)) {
-      // In production, log the error but be more permissive for certain cases
-      if (process.env.NODE_ENV === 'production') {
-        console.warn('⚠️ Organization mismatch in production:', {
-          userOrg: organizationId,
-          pathOrg: pathOrganizationId,
-          path: request.nextUrl.pathname,
-        });
-
-        // Allow if it's a general API route without specific organization context
-        if (!pathOrganizationId) {
-          // Continue with user's organization
-        } else {
-          return createErrorResponse(
-            {
-              error: 'Access denied: Organization mismatch',
-              code: 'ORGANIZATION_MISMATCH',
-            },
-            403,
-          );
-        }
-      } else {
-        return createErrorResponse(
-          {
-            error: 'Access denied: Organization mismatch',
-            code: 'ORGANIZATION_MISMATCH',
-          },
-          403,
-        );
-      }
-    }
-
-    // 7. Validate organization exists (basic validation)
-    if (!isValidOrganizationId(organizationId)) {
-      return createErrorResponse(
-        {
-          error: 'Invalid organization access',
-          code: 'INVALID_ORGANIZATION',
-        },
-        403,
-      );
-    }
-
-    // 8. Create tenant context
-    const tenantContext: TenantContext = {
-      userId: token.id as string,
-      organizationId: organizationId,
-      userType: (token.type as 'guest' | 'regular') || 'regular',
-      email: token.email as string,
-    };
-
-    // 9. Create response with tenant context headers
-    const response = NextResponse.next();
-
-    // Inject tenant context into request headers
-    response.headers.set('x-organization-id', tenantContext.organizationId);
-    response.headers.set('x-user-id', tenantContext.userId);
-    response.headers.set('x-user-type', tenantContext.userType);
-    response.headers.set('x-user-email', tenantContext.email);
-
-    // Add security headers
-    response.headers.set('x-tenant-validated', 'true');
-    response.headers.set('x-tenant-timestamp', Date.now().toString());
-
-    // Performance tracking
-    const endTime = performance.now();
-    const executionTime = endTime - startTime;
-    response.headers.set('x-middleware-duration', executionTime.toFixed(2));
-
-    // Warn if performance target is not met
-    if (executionTime > 50) {
-      console.warn(`Tenant middleware slow: ${executionTime.toFixed(2)}ms`);
     }
 
     return response;
+    
   } catch (error) {
-    console.error('❌ Tenant middleware error:', error);
-
-    // In production, be more permissive with errors to avoid breaking the app
-    if (process.env.NODE_ENV === 'production') {
-      console.error(
-        '🚨 Production middleware error - allowing request to continue',
-      );
-      const response = NextResponse.next();
-      response.headers.set('x-middleware-error', 'true');
-      return response;
-    }
-
-    return createErrorResponse(
-      {
-        error: 'Internal server error',
-        code: 'MIDDLEWARE_ERROR',
-      },
-      500,
-    );
+    console.error('❌ Error in tenant middleware:', error);
+    return NextResponse.next();
   }
 }
 
@@ -331,3 +285,17 @@ export const tenantConfig = {
     '/api/((?!auth).*)',
   ],
 };
+
+/**
+ * Helper para criar cookie de organização
+ */
+export function createOrganizationCookie(organizationId: string) {
+  return `selected-organization-id=${organizationId}; Path=/; SameSite=Lax; Max-Age=2592000`; // 30 dias (removido HttpOnly)
+}
+
+/**
+ * Helper para limpar cookie de organização
+ */
+export function clearOrganizationCookie() {
+  return `selected-organization-id=; Path=/; SameSite=Lax; Max-Age=0`;
+}

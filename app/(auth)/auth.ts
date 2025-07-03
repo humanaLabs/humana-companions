@@ -23,6 +23,7 @@ declare module 'next-auth' {
       id: string;
       type: UserType;
       organizationId?: string;
+      isMasterAdmin?: boolean;
     } & DefaultSession['user'];
   }
 
@@ -30,6 +31,7 @@ declare module 'next-auth' {
     id?: string;
     email?: string | null;
     type: UserType;
+    isMasterAdmin?: boolean;
   }
 }
 
@@ -38,6 +40,7 @@ declare module 'next-auth/jwt' {
     id: string;
     type: UserType;
     organizationId?: string;
+    isMasterAdmin?: boolean;
   }
 }
 
@@ -83,18 +86,35 @@ export const {
 
         if (!passwordsMatch) return null;
 
-        return { ...user, type: 'regular' };
+        return { ...user, type: 'regular', isMasterAdmin: user.isMasterAdmin };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      console.log('🔧 JWT CALLBACK EXECUTADO:', {
+        hasUser: !!user,
+        tokenBefore: { ...token },
+        userInfo: user ? { id: user.id, email: user.email, type: user.type, isMasterAdmin: user.isMasterAdmin } : null
+      });
+
       if (user) {
+        console.log('🔧 PROCESSANDO USUÁRIO NO JWT:', user);
+        
         token.id = user.id as string;
         token.type = user.type;
+        token.isMasterAdmin = user.isMasterAdmin || false;
+
+        console.log('🔧 TOKEN APÓS DEFINIR CAMPOS BÁSICOS:', {
+          id: token.id,
+          type: token.type,
+          isMasterAdmin: token.isMasterAdmin
+        });
 
         // Determinar organizationId
         try {
+          console.log('🔧 BUSCANDO ORGANIZAÇÃO PARA USUÁRIO:', user.id);
+          
           // Primeiro, tentar buscar organização específica do usuário
           const [userOrg] = await db
             .select({ id: organization.id })
@@ -104,29 +124,45 @@ export const {
 
           if (userOrg) {
             token.organizationId = userOrg.id;
+            console.log('🔧 ORGANIZAÇÃO ESPECÍFICA ENCONTRADA:', userOrg.id);
           } else {
             // Se não tem organização específica, usar organização padrão baseada no tipo
             if (user.type === 'guest' || user.email?.includes('guest-')) {
               token.organizationId = GUEST_ORGANIZATION_ID;
+              console.log('🔧 USANDO ORGANIZAÇÃO GUEST:', GUEST_ORGANIZATION_ID);
             } else {
               token.organizationId = DEFAULT_ORGANIZATION_ID;
+              console.log('🔧 USANDO ORGANIZAÇÃO PADRÃO:', DEFAULT_ORGANIZATION_ID);
             }
           }
 
           console.log(
             `🔧 OrganizationId definido para ${user.email}: ${token.organizationId}`,
           );
+          console.log(
+            `👑 isMasterAdmin definido para ${user.email}: ${token.isMasterAdmin}`,
+          );
         } catch (error) {
-          console.error('Error fetching user organization:', error);
+          console.error('🚨 Error fetching user organization:', error);
           // Fallback para organizações padrão
           if (user.type === 'guest' || user.email?.includes('guest-')) {
             token.organizationId = GUEST_ORGANIZATION_ID;
           } else {
             token.organizationId = DEFAULT_ORGANIZATION_ID;
           }
+          console.log('🔧 FALLBACK ORGANIZAÇÃO:', token.organizationId);
         }
+
+        console.log('🔧 TOKEN FINAL APÓS PROCESSAMENTO:', {
+          id: token.id,
+          type: token.type,
+          isMasterAdmin: token.isMasterAdmin,
+          organizationId: token.organizationId,
+          allKeys: Object.keys(token)
+        });
       }
 
+      console.log('🔧 RETORNANDO TOKEN:', { ...token });
       return token;
     },
     async session({ session, token }) {
@@ -134,6 +170,7 @@ export const {
         session.user.id = token.id;
         session.user.type = token.type;
         session.user.organizationId = token.organizationId;
+        session.user.isMasterAdmin = token.isMasterAdmin;
       }
 
       return session;

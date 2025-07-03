@@ -24,6 +24,7 @@ import {
 import { toast } from './toast';
 import { guestRegex } from '@/lib/constants';
 import type { Session } from 'next-auth';
+import { OrganizationSelector } from '@/components/organization-selector';
 
 function PureChatHeader({
   chatId,
@@ -74,6 +75,9 @@ function PureChatHeader({
 
       {/* Actions - no lado direito */}
       <div className="ml-auto flex items-center gap-2">
+        {/* Organization Selector */}
+        <OrganizationSelector />
+        
         {(!open || windowWidth < 768) && (
           <Tooltip>
             <TooltipTrigger asChild>

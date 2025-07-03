@@ -90,7 +90,9 @@ export default async function RootLayout({
               <TopLoadingBar />
             </Suspense>
             <Toaster position="top-center" />
-            <SessionProvider>{children}</SessionProvider>
+            <SessionProvider>
+              {children}
+            </SessionProvider>
           </RadixProvider>
         </ThemeProvider>
       </body>

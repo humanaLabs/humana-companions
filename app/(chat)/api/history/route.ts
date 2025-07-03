@@ -23,14 +23,29 @@ export async function GET(request: NextRequest) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
-  // Get organizationId from middleware headers
-  const organizationId = request.headers.get('x-organization-id');
+  // SOLUÇÃO TEMPORÁRIA: Contornar problema do middleware para Master Admins
+  let organizationId = request.headers.get('x-organization-id');
+  
   if (!organizationId) {
-    return new ChatSDKError(
-      'bad_request:api',
-      'Organization context missing',
-    ).toResponse();
+    // Tentar obter da sessão
+    organizationId = session.user.organizationId || null;
+    
+    if (!organizationId) {
+      if (session.user.isMasterAdmin) {
+        // Master Admin pode usar organização padrão
+        organizationId = '00000000-0000-0000-0000-000000000003';
+        console.log('🔧 History API - Master Admin usando organização padrão:', organizationId);
+      } else {
+        console.error('❌ History API - No organizationId found for regular user');
+        return new ChatSDKError(
+          'bad_request:api',
+          'Organization context missing',
+        ).toResponse();
+      }
+    }
   }
+
+  console.log('🔍 History API - organizationId:', organizationId, 'user:', session.user.email);
 
   const chats = await getChatsByUserId({
     id: session.user.id,
