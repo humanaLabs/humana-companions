@@ -192,6 +192,13 @@ export function SidebarUserNav({ user }: { user: User }) {
               University
             </DropdownMenuItem>
             <DropdownMenuItem
+              data-testid="user-nav-item-analytics"
+              className="cursor-pointer"
+              onSelect={() => router.push('/analytics')}
+            >
+              Analytics
+            </DropdownMenuItem>
+            <DropdownMenuItem
               data-testid="user-nav-item-admin"
               className="cursor-pointer"
               onSelect={() => router.push('/admin')}

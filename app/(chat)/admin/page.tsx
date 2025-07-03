@@ -34,23 +34,23 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             {/* Gestão de Usuários */}
             <Link href="/admin/users" className="group">
-              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow border-green-200">
                 <div className="flex items-start justify-between mb-4">
                   <div className="text-muted-foreground scale-[2]">
                     <UserIcon />
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
-                      Gestão
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      ✅ Service Layer
                     </span>
                   </div>
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">Usuários</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Gerencie usuários, roles e permissões do sistema
+                  Gerencie usuários com AdminDomainService + Multi-tenant
                 </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">CRUD completo</span>
+                  <span className="text-xs text-green-600">🏗️ Arquitetura Fundação</span>
                   <div className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     Acessar →
                   </div>

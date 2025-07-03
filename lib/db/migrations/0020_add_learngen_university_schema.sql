@@ -126,7 +126,6 @@ CREATE TABLE "LearningLesson" (
 
 -- University - User Progress
 CREATE TABLE "UserLearningProgress" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
     "organizationId" UUID REFERENCES "Organization"("id") ON DELETE CASCADE,
     "moduleId" UUID NOT NULL REFERENCES "LearningModule"("id") ON DELETE CASCADE,
@@ -150,7 +149,7 @@ CREATE TABLE "UserLearningProgress" (
     "createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
     "updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
     
-    -- Constraints
+    -- Constraints - Only composite primary key
     PRIMARY KEY ("userId", "moduleId")
 );
 

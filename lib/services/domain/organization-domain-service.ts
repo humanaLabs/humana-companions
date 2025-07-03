@@ -91,13 +91,13 @@ export interface IOrganizationDomainService {
 // Service Implementation
 export class OrganizationDomainService extends TenantService<Organization> implements IOrganizationDomainService {
   constructor(
-    organizationId: string,
+    context: ServiceContext,
     private orgRepo: OrganizationRepository,
     private userRepo: Repository<any> = {} as Repository<any>,
     private permissionService: any = null,
     private quotaService: any = null
   ) {
-    super(organizationId, orgRepo);
+    super(context);
   }
 
   async createOrganization(request: CreateOrganizationRequest): Promise<OperationResult<Organization>> {

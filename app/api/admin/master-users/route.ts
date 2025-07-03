@@ -19,8 +19,6 @@ interface MasterUser {
   lastLogin?: string;
 }
 
-
-
 export async function GET(request: NextRequest) {
   try {
     console.log('📥 GET /api/admin/master-users - Iniciando...');

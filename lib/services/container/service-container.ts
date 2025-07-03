@@ -264,7 +264,7 @@ export class ServiceContainer {
       const quotaService = this.createStubQuotaService();
 
       return new OrganizationDomainService(
-        context.organizationId,
+        context,
         orgRepo,
         userRepo,
         permissionService,
@@ -280,7 +280,7 @@ export class ServiceContainer {
       const quotaService = this.createStubQuotaService();
 
       return new CompanionDomainServiceImpl(
-        context.organizationId,
+        context,
         companionRepo,
         quotaService
       );

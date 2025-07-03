@@ -1,4 +1,4 @@
-import { OperationResult, OperationResultHelper } from '../types/service-context';
+import { OperationResult, OperationResultHelper, ServiceContext } from '../types/service-context';
 import { TenantService } from '../base/tenant-service';
 import { Repository } from '../repositories/base-repository';
 
@@ -128,18 +128,21 @@ export interface CompanionDomainService {
   updateCompanion(id: string, data: Partial<CreateCompanionRequest>): Promise<OperationResult<Companion>>;
   deleteCompanion(id: string): Promise<OperationResult<void>>;
   listCompanions(filters?: CompanionFilters): Promise<OperationResult<Companion[]>>;
+  getCompanionsForUser(userId: string): Promise<OperationResult<Companion[]>>;
   searchCompanions(query: string): Promise<OperationResult<Companion[]>>;
   generateResponse(companionId: string, prompt: string): Promise<OperationResult<string>>;
   trainCompanion(companionId: string, data: string[]): Promise<OperationResult<void>>;
   getCompanionAnalytics(companionId: string): Promise<OperationResult<CompanionAnalytics>>;
 }
 
-export class CompanionDomainServiceImpl implements CompanionDomainService {
+export class CompanionDomainServiceImpl extends TenantService<Companion> implements CompanionDomainService {
   constructor(
-    private readonly organizationId: string,
+    context: ServiceContext,
     private readonly companionRepo: CompanionRepository,
     private readonly quotaService: QuotaService
-  ) {}
+  ) {
+    super(context);
+  }
 
   /**
    * Generate valid UUID v4
@@ -155,12 +158,12 @@ export class CompanionDomainServiceImpl implements CompanionDomainService {
   async createCompanion(request: CreateCompanionRequest, userId: string): Promise<OperationResult<Companion>> {
     try {
       // Validate organization access
-      if (!this.organizationId) {
+      if (!this.context.organizationId) {
         return OperationResultHelper.failure('INVALID_CONTEXT', 'Organization context required');
       }
 
       // Check quota limits
-      const companionCount = await this.companionRepo.countByOrganization(this.organizationId);
+      const companionCount = await this.companionRepo.countByOrganization(this.context.organizationId);
       const maxCompanions = 100; // Default quota
       if (companionCount >= maxCompanions) {
         return OperationResultHelper.failure('QUOTA_EXCEEDED', 'Companion quota exceeded');
@@ -182,7 +185,7 @@ export class CompanionDomainServiceImpl implements CompanionDomainService {
       // Create companion entity
       const companion: Companion = {
         id: this.generateUUID(), // Generate valid UUID
-        organizationId: this.organizationId,
+        organizationId: this.context.organizationId,
         name: request.name.trim(),
         role: request.role.trim(),
         responsibilities: request.responsibilities,
@@ -226,7 +229,7 @@ export class CompanionDomainServiceImpl implements CompanionDomainService {
       }
 
       // Verify tenant isolation
-      if (companion.organizationId !== this.organizationId) {
+      if (companion.organizationId !== this.context.organizationId) {
         return OperationResultHelper.failure('ACCESS_DENIED', 'Access denied to companion');
       }
 
@@ -288,7 +291,7 @@ export class CompanionDomainServiceImpl implements CompanionDomainService {
 
   async listCompanions(filters?: CompanionFilters): Promise<OperationResult<Companion[]>> {
     try {
-      const companions = await this.companionRepo.findByOrganization(this.organizationId);
+      const companions = await this.companionRepo.findByOrganization(this.context.organizationId);
       
       // Apply filters if provided
       let filtered = companions;
@@ -311,9 +314,26 @@ export class CompanionDomainServiceImpl implements CompanionDomainService {
     }
   }
 
+  async getCompanionsForUser(userId: string): Promise<OperationResult<Companion[]>> {
+    try {
+      // Get all companions for organization (tenant isolation enforced)
+      const companions = await this.companionRepo.findByOrganization(this.context.organizationId);
+      
+      // For now, return all companions for the user in their organization
+      // In the future, this could be filtered by user permissions or assignments
+      return OperationResultHelper.success(companions);
+    } catch (error) {
+      console.error('Error getting companions for user:', error);
+      return OperationResultHelper.failure(
+        'INTERNAL_ERROR',
+        error instanceof Error ? error.message : 'Failed to get companions for user'
+      );
+    }
+  }
+
   async searchCompanions(query: string): Promise<OperationResult<Companion[]>> {
     try {
-      const companions = await this.companionRepo.search(query, this.organizationId);
+      const companions = await this.companionRepo.search(query, this.context.organizationId);
       return OperationResultHelper.success(companions);
     } catch (error) {
       console.error('Error searching companions:', error);

@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL(request.url);
-    const organizationId = session.user.organizationId || 'default-org';
+    
+    // ✅ Use organization from middleware header (supports switching)
+    const organizationId = request.headers.get('x-organization-id') || session.user.organizationId || 'default-org';
+    
+    console.log('🔍 Finding companions for organization:', organizationId);
     
     // Create adapter with service layer
     const adapter = await createCompanionApiAdapter(organizationId);
@@ -25,6 +29,8 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log('✅ Found', result.data?.length || 0, 'companions for organization', organizationId);
 
     return NextResponse.json({ 
       companions: result.data,
@@ -46,8 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get organization ID from user session or tenant middleware
-    const organizationId = session.user.organizationId || 'default-org';
+    // ✅ Use organization from middleware header (supports switching)
+    const organizationId = request.headers.get('x-organization-id') || session.user.organizationId || 'default-org';
     const userId = session.user.id; // Get userId from session
     
     // Create adapter with service layer
@@ -91,8 +97,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Companion ID is required' }, { status: 400 });
     }
 
-    // Get organization ID from user session or tenant middleware
-    const organizationId = session.user.organizationId || 'default-org';
+    // ✅ Use organization from middleware header (supports switching)
+    const organizationId = request.headers.get('x-organization-id') || session.user.organizationId || 'default-org';
     
     // Create adapter with service layer
     const adapter = await createCompanionApiAdapter(organizationId);
@@ -135,8 +141,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Companion ID is required' }, { status: 400 });
     }
 
-    // Get organization ID from user session or tenant middleware
-    const organizationId = session.user.organizationId || 'default-org';
+    // ✅ Use organization from middleware header (supports switching)
+    const organizationId = request.headers.get('x-organization-id') || session.user.organizationId || 'default-org';
     
     // Create adapter with service layer
     const adapter = await createCompanionApiAdapter(organizationId);

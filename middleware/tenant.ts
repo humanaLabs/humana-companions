@@ -56,28 +56,27 @@ export async function tenantMiddleware(request: NextRequest) {
   }
 
   try {
-    // TENTAR MÚLTIPLAS FORMAS DE OBTER O TOKEN
-    console.log('🔍 TENTANDO OBTER TOKEN...');
+    // ✅ USAR MESMA CONFIGURAÇÃO DO MIDDLEWARE PRINCIPAL
+    console.log('🔍 OBTENDO TOKEN COM CONFIGURAÇÃO COMPLETA...');
     
-    // Método 1: getToken padrão
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.AUTH_SECRET 
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+      cookieName:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.session-token'
+          : 'next-auth.session-token',
     });
 
-    // Método 2: getToken com raw: true
-    const tokenRaw = await getToken({ 
-      req: request, 
-      secret: process.env.AUTH_SECRET,
-      raw: true
-    });
-
-    console.log('🔍 MÉTODO 1 - TOKEN PADRÃO:', !!token);
-    console.log('🔍 MÉTODO 2 - TOKEN RAW:', !!tokenRaw);
+    console.log('🔍 TOKEN OBTIDO:', !!token);
 
     if (!token) {
       console.warn('🚨 No token found in tenant middleware');
-      return NextResponse.next();
+      // SECURITY: Always return 401 for missing authentication
+      return new NextResponse(
+        JSON.stringify({ error: 'Authentication required', code: 'MISSING_SESSION' }),
+        { status: 401, headers: { 'content-type': 'application/json' } }
+      );
     }
 
     // DEBUG EXTREMAMENTE DETALHADO DO TOKEN
@@ -117,6 +116,10 @@ export async function tenantMiddleware(request: NextRequest) {
     // 2. Fallback: usar organizationId do token (organização padrão do usuário)
     const userDefaultOrg = token.organizationId as string;
     
+    // ✅ EMERGENCY FALLBACK: Se token não tem organizationId, usar padrão
+    const EMERGENCY_DEFAULT_ORG = '00000000-0000-0000-0000-000000000003';
+    const fallbackOrg = userDefaultOrg || EMERGENCY_DEFAULT_ORG;
+    
     // 3. Para Master Admins, permitir switching
     const isMasterAdmin = token.isMasterAdmin === true;
     
@@ -124,23 +127,35 @@ export async function tenantMiddleware(request: NextRequest) {
     
     if (isMasterAdmin) {
       // Master Admin pode ter qualquer organização ativa
-      activeOrganizationId = selectedOrgFromCookie || userDefaultOrg || null;
+      activeOrganizationId = selectedOrgFromCookie || fallbackOrg;
       
       console.log('🔑 Master Admin context:', {
         selectedFromCookie: selectedOrgFromCookie,
         userDefault: userDefaultOrg,
+        fallback: fallbackOrg,
         active: activeOrganizationId,
       });
     } else {
-      // Usuário regular usa sempre sua organização padrão
-      activeOrganizationId = userDefaultOrg;
+      // Usuário regular usa sempre sua organização padrão ou fallback
+      activeOrganizationId = fallbackOrg;
       
       console.log('👤 Regular user context:', {
         organizationId: activeOrganizationId,
+        hasUserDefaultOrg: !!userDefaultOrg,
+        usingFallback: !userDefaultOrg,
       });
     }
     
-    // 4. Injetar organizationId ativo nos headers
+    // 4. Validar se organizationId é válido (não vazio, null, undefined, "invalid", etc.)
+    if (activeOrganizationId && !isValidOrganizationId(activeOrganizationId)) {
+      console.error('🚨 Invalid organizationId detected:', activeOrganizationId);
+      return new NextResponse(
+        JSON.stringify({ error: 'Invalid organization access', code: 'INVALID_ORGANIZATION' }),
+        { status: 403, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
+    // 5. Injetar organizationId ativo nos headers (se disponível)
     if (activeOrganizationId) {
       response.headers.set('x-organization-id', activeOrganizationId);
       
@@ -156,9 +171,55 @@ export async function tenantMiddleware(request: NextRequest) {
         isMasterAdmin,
         path: pathname,
       });
+      
+      // ✅ CRITICAL ROUTES: Allow access even without organization context
+      const allowedWithoutOrg = [
+        '/api/organizations',           // Lista organizações do usuário
+        '/api/user/permissions',        // Permissões básicas do usuário
+        '/api/folders',                 // Folders básicas
+        '/api/history',                 // Histórico básico
+        '/api/auth/',                   // Rotas de autenticação
+        '/api/organizations/switch',    // Troca de organização
+        '/api/organizations/auto-create', // Auto-criação
+        '/api/organizations/check-auto-create', // Verificar auto-criação
+        '/api/chat',                    // Chat básico
+        '/api/companions',              // Lista de companions
+        '/api/user/',                   // APIs do usuário
+        '/api/suggestions',             // Sugestões
+        '/api/quotas',                  // Quotas do usuário
+      ];
+      
+      const isAllowedRoute = allowedWithoutOrg.some(route => pathname.startsWith(route));
+      
+      if (!isAllowedRoute) {
+        // SECURITY: Return 403 only for routes that require organization context
+        return new NextResponse(
+          JSON.stringify({ error: 'Organization context required', code: 'MISSING_ORGANIZATION' }),
+          { status: 403, headers: { 'content-type': 'application/json' } }
+        );
+      }
+      
+      console.log('✅ Allowing route without organization context:', pathname);
     }
     
-    // 5. Para APIs administrativas, validar contexto organizacional
+    // 6. Validar cross-tenant access prevention
+    const pathOrgId = extractOrganizationFromPath(pathname);
+    if (pathOrgId && activeOrganizationId && pathOrgId !== activeOrganizationId) {
+      // Só Master Admins podem acessar diferentes organizações
+      if (!isMasterAdmin) {
+        console.error('🚨 Cross-tenant access denied:', {
+          userOrg: activeOrganizationId,
+          requestedOrg: pathOrgId,
+          path: pathname,
+        });
+        return new NextResponse(
+          JSON.stringify({ error: 'Access denied: Organization mismatch', code: 'CROSS_TENANT_DENIED' }),
+          { status: 403, headers: { 'content-type': 'application/json' } }
+        );
+      }
+    }
+
+    // 7. Para APIs administrativas, validar contexto organizacional
     if (pathname.startsWith('/api/admin/') && !pathname.includes('master')) {
       if (!activeOrganizationId) {
         console.error('🚨 Admin API requires organization context:', pathname);
@@ -179,7 +240,11 @@ export async function tenantMiddleware(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Error in tenant middleware:', error);
-    return NextResponse.next();
+    // SECURITY: Return 500 instead of continuing on error
+    return new NextResponse(
+      JSON.stringify({ error: 'Internal middleware error', code: 'MIDDLEWARE_ERROR' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }
 
@@ -229,12 +294,27 @@ export function validateOrganizationAccess(
  * @returns true if valid format
  */
 function isValidOrganizationId(orgId: string): boolean {
-  // Basic validation - should be UUID format or specific patterns
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // ✅ RELAXED VALIDATION: Allow common patterns
+  if (!orgId || orgId === 'undefined' || orgId === 'null') {
+    return false;
+  }
+  
+  // UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  
+  // Organization prefix patterns  
   const orgPrefixRegex = /^(org|guest-org)-[a-zA-Z0-9-]+$/;
+  
+  // Simple numeric IDs (for testing/development)
+  const numericRegex = /^[0-9]+$/;
+  
+  // Test organization patterns
+  const testOrgRegex = /^(test|dev|local)-[a-zA-Z0-9-]+$/;
 
-  return uuidRegex.test(orgId) || orgPrefixRegex.test(orgId);
+  return uuidRegex.test(orgId) || 
+         orgPrefixRegex.test(orgId) || 
+         numericRegex.test(orgId) ||
+         testOrgRegex.test(orgId);
 }
 
 /**

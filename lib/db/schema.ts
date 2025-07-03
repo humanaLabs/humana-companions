@@ -20,11 +20,16 @@ export const user = pgTable('User', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
+  // CRITICAL: organizationId for multi-tenant isolation
+  organizationId: uuid('organizationId').notNull(),
   isMasterAdmin: boolean('isMasterAdmin').notNull().default(false),
   plan: varchar('plan', { enum: ['free', 'pro', 'guest'] })
     .notNull()
     .default('free'),
   messagesSent: integer('messagesSent').notNull().default(0),
+  // Multi-tenant security fields
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
 export type User = InferSelectModel<typeof user>;
@@ -757,11 +762,12 @@ export const learningLesson = pgTable('LearningLesson', {
 export const userLearningProgress = pgTable(
   'UserLearningProgress',
   {
-    id: uuid('id').defaultRandom(),
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
-    organizationId: uuid('organizationId').references(() => organization.id),
+    organizationId: uuid('organizationId')
+      .notNull()
+      .references(() => organization.id),
     moduleId: uuid('moduleId')
       .notNull()
       .references(() => learningModule.id),

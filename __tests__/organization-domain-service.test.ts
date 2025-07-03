@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from 'vitest';
+import { describe, expect, test, beforeEach, vi } from 'vitest';
 import { OrganizationDomainService } from '@/lib/services/domain/organization-domain-service';
 import { OrganizationRepositoryImpl } from '@/lib/services/repositories/organization-repository';
 import type { ServiceContext } from '@/lib/services/types/service-context';
@@ -10,21 +10,52 @@ describe('OrganizationDomainService', () => {
 
   beforeEach(() => {
     const organizationId = 'test-org-123';
-    repository = new OrganizationRepositoryImpl({}, organizationId);
-    service = new OrganizationDomainService(
-      organizationId,
-      repository,
-      {} as any, // userRepo stub
-      null, // permissionService stub
-      null  // quotaService stub
-    );
-
+    
     context = {
       organizationId,
       userId: 'test-user-123',
-      requestId: 'test-request-123',
-      timestamp: new Date()
+      userType: 'admin',
+      permissions: ['org:read', 'org:write'],
+      isMasterAdmin: false
     };
+    
+    // Mock repository to avoid database connection
+    repository = {
+      findById: vi.fn().mockResolvedValue({
+        id: 'test-org-id',
+        name: 'Test Organization',
+        organizationId: 'test-org-123',
+        createdBy: 'test-user-123',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }),
+      findByUserId: vi.fn().mockResolvedValue([]),
+      findByMasterAdmin: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      findWithStructure: vi.fn(),
+      addTeam: vi.fn(),
+      addPosition: vi.fn(),
+      addValue: vi.fn()
+    } as any;
+    const mockUserRepo = {
+      findById: vi.fn().mockResolvedValue({
+        id: 'test-user-123',
+        isMasterAdmin: false,
+        organizationId: 'test-org-123'
+      })
+    };
+    
+    service = new OrganizationDomainService(
+      context,
+      repository,
+      mockUserRepo as any,
+      null, // permissionService stub
+      null  // quotaService stub
+    );
   });
 
   describe('getOrganizationsForUser', () => {
@@ -194,11 +225,20 @@ describe('OrganizationDomainService Integration', () => {
     const { ServiceContainer, ServiceResolver } = await import('@/lib/services/container/service-container');
     
     const container = ServiceContainer.getInstance();
-    const context = container.createContext('test-org-123');
+    
+    // Create complete context with all required fields
+    const testContext = {
+      organizationId: 'test-org-123',
+      userId: 'test-user-123',
+      userType: 'admin' as const,
+      permissions: ['org:read', 'org:write'],
+      isMasterAdmin: false
+    };
+    
     const resolver = ServiceResolver.create();
     
     expect(() => {
-      const service = resolver.organizationDomainService(context);
+      const service = resolver.organizationDomainService(testContext);
       expect(service).toBeDefined();
     }).not.toThrow();
   });

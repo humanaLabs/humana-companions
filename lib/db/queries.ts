@@ -2653,3 +2653,21 @@ export async function incrementUsage({
     );
   }
 }
+
+// ✅ NOVA FUNÇÃO: Busca TODOS os companions da organização (sem filtro de userId)
+export async function getAllCompanionsByOrganization({
+  organizationId,
+}: { organizationId: string }) {
+  try {
+    return await db
+      .select()
+      .from(companion)
+      .where(eq(companion.organizationId, organizationId))
+      .orderBy(desc(companion.createdAt));
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get all companions by organization',
+    );
+  }
+}

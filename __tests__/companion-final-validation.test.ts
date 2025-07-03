@@ -1,6 +1,20 @@
 import { describe, test, expect } from 'vitest';
 import { CompanionDomainServiceImpl } from '../lib/services/domain/companion-domain-service';
 import { CompanionRepositoryImpl } from '../lib/services/repositories/companion-repository';
+import type { ServiceContext } from '../lib/services/types/service-context';
+
+// Helper function to create ServiceContext
+function createTestContext(organizationId: string, userId: string = 'test-user'): ServiceContext {
+  return {
+    userId,
+    organizationId,
+    userType: 'user',
+    permissions: [],
+    isMasterAdmin: false,
+    requestId: `test-${Date.now()}`,
+    timestamp: new Date()
+  };
+}
 
 /**
  * 🧪 FINAL VALIDATION TEST
@@ -18,8 +32,9 @@ describe('🎯 Final Companion System Validation', () => {
       incrementUsage: async () => {} 
     };
     
+    const context = createTestContext(TEST_ORG_ID);
     const companionService = new CompanionDomainServiceImpl(
-      TEST_ORG_ID,
+      context,
       companionRepo,
       quotaService
     );
@@ -84,7 +99,7 @@ describe('🎯 Final Companion System Validation', () => {
     };
 
     // Create companion
-    const result = await companionService.createCompanion(companionData);
+    const result = await companionService.createCompanion(companionData, 'test-user-123');
 
     // Validate result
     expect(result.success).toBe(true);
@@ -118,15 +133,17 @@ describe('🎯 Final Companion System Validation', () => {
     const repo = new CompanionRepositoryImpl();
     const quotaService = { checkQuota: async () => true, incrementUsage: async () => {} };
     
-    const service1 = new CompanionDomainServiceImpl(ORG1, repo, quotaService);
-    const service2 = new CompanionDomainServiceImpl(ORG2, repo, quotaService);
+    const context1 = createTestContext(ORG1);
+    const context2 = createTestContext(ORG2);
+    const service1 = new CompanionDomainServiceImpl(context1, repo, quotaService);
+    const service2 = new CompanionDomainServiceImpl(context2, repo, quotaService);
 
     // Create companion in org1
     const createResult = await service1.createCompanion({
       name: 'Secure Companion',
       role: 'Security Test',
       responsibilities: ['Test security']
-    });
+    }, 'test-user-security');
 
     expect(createResult.success).toBe(true);
     const companionId = createResult.data!.id;
@@ -145,8 +162,9 @@ describe('🎯 Final Companion System Validation', () => {
   });
 
   test('should validate all required fields', async () => {
+    const context = createTestContext('validation-org');
     const service = new CompanionDomainServiceImpl(
-      'validation-org',
+      context,
       new CompanionRepositoryImpl(),
       { checkQuota: async () => true, incrementUsage: async () => {} }
     );
@@ -156,7 +174,7 @@ describe('🎯 Final Companion System Validation', () => {
       name: '',
       role: 'Test',
       responsibilities: ['Test']
-    });
+    }, 'test-user-validation');
     expect(result1.success).toBe(false);
     expect(result1.error?.message).toContain('Name is required');
 
@@ -165,7 +183,7 @@ describe('🎯 Final Companion System Validation', () => {
       name: 'Test',
       role: '',
       responsibilities: ['Test']
-    });
+    }, 'test-user-validation');
     expect(result2.success).toBe(false);
     expect(result2.error?.message).toContain('Role is required');
 
@@ -174,7 +192,7 @@ describe('🎯 Final Companion System Validation', () => {
       name: 'Test',
       role: 'Test',
       responsibilities: []
-    });
+    }, 'test-user-validation');
     expect(result3.success).toBe(false);
     expect(result3.error?.message).toContain('At least one responsibility is required');
 

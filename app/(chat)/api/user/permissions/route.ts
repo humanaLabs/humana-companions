@@ -14,12 +14,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Buscar usuário no banco
-    const [dbUser] = await db
-      .select()
-      .from(user)
-      .where(eq(user.id, session.user.id))
-      .limit(1);
+    let dbUser = null;
+    let isMasterAdmin = false;
+
+    // 🔧 Buscar usuário no banco com fallback robusto
+    try {
+      const [foundUser] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, session.user.id))
+        .limit(1);
+      
+      dbUser = foundUser;
+      isMasterAdmin = dbUser?.isMasterAdmin || false;
+    } catch (dbError) {
+      console.error('🚨 Database error in permissions API:', dbError);
+      
+      // 🔧 FALLBACK: Se há erro no banco mas usuário tem isMasterAdmin na sessão
+      if (session.user.isMasterAdmin) {
+        console.log('🔧 Using session fallback for Master Admin');
+        isMasterAdmin = true;
+        dbUser = {
+          id: session.user.id,
+          email: session.user.email,
+          plan: 'pro',
+          messagesSent: 0,
+          isMasterAdmin: true
+        };
+      } else {
+        // Re-throw se não for Master Admin
+        throw dbError;
+      }
+    }
 
     if (!dbUser) {
       return NextResponse.json(
@@ -27,9 +53,6 @@ export async function GET(request: NextRequest) {
         { status: 404 },
       );
     }
-
-    // Verificar se é master admin pelo banco
-    const isMasterAdmin = dbUser.isMasterAdmin || false;
 
     // DEBUG: Log para verificar a detecção de Master Admin
     console.log('🔍 DEBUG API - Email:', session.user.email);
@@ -70,7 +93,7 @@ export async function GET(request: NextRequest) {
 
       // Novas informações de permissões
       roleId,
-      organizationId: undefined, // TODO: Buscar organização do usuário
+      organizationId: session.user.organizationId || request.headers.get('x-organization-id'),
       teamIds: [], // TODO: Buscar times do usuário
       permissions: computedPermissions,
       rawPermissions: rolePermissions,
@@ -83,6 +106,29 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching user permissions:', error);
+    
+    // 🔧 ÚLTIMO FALLBACK: Para Master Admins, retornar permissões básicas
+    const session = await auth();
+    if (session?.user?.isMasterAdmin) {
+      console.log('🔧 Emergency fallback for Master Admin permissions');
+      return NextResponse.json({
+        canCreateOrganization: true,
+        isMasterAdmin: true,
+        userId: session.user.id,
+        type: session.user.type,
+        email: session.user.email,
+        roleId: 'master_admin',
+        organizationId: session.user.organizationId,
+        teamIds: [],
+        permissions: SYSTEM_ROLES.MASTER_ADMIN.permissions,
+        rawPermissions: SYSTEM_ROLES.MASTER_ADMIN.permissions,
+        plan: 'pro',
+        messagesSent: 0,
+        messagesUsed: 0,
+        messagesLimit: Number.POSITIVE_INFINITY,
+      });
+    }
+    
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 },

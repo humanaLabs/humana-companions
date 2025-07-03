@@ -96,11 +96,41 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
         setUserPermissions(permissions);
       } else {
         console.error('Erro ao buscar permissões:', response.statusText);
-        setUserPermissions(null);
+        // ✅ FALLBACK: Se a API falha mas o usuário é master admin, criar permissões mínimas
+        if (session?.user && (session.user as any).isMasterAdmin) {
+          console.log('🚨 API falhou, mas usuário é Master Admin. Criando fallback...');
+          const fallbackPermissions: UserPermissions = {
+            userId: session.user.id,
+            roleId: 'master_admin',
+            organizationId: (session.user as any).organizationId,
+            teamIds: [],
+            isMasterAdmin: true,
+            permissions: [],
+            computedPermissions: ['*'], // All permissions
+          };
+          setUserPermissions(fallbackPermissions);
+        } else {
+          setUserPermissions(null);
+        }
       }
     } catch (error) {
       console.error('Erro ao buscar permissões:', error);
-      setUserPermissions(null);
+      // ✅ FALLBACK: Se há erro mas o usuário é master admin, criar permissões mínimas
+      if (session?.user && (session.user as any).isMasterAdmin) {
+        console.log('🚨 Erro na API, mas usuário é Master Admin. Criando fallback...');
+        const fallbackPermissions: UserPermissions = {
+          userId: session.user.id,
+          roleId: 'master_admin',
+          organizationId: (session.user as any).organizationId,
+          teamIds: [],
+          isMasterAdmin: true,
+          permissions: [],
+          computedPermissions: ['*'], // All permissions
+        };
+        setUserPermissions(fallbackPermissions);
+      } else {
+        setUserPermissions(null);
+      }
     } finally {
       setLoading(false);
     }

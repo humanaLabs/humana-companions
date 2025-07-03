@@ -193,21 +193,12 @@ export class CompanionApiAdapter {
 // Factory function for easy instantiation
 export async function createCompanionApiAdapter(organizationId: string): Promise<CompanionApiAdapter> {
   const { ServiceContainer } = await import('../container/service-container');
-  const { CompanionDomainServiceImpl } = await import('../domain/companion-domain-service');
-  const { CompanionRepositoryImpl } = await import('../repositories/companion-repository');
   
-  // Create instances directly since ServiceContainer doesn't have getCompanionService yet
-  const companionRepo = new CompanionRepositoryImpl();
-  const quotaService = { 
-    checkQuota: async () => true, 
-    incrementUsage: async () => {} 
-  };
+  // Create service context with proper tenant isolation
+  const context = ServiceContainer.getInstance().createContext(organizationId, `companion-api-${Date.now()}`);
   
-  const companionService = new CompanionDomainServiceImpl(
-    organizationId,
-    companionRepo,
-    quotaService
-  );
+  // Use ServiceContainer for proper dependency injection
+  const companionService = ServiceContainer.getInstance().resolve<CompanionDomainService>('CompanionDomainService', context);
   
   return new CompanionApiAdapter(companionService);
 } 

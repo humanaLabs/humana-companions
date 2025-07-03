@@ -1,9 +1,11 @@
 export interface ServiceContext {
+  userId: string;
   organizationId: string;
-  userId?: string;
-  timestamp: Date;
-  requestId: string;
-  metadata?: Record<string, any>;
+  userType: 'user' | 'admin' | 'master';
+  permissions: string[];
+  isMasterAdmin: boolean;
+  requestId?: string;
+  timestamp?: Date;
 }
 
 export interface OperationResult<T> {
@@ -12,8 +14,24 @@ export interface OperationResult<T> {
   error?: {
     code: string;
     message: string;
+    details?: Record<string, any>;
+  };
+  metadata?: Record<string, any>;
+}
+
+export interface PaginatedResult<T> extends OperationResult<T[]> {
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    hasMore: boolean;
   };
 }
+
+export type TenantContext = {
+  organizationId: string;
+  userId: string;
+};
 
 export class OperationResultHelper {
   static success<T>(data: T): OperationResult<T> {
