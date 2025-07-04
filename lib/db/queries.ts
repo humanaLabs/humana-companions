@@ -95,13 +95,11 @@ export async function saveChat({
   userId,
   title,
   visibility,
-  organizationId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
-  organizationId: string;
 }) {
   try {
     return await db.insert(chat).values({
@@ -110,7 +108,6 @@ export async function saveChat({
       userId,
       title,
       visibility,
-      organizationId,
     });
   } catch (error) {
     console.error('❌ Erro ao salvar chat:', error);
@@ -120,33 +117,31 @@ export async function saveChat({
 
 export async function deleteChatById({ 
   id, 
-  organizationId 
 }: { 
   id: string;
-  organizationId: string;
 }) {
   try {
-    // Aplicar padrão de segurança unificado - verificar se o chat pertence à organização
+    // Verificar se o chat existe
     const [chatToDelete] = await db
       .select()
       .from(chat)
-      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)));
+      .where(eq(chat.id, id));
 
     if (!chatToDelete) {
       throw new ChatSDKError(
         'not_found:database',
-        'Chat not found or access denied',
+        'Chat not found',
       );
     }
 
-    // Deletar com isolamento de segurança
-    await db.delete(vote).where(and(eq(vote.chatId, id), eq(vote.organizationId, organizationId)));
-    await db.delete(message).where(and(eq(message.chatId, id), eq(message.organizationId, organizationId)));
-    await db.delete(stream).where(and(eq(stream.chatId, id), eq(stream.organizationId, organizationId)));
+    // Deletar dados relacionados
+    await db.delete(vote).where(eq(vote.chatId, id));
+    await db.delete(message).where(eq(message.chatId, id));
+    await db.delete(stream).where(eq(stream.chatId, id));
 
     const [chatsDeleted] = await db
       .delete(chat)
-      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)))
+      .where(eq(chat.id, id))
       .returning();
     return chatsDeleted;
   } catch (error) {
@@ -159,13 +154,11 @@ export async function deleteChatById({
 
 export async function getChatsByUserId({
   id,
-  organizationId,
   limit,
   startingAfter,
   endingBefore,
 }: {
   id: string;
-  organizationId: string;
   limit: number;
   startingAfter: string | null;
   endingBefore: string | null;
@@ -182,12 +175,8 @@ export async function getChatsByUserId({
             ? (and(
                 whereCondition,
                 eq(chat.userId, id),
-                eq(chat.organizationId, organizationId)
               ) as any)
-            : (and(
-                eq(chat.userId, id),
-                eq(chat.organizationId, organizationId)
-              ) as any),
+            : eq(chat.userId, id),
         )
         .orderBy(desc(chat.createdAt) as any)
         .limit(extendedLimit);
@@ -198,12 +187,7 @@ export async function getChatsByUserId({
       const [selectedChat] = await db
         .select()
         .from(chat)
-        .where(
-          and(
-            eq(chat.id, startingAfter),
-            eq(chat.organizationId, organizationId)
-          )
-        )
+        .where(eq(chat.id, startingAfter))
         .limit(1);
 
       if (!selectedChat) {
@@ -218,12 +202,7 @@ export async function getChatsByUserId({
       const [selectedChat] = await db
         .select()
         .from(chat)
-        .where(
-          and(
-            eq(chat.id, endingBefore),
-            eq(chat.organizationId, organizationId)
-          )
-        )
+        .where(eq(chat.id, endingBefore))
         .limit(1);
 
       if (!selectedChat) {
@@ -254,21 +233,16 @@ export async function getChatsByUserId({
 
 export async function getChatById({
   id,
-  organizationId,
 }: {
   id: string;
-  organizationId: string;
 }) {
   try {
-    console.log(
-      `🔍 DEBUG: Buscando chat com ID: ${id}`,
-      organizationId ? `e orgId: ${organizationId}` : '',
-    );
+    console.log(`🔍 DEBUG: Buscando chat com ID: ${id}`);
 
     const [selectedChat] = await db
       .select()
       .from(chat)
-      .where(and(eq(chat.id, id), eq(chat.organizationId, organizationId)));
+      .where(eq(chat.id, id));
 
     if (!selectedChat) {
       console.log(`⚠️ DEBUG: Chat ${id} não encontrado no banco`);
@@ -279,7 +253,6 @@ export async function getChatById({
       id: selectedChat.id,
       title: selectedChat.title,
       userId: selectedChat.userId,
-      organizationId: selectedChat.organizationId,
       visibility: selectedChat.visibility,
     });
 
@@ -304,18 +277,14 @@ export async function saveMessages({
 
 export async function getMessagesByChatId({
   id,
-  organizationId,
 }: {
   id: string;
-  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(message)
-      .where(
-        and(eq(message.chatId, id), eq(message.organizationId, organizationId)),
-      )
+      .where(eq(message.chatId, id))
       .orderBy(asc(message.createdAt));
   } catch (error) {
     throw new ChatSDKError(
@@ -329,23 +298,16 @@ export async function voteMessage({
   chatId,
   messageId,
   type,
-  organizationId,
 }: {
   chatId: string;
   messageId: string;
   type: 'up' | 'down';
-  organizationId: string;
 }) {
   try {
     const [existingVote] = await db
       .select()
       .from(vote)
-      .where(
-        and(
-          eq(vote.messageId, messageId),
-          eq(vote.organizationId, organizationId),
-        ),
-      );
+      .where(eq(vote.messageId, messageId));
 
     if (existingVote) {
       return await db
@@ -355,7 +317,6 @@ export async function voteMessage({
           and(
             eq(vote.messageId, messageId),
             eq(vote.chatId, chatId),
-            eq(vote.organizationId, organizationId),
           ),
         );
     }
@@ -363,7 +324,6 @@ export async function voteMessage({
       chatId,
       messageId,
       isUpvoted: type === 'up',
-      organizationId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to vote message');
@@ -372,16 +332,14 @@ export async function voteMessage({
 
 export async function getVotesByChatId({
   id,
-  organizationId,
 }: {
   id: string;
-  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(vote)
-      .where(and(eq(vote.chatId, id), eq(vote.organizationId, organizationId)));
+      .where(eq(vote.chatId, id));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -396,14 +354,12 @@ export async function saveDocument({
   kind,
   content,
   userId,
-  organizationId,
 }: {
   id: string;
   title: string;
   kind: ArtifactKind;
   content: string;
   userId: string;
-  organizationId: string;
 }) {
   try {
     return await db
@@ -414,7 +370,6 @@ export async function saveDocument({
         kind,
         content,
         userId,
-        organizationId,
         createdAt: new Date(),
       })
       .returning();
@@ -425,21 +380,14 @@ export async function saveDocument({
 
 export async function getDocumentsById({ 
   id, 
-  organizationId 
 }: { 
   id: string;
-  organizationId: string;
 }) {
   try {
     const documents = await db
       .select()
       .from(document)
-      .where(
-        and(
-          eq(document.id, id),
-          eq(document.organizationId, organizationId)
-        )
-      )
+      .where(eq(document.id, id))
       .orderBy(asc(document.createdAt));
 
     return documents;
@@ -453,18 +401,14 @@ export async function getDocumentsById({
 
 export async function getDocumentById({
   id,
-  organizationId,
 }: {
   id: string;
-  organizationId: string;
 }) {
   try {
     const [selectedDocument] = await db
       .select()
       .from(document)
-      .where(
-        and(eq(document.id, id), eq(document.organizationId, organizationId)),
-      )
+      .where(eq(document.id, id))
       .orderBy(desc(document.createdAt));
 
     return selectedDocument;
@@ -479,11 +423,9 @@ export async function getDocumentById({
 export async function deleteDocumentsByIdAfterTimestamp({
   id,
   timestamp,
-  organizationId,
 }: {
   id: string;
   timestamp: Date;
-  organizationId: string;
 }) {
   try {
     await db
@@ -492,7 +434,6 @@ export async function deleteDocumentsByIdAfterTimestamp({
         and(
           eq(suggestion.documentId, id),
           gt(suggestion.documentCreatedAt, timestamp),
-          eq(suggestion.organizationId, organizationId)
         ),
       );
 
@@ -502,7 +443,6 @@ export async function deleteDocumentsByIdAfterTimestamp({
         and(
           eq(document.id, id), 
           gt(document.createdAt, timestamp),
-          eq(document.organizationId, organizationId)
         )
       )
       .returning();
@@ -531,21 +471,14 @@ export async function saveSuggestions({
 
 export async function getSuggestionsByDocumentId({
   documentId,
-  organizationId,
 }: {
   documentId: string;
-  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(suggestion)
-      .where(
-        and(
-          eq(suggestion.documentId, documentId),
-          eq(suggestion.organizationId, organizationId),
-        ),
-      );
+      .where(eq(suggestion.documentId, documentId));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -556,18 +489,14 @@ export async function getSuggestionsByDocumentId({
 
 export async function getMessageById({
   id,
-  organizationId,
 }: {
   id: string;
-  organizationId: string;
 }) {
   try {
     return await db
       .select()
       .from(message)
-      .where(
-        and(eq(message.id, id), eq(message.organizationId, organizationId)),
-      );
+      .where(eq(message.id, id));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -579,11 +508,9 @@ export async function getMessageById({
 export async function deleteMessagesByChatIdAfterTimestamp({
   chatId,
   timestamp,
-  organizationId,
 }: {
   chatId: string;
   timestamp: Date;
-  organizationId: string;
 }) {
   try {
     const messagesToDelete = await db
@@ -593,7 +520,6 @@ export async function deleteMessagesByChatIdAfterTimestamp({
         and(
           eq(message.chatId, chatId),
           gte(message.createdAt, timestamp),
-          eq(message.organizationId, organizationId),
         ),
       );
 
@@ -606,7 +532,6 @@ export async function deleteMessagesByChatIdAfterTimestamp({
           and(
             eq(vote.chatId, chatId),
             inArray(vote.messageId, messageIds),
-            eq(vote.organizationId, organizationId),
           ),
         );
 
@@ -616,7 +541,6 @@ export async function deleteMessagesByChatIdAfterTimestamp({
           and(
             eq(message.chatId, chatId),
             inArray(message.id, messageIds),
-            eq(message.organizationId, organizationId),
           ),
         );
     }
@@ -631,11 +555,9 @@ export async function deleteMessagesByChatIdAfterTimestamp({
 export async function deleteMessageById({
   messageId,
   chatId,
-  organizationId,
 }: {
   messageId: string;
   chatId: string;
-  organizationId: string;
 }) {
   try {
     // Primeiro, exclui os votos relacionados à mensagem
@@ -645,7 +567,6 @@ export async function deleteMessageById({
         and(
           eq(vote.messageId, messageId),
           eq(vote.chatId, chatId),
-          eq(vote.organizationId, organizationId),
         ),
       );
 
@@ -656,7 +577,6 @@ export async function deleteMessageById({
         and(
           eq(message.id, messageId),
           eq(message.chatId, chatId),
-          eq(message.organizationId, organizationId),
         ),
       );
   } catch (error) {
@@ -670,17 +590,15 @@ export async function deleteMessageById({
 export async function updateChatVisiblityById({
   chatId,
   visibility,
-  organizationId,
 }: {
   chatId: string;
   visibility: 'private' | 'public';
-  organizationId: string;
 }) {
   try {
     return await db
       .update(chat)
       .set({ visibility })
-      .where(and(eq(chat.id, chatId), eq(chat.organizationId, organizationId)));
+      .where(eq(chat.id, chatId));
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
@@ -725,16 +643,14 @@ export async function getMessageCountByUserId({
 export async function createStreamId({
   streamId,
   chatId,
-  organizationId,
 }: {
   streamId: string;
   chatId: string;
-  organizationId: string;
 }) {
   try {
     await db
       .insert(stream)
-      .values({ id: streamId, chatId, organizationId, createdAt: new Date() });
+      .values({ id: streamId, chatId, createdAt: new Date() });
   } catch (error) {
     console.error('❌ Erro ao criar stream ID:', error);
     throw new ChatSDKError(
@@ -746,16 +662,14 @@ export async function createStreamId({
 
 export async function getStreamIdsByChatId({ 
   chatId, 
-  organizationId 
 }: { 
   chatId: string;
-  organizationId: string;
 }) {
   try {
     const streamIds = await db
       .select({ id: stream.id })
       .from(stream)
-      .where(and(eq(stream.chatId, chatId), eq(stream.organizationId, organizationId)))
+      .where(eq(stream.chatId, chatId))
       .orderBy(asc(stream.createdAt))
       .execute();
 

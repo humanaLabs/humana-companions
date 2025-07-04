@@ -124,34 +124,8 @@ CREATE TABLE "LearningLesson" (
     UNIQUE("moduleId", "slug")
 );
 
--- University - User Progress
-CREATE TABLE "UserLearningProgress" (
-    "userId" UUID NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
-    "organizationId" UUID REFERENCES "Organization"("id") ON DELETE CASCADE,
-    "moduleId" UUID NOT NULL REFERENCES "LearningModule"("id") ON DELETE CASCADE,
-    "lessonId" UUID REFERENCES "LearningLesson"("id") ON DELETE CASCADE,
-    
-    -- Progress Tracking
-    "status" VARCHAR(20) NOT NULL DEFAULT 'not-started' CHECK ("status" IN ('not-started', 'in-progress', 'completed', 'certified')),
-    "progressPercentage" REAL NOT NULL DEFAULT 0 CHECK ("progressPercentage" >= 0 AND "progressPercentage" <= 100),
-    "timeSpent" INTEGER NOT NULL DEFAULT 0, -- minutes
-    
-    -- Assessment
-    "quizScore" REAL CHECK ("quizScore" >= 0 AND "quizScore" <= 100),
-    "practicalScore" REAL CHECK ("practicalScore" >= 0 AND "practicalScore" <= 100),
-    "attempts" INTEGER NOT NULL DEFAULT 0,
-    
-    -- Timestamps
-    "startedAt" TIMESTAMP,
-    "completedAt" TIMESTAMP,
-    "certifiedAt" TIMESTAMP,
-    
-    "createdAt" TIMESTAMP DEFAULT NOW() NOT NULL,
-    "updatedAt" TIMESTAMP DEFAULT NOW() NOT NULL,
-    
-    -- Constraints - Only composite primary key
-    PRIMARY KEY ("userId", "moduleId")
-);
+-- University - User Progress table already exists from previous migration
+-- Skipping table creation to avoid conflicts
 
 -- University - Certifications
 CREATE TABLE "UserCertification" (

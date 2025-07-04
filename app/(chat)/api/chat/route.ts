@@ -155,57 +155,56 @@ export async function POST(request: Request) {
     // As conversas pertencem ao usuário, independente da organização atual
     const userId = session.user.id;
 
-    // 🛡️ VERIFICAÇÃO DE QUOTA - Bloquear se limites atingidos
-    // Para conversas pessoais, vamos temporariamente desabilitar quotas complexas
+    // 🛡️ VERIFICAÇÃO DE QUOTA - Buscar organização para contexto de quota e recursos organizacionais
+    let finalOrgId: string;
     try {
       // Obter organização atual para contexto de quota (mesmo que conversas sejam pessoais)
       const organizationId = await getOrganizationId();
-      if (organizationId) {
-        const finalOrgId = await getOrganizationForUser(
-          userId,
-          session.user.type || userType,
-          organizationId,
+      finalOrgId = organizationId ? await getOrganizationForUser(
+        userId,
+        session.user.type || userType,
+        organizationId,
+      ) : await getOrganizationForUser(userId, session.user.type || userType);
+      
+      const mockHeaders = new Headers(request.headers);
+      mockHeaders.set('x-organization-id', finalOrgId);
+      
+      const mockRequest = {
+        ...request,
+        headers: mockHeaders
+      };
+      
+      const quotaCheck = await checkQuotaBeforeAction({ 
+        request: mockRequest as any, 
+        config: { 
+          quotaType: 'messages_daily', 
+          actionType: 'send' 
+        } 
+      });
+      
+      if (!quotaCheck.allowed && quotaCheck.error) {
+        return new Response(
+          JSON.stringify({
+            error: quotaCheck.error.message,
+            quotaType: quotaCheck.error.quotaType,
+            current: quotaCheck.error.current,
+            limit: quotaCheck.error.limit,
+            type: 'quota_exceeded'
+          }),
+          { 
+            status: 429,
+            headers: { 'Content-Type': 'application/json' }
+          }
         );
-        
-        const mockHeaders = new Headers(request.headers);
-        mockHeaders.set('x-organization-id', finalOrgId);
-        
-        const mockRequest = {
-          ...request,
-          headers: mockHeaders
-        };
-        
-        const quotaCheck = await checkQuotaBeforeAction({ 
-          request: mockRequest as any, 
-          config: { 
-            quotaType: 'messages_daily', 
-            actionType: 'send' 
-          } 
-        });
-        
-        if (!quotaCheck.allowed && quotaCheck.error) {
-          return new Response(
-            JSON.stringify({
-              error: quotaCheck.error.message,
-              quotaType: quotaCheck.error.quotaType,
-              current: quotaCheck.error.current,
-              limit: quotaCheck.error.limit,
-              type: 'quota_exceeded'
-            }),
-            { 
-              status: 429,
-              headers: { 'Content-Type': 'application/json' }
-            }
-          );
-        }
       }
     } catch (quotaError) {
       console.error('Erro na verificação de quota:', quotaError);
-      // Continuar com a operação se houver erro na verificação de quota
+      // Usar organização padrão se houver erro
+      finalOrgId = await getOrganizationForUser(userId, session.user.type || userType);
     }
 
     // Buscar conversa pessoal (pertence ao usuário, não à organização)
-    const chat = await getPersonalChatById({ id, userId });
+    const chat = await getChatById({ id });
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
@@ -217,7 +216,6 @@ export async function POST(request: Request) {
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
-        organizationId: finalOrgId,
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -227,7 +225,6 @@ export async function POST(request: Request) {
 
     const previousMessages = await getMessagesByChatId({
       id,
-      organizationId: finalOrgId,
     });
 
     const messages = appendClientMessage({
@@ -253,7 +250,6 @@ export async function POST(request: Request) {
           role: 'user',
           parts: message.parts,
           attachments: message.experimental_attachments ?? [],
-          organizationId: finalOrgId,
           createdAt: new Date(),
         },
       ],
@@ -274,7 +270,7 @@ export async function POST(request: Request) {
     }
 
     const streamId = generateUUID();
-    await createStreamId({ streamId, chatId: id, organizationId: finalOrgId });
+    await createStreamId({ streamId, chatId: id });
 
     const stream = createDataStream({
       execute: async (dataStream) => {
@@ -571,7 +567,6 @@ export async function POST(request: Request) {
                       parts: assistantMessage.parts,
                       attachments:
                         assistantMessage.experimental_attachments ?? [],
-                      organizationId: finalOrgId,
                       createdAt: new Date(),
                     },
                   ],
@@ -635,7 +630,7 @@ export async function GET(request: Request) {
       ).toResponse();
     }
 
-    const chat = await getChatById({ id: chatId, organizationId });
+    const chat = await getChatById({ id: chatId });
 
     if (!chat) {
       return new ChatSDKError('not_found:chat').toResponse();
@@ -647,7 +642,6 @@ export async function GET(request: Request) {
 
     const streamIds = await getStreamIdsByChatId({ 
       chatId, 
-      organizationId 
     });
 
     if (!streamIds.length) {
@@ -676,7 +670,6 @@ export async function GET(request: Request) {
     if (!stream) {
       const messages = await getMessagesByChatId({
         id: chatId,
-        organizationId,
       });
       const mostRecentMessage = messages.at(-1);
 
@@ -733,7 +726,7 @@ export async function DELETE(request: Request) {
       'Organization context required',
     ).toResponse();
   }
-  const chat = await getChatById({ id, organizationId });
+  const chat = await getChatById({ id });
 
   if (!chat) {
     return new ChatSDKError('not_found:chat').toResponse();
@@ -745,7 +738,6 @@ export async function DELETE(request: Request) {
 
   const deletedChat = await deleteChatById({ 
     id, 
-    organizationId 
   });
 
   return Response.json(deletedChat, { status: 200 });

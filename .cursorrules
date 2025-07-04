@@ -4,6 +4,9 @@
 
 **⚠️ CRITICAL: These rules must be applied to EVERY code change, regardless of file type or context.**
 
+Quando eu pedir qualquer modificacao via cursor, essas regras tem que ser lidas e executadas em sua totalidade, nao faça tarefas pela metade, altere todas as partes do sistema necessarias para concluir.
+
+
 ### 🏗️ Architecture Standards - ALWAYS ACTIVE
 **Load comprehensive architecture guidelines from `.cursorrules-architecture`:**
 - **Multi-tenant security patterns** - organizationId ALWAYS required
@@ -20,12 +23,39 @@
 4. **ALWAYS** inject dependencies via constructor
 5. **ALWAYS** return `OperationResult<T>` from service methods
 6. **ALWAYS** validate tenant isolation
+7. **NEVER** execute Git operations without explicit user approval
 
 **📋 BEFORE ANY CODE CHANGE:**
 - Verify multi-tenant compliance
 - Ensure service layer isolation
 - Check dependency injection
 - Validate error handling patterns
+
+### 🔒 Git Operations - MANDATORY APPROVAL REQUIRED
+**⚠️ CRITICAL: NEVER execute Git commands without explicit user approval**
+
+**🚫 FORBIDDEN ACTIONS:**
+1. **NEVER** execute `git commit` without asking permission first
+2. **NEVER** execute `git push` without asking permission first
+3. **NEVER** execute `git add` without user awareness
+4. **NEVER** make any Git operations automatically
+
+**✅ REQUIRED PROCESS:**
+1. Make code changes and modifications
+2. **ASK**: "Posso fazer commit dessas mudanças?" 
+3. **WAIT** for explicit user approval
+4. Only then execute Git commands if approved
+5. **ASK**: "Posso fazer push para o repositório?" 
+6. **WAIT** for explicit user approval before pushing
+
+**📝 COMMIT GUIDELINES:**
+- Always use descriptive Portuguese commit messages
+- Include scope and type (feat:, fix:, docs:, etc.)
+- Explain the business value and impact
+- Reference related issues or features
+
+**🔒 SECURITY NOTE:**
+Git operations can permanently modify project history. Always require explicit user consent before ANY Git command execution.
 
 ---
 

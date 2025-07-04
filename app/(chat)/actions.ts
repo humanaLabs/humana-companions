@@ -38,17 +38,11 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const organizationId = await getOrganizationId();
-  if (!organizationId) {
-    throw new Error('Organization context required');
-  }
-
-  const [message] = await getMessageById({ id, organizationId });
+  const [message] = await getMessageById({ id });
 
   await deleteMessagesByChatIdAfterTimestamp({
     chatId: message.chatId,
     timestamp: message.createdAt,
-    organizationId,
   });
 }
 
@@ -59,12 +53,7 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
-  const organizationId = await getOrganizationId();
-  if (!organizationId) {
-    throw new Error('Organization context required');
-  }
-
-  await updateChatVisiblityById({ chatId, visibility, organizationId });
+  await updateChatVisiblityById({ chatId, visibility });
 }
 
 export async function deleteMessage({
@@ -74,12 +63,7 @@ export async function deleteMessage({
   messageId: string;
   chatId: string;
 }) {
-  const organizationId = await getOrganizationId();
-  if (!organizationId) {
-    throw new Error('Organization context required');
-  }
-
-  await deleteMessageById({ messageId, chatId, organizationId });
+  await deleteMessageById({ messageId, chatId });
 }
 
 export async function getMessageByIdAction(id: string) {
@@ -89,12 +73,7 @@ export async function getMessageByIdAction(id: string) {
     redirect('/api/auth/guest');
   }
 
-  const organizationId = await getOrganizationId();
-  if (!organizationId) {
-    throw new Error('Organization context required');
-  }
-
-  const [message] = await getMessageById({ id, organizationId });
+  const [message] = await getMessageById({ id });
 
   return message;
 }
