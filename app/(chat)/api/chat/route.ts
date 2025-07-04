@@ -22,6 +22,15 @@ import {
   incrementUserMessagesSent,
   getOrganizationForUser,
 } from '@/lib/db/queries';
+import {
+  getPersonalChatById,
+  getPersonalMessagesByChatId,
+  savePersonalChat,
+  savePersonalMessages,
+  createPersonalStreamId,
+  getPersonalStreamIdsByChatId,
+  deletePersonalChatById,
+} from '@/lib/db/personal-queries';
 import { generateUUID, getTrailingMessageId } from '@/lib/utils';
 import { generateTitleFromUserMessage } from '../../actions';
 import { createDocument } from '@/lib/ai/tools/create-document';
@@ -142,61 +151,61 @@ export async function POST(request: Request) {
     //   return new ChatSDKError('rate_limit:chat').toResponse();
     // }
 
-    const organizationId = await getOrganizationId();
-    if (!organizationId) {
-      return new ChatSDKError(
-        'forbidden:chat',
-        'Organization context required',
-      ).toResponse();
-    }
-
-    // Get appropriate org based on user type
-    const finalOrgId = await getOrganizationForUser(
-      session.user.id,
-      session.user.type || userType,
-      organizationId,
-    );
+    // Para conversas pessoais, não precisamos de organizationId
+    // As conversas pertencem ao usuário, independente da organização atual
+    const userId = session.user.id;
 
     // 🛡️ VERIFICAÇÃO DE QUOTA - Bloquear se limites atingidos
+    // Para conversas pessoais, vamos temporariamente desabilitar quotas complexas
     try {
-      // Criar NextRequest mock com headers necessários (não modificar o original)
-      const mockHeaders = new Headers(request.headers);
-      mockHeaders.set('x-organization-id', finalOrgId);
-      
-      const mockRequest = {
-        ...request,
-        headers: mockHeaders
-      };
-      
-      const quotaCheck = await checkQuotaBeforeAction({ 
-        request: mockRequest as any, 
-        config: { 
-          quotaType: 'messages_daily', 
-          actionType: 'send' 
-        } 
-      });
-      
-      if (!quotaCheck.allowed && quotaCheck.error) {
-        return new Response(
-          JSON.stringify({
-            error: quotaCheck.error.message,
-            quotaType: quotaCheck.error.quotaType,
-            current: quotaCheck.error.current,
-            limit: quotaCheck.error.limit,
-            type: 'quota_exceeded'
-          }),
-          { 
-            status: 429,
-            headers: { 'Content-Type': 'application/json' }
-          }
+      // Obter organização atual para contexto de quota (mesmo que conversas sejam pessoais)
+      const organizationId = await getOrganizationId();
+      if (organizationId) {
+        const finalOrgId = await getOrganizationForUser(
+          userId,
+          session.user.type || userType,
+          organizationId,
         );
+        
+        const mockHeaders = new Headers(request.headers);
+        mockHeaders.set('x-organization-id', finalOrgId);
+        
+        const mockRequest = {
+          ...request,
+          headers: mockHeaders
+        };
+        
+        const quotaCheck = await checkQuotaBeforeAction({ 
+          request: mockRequest as any, 
+          config: { 
+            quotaType: 'messages_daily', 
+            actionType: 'send' 
+          } 
+        });
+        
+        if (!quotaCheck.allowed && quotaCheck.error) {
+          return new Response(
+            JSON.stringify({
+              error: quotaCheck.error.message,
+              quotaType: quotaCheck.error.quotaType,
+              current: quotaCheck.error.current,
+              limit: quotaCheck.error.limit,
+              type: 'quota_exceeded'
+            }),
+            { 
+              status: 429,
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+        }
       }
     } catch (quotaError) {
       console.error('Erro na verificação de quota:', quotaError);
       // Continuar com a operação se houver erro na verificação de quota
     }
 
-    const chat = await getChatById({ id, organizationId: finalOrgId });
+    // Buscar conversa pessoal (pertence ao usuário, não à organização)
+    const chat = await getPersonalChatById({ id, userId });
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({

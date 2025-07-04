@@ -46,14 +46,9 @@ export interface Chat {
   id: string;
   title: string;
   userId: string;
-  organizationId: string;
-  visibility: 'private' | 'public' | 'shared';
-  companionId?: string;
-  messageCount: number;
-  tokenUsage: number;
+  visibility: 'private' | 'public';
   createdAt: Date;
   updatedAt: Date;
-  metadata?: Record<string, any>;
 }
 
 export interface Message {
@@ -71,12 +66,12 @@ export interface Message {
  * @description Repository interfaces para dependency injection
  */
 export interface ChatRepository {
-  findById(id: string, organizationId: string): Promise<Chat | null>;
-  findByUserId(userId: string, organizationId: string, limit?: number): Promise<Chat[]>;
+  findById(id: string, userId?: string): Promise<Chat | null>;
+  findByUserId(userId: string, limit?: number): Promise<Chat[]>;
   create(chat: Omit<Chat, 'id' | 'createdAt' | 'updatedAt'>): Promise<Chat>;
-  update(id: string, updates: Partial<Chat>): Promise<Chat>;
-  delete(id: string, organizationId: string): Promise<void>;
-  incrementUsage(id: string, tokens: number): Promise<void>;
+  update(id: string, userId: string, updates: Partial<Chat>): Promise<Chat>;
+  delete(id: string, userId: string): Promise<void>;
+  getUserStats(userId: string): Promise<{ totalChats: number; totalMessages: number; }>;
 }
 
 export interface MessageRepository {

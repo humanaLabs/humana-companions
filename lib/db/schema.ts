@@ -37,11 +37,11 @@ export type User = InferSelectModel<typeof user>;
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   title: text('title').notNull(),
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
-  organizationId: uuid('organizationId').references(() => organization.id),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
@@ -106,9 +106,6 @@ export const message = pgTable('Message_v2', {
   role: varchar('role').notNull(),
   parts: json('parts').notNull(),
   attachments: json('attachments').notNull(),
-  organizationId: uuid('organizationId')
-    .notNull()
-    .references(() => organization.id),
   createdAt: timestamp('createdAt').notNull(),
 });
 
@@ -146,9 +143,6 @@ export const vote = pgTable(
       .notNull()
       .references(() => message.id),
     isUpvoted: boolean('isUpvoted').notNull(),
-    organizationId: uuid('organizationId')
-      .notNull()
-      .references(() => organization.id),
   },
   (table) => {
     return {
@@ -172,9 +166,6 @@ export const document = pgTable(
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
-    organizationId: uuid('organizationId')
-      .notNull()
-      .references(() => organization.id),
   },
   (table) => {
     return {
@@ -198,9 +189,6 @@ export const suggestion = pgTable(
     userId: uuid('userId')
       .notNull()
       .references(() => user.id),
-    organizationId: uuid('organizationId')
-      .notNull()
-      .references(() => organization.id),
     createdAt: timestamp('createdAt').notNull(),
   },
   (table) => ({
@@ -219,9 +207,6 @@ export const stream = pgTable(
   {
     id: uuid('id').notNull().defaultRandom(),
     chatId: uuid('chatId').notNull(),
-    organizationId: uuid('organizationId')
-      .notNull()
-      .references(() => organization.id),
     createdAt: timestamp('createdAt').notNull(),
   },
   (table) => ({

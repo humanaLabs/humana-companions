@@ -1,6 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import type { NextRequest } from 'next/server';
-import { getChatsByUserId } from '@/lib/db/queries';
+import { getPersonalChatsByUserId } from '@/lib/db/personal-queries';
 import { ChatSDKError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -23,37 +23,17 @@ export async function GET(request: NextRequest) {
     return new ChatSDKError('unauthorized:chat').toResponse();
   }
 
-  // SOLUÇÃO TEMPORÁRIA: Contornar problema do middleware para Master Admins
-  let organizationId = request.headers.get('x-organization-id');
-  
-  if (!organizationId) {
-    // Tentar obter da sessão
-    organizationId = session.user.organizationId || null;
-    
-    if (!organizationId) {
-      if (session.user.isMasterAdmin) {
-        // Master Admin pode usar organização padrão
-        organizationId = '00000000-0000-0000-0000-000000000003';
-        console.log('🔧 History API - Master Admin usando organização padrão:', organizationId);
-      } else {
-        console.error('❌ History API - No organizationId found for regular user');
-        return new ChatSDKError(
-          'bad_request:api',
-          'Organization context missing',
-        ).toResponse();
-      }
-    }
-  }
+  console.log('🔍 Personal History API - user:', session.user.email, 'userId:', session.user.id);
 
-  console.log('🔍 History API - organizationId:', organizationId, 'user:', session.user.email);
-
-  const chats = await getChatsByUserId({
-    id: session.user.id,
-    organizationId,
+  // Buscar conversas pessoais do usuário (sem organizationId)
+  const chats = await getPersonalChatsByUserId({
+    userId: session.user.id,
     limit,
     startingAfter,
     endingBefore,
   });
+
+  console.log('✅ Personal History API - Found chats:', chats.chats?.length || 0);
 
   return Response.json(chats);
 }

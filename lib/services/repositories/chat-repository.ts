@@ -1,7 +1,6 @@
 import { eq, and, desc, count } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { chat as chatTable, message as messageTable } from '@/lib/db/schema';
-import { BaseRepository, createFilters } from './base-repository';
 import type { ChatRepository } from '../domain/chat-domain-service';
 
 /**
@@ -10,261 +9,198 @@ import type { ChatRepository } from '../domain/chat-domain-service';
 type ChatEntity = typeof chatTable.$inferSelect;
 
 /**
- * @description Implementação concreta do ChatRepository usando Drizzle ORM
+ * @description Implementação do ChatRepository para dados PESSOAIS do usuário
+ * Conversas pertencem ao usuário, não à organização
  */
-export class ChatRepositoryImpl extends BaseRepository<ChatEntity> implements ChatRepository {
-  constructor(organizationId: string) {
-    super('chats', organizationId);
-  }
-
+export class ChatRepositoryImpl implements ChatRepository {
+  
   /**
-   * @description Buscar chat por ID com isolamento de tenant
+   * @description Buscar chat por ID (deve pertencer ao usuário)
    */
-  async findById(id: string, organizationId?: string): Promise<ChatEntity | null> {
-    const targetOrgId = organizationId || this.organizationId;
-    
-    return this.executeQuery(async () => {
-      const result = await db
-        .select()
-        .from(chatTable)
-        .where(and(
-          eq(chatTable.id, id),
-          eq(chatTable.organizationId, targetOrgId)
-        ))
-        .limit(1);
+  async findById(id: string, userId?: string): Promise<ChatEntity | null> {
+    const result = await db
+      .select()
+      .from(chatTable)
+      .where(and(
+        eq(chatTable.id, id),
+        userId ? eq(chatTable.userId, userId) : undefined
+      ))
+      .limit(1);
 
-      const foundChat = result[0] || null;
-      if (foundChat) {
-        this.auditLog('find_by_id', id, { found: true });
-      }
-
-      return foundChat;
-    }, 'findById');
+    return result[0] || null;
   }
 
   /**
-   * @description Buscar chats do usuário com paginação
+   * @description Buscar todas as conversas do usuário
    */
   async findByUserId(
     userId: string, 
-    organizationId?: string, 
     limit = 20
   ): Promise<ChatEntity[]> {
-    const targetOrgId = organizationId || this.organizationId;
-    
-    return this.executeQuery(async () => {
-      const result = await db
-        .select()
-        .from(chatTable)
-        .where(and(
-          eq(chatTable.userId, userId),
-          eq(chatTable.organizationId, targetOrgId)
-        ))
-        .orderBy(desc(chatTable.updatedAt))
-        .limit(limit);
+    const result = await db
+      .select()
+      .from(chatTable)
+      .where(eq(chatTable.userId, userId))
+      .orderBy(desc(chatTable.updatedAt))
+      .limit(limit);
 
-      this.auditLog('find_by_user', userId, { 
-        count: result.length, 
-        limit 
-      });
-
-      return result;
-    }, 'findByUserId');
+    return result;
   }
 
   /**
-   * @description Buscar múltiplos chats com filtros
+   * @description Buscar conversas com filtros (apenas do usuário)
    */
   async findMany(
-    filters: Record<string, any> = {}, 
+    userId: string,
+    filters: { visibility?: 'public' | 'private'; search?: string } = {}, 
     limit = 50
   ): Promise<ChatEntity[]> {
-    return this.executeQuery(async () => {
-      const conditions = createFilters(chatTable, filters, this.organizationId);
-      
-      const result = await db
-        .select()
-        .from(chatTable)
-        .where(conditions)
-        .orderBy(desc(chatTable.updatedAt))
-        .limit(limit);
+    let conditions = eq(chatTable.userId, userId);
+    
+    if (filters.visibility) {
+      conditions = and(conditions, eq(chatTable.visibility, filters.visibility));
+    }
+    
+    const result = await db
+      .select()
+      .from(chatTable)
+      .where(conditions)
+      .orderBy(desc(chatTable.updatedAt))
+      .limit(limit);
 
-      this.auditLog('find_many', 'multiple', { 
-        filters, 
-        count: result.length 
-      });
-
-      return result;
-    }, 'findMany');
+    return result;
   }
 
   /**
-   * @description Criar novo chat
+   * @description Criar nova conversa pessoal
    */
   async create(
     data: Omit<ChatEntity, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ChatEntity> {
-    return this.executeQuery(async () => {
-      const result = await db
-        .insert(chatTable)
-        .values({
-          ...data,
-          organizationId: this.organizationId, // Force tenant isolation
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
+    const result = await db
+      .insert(chatTable)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
-      const chat = result[0];
-      this.auditLog('create', chat.id, { 
-        title: chat.title,
-        visibility: chat.visibility 
-      });
-
-      return chat;
-    }, 'create');
+    return result[0];
   }
 
   /**
-   * @description Atualizar chat existente
+   * @description Atualizar conversa (apenas se for do usuário)
    */
-  async update(id: string, updates: Partial<ChatEntity>): Promise<ChatEntity> {
-    return this.executeQuery(async () => {
-      // Primeiro verificar se existe e pertence à org
-      const existing = await this.findById(id);
-      if (!existing) {
-        throw new Error('Chat not found');
-      }
+  async update(
+    id: string, 
+    userId: string, 
+    updates: Partial<ChatEntity>
+  ): Promise<ChatEntity> {
+    // Verificar se a conversa pertence ao usuário
+    const existing = await this.findById(id, userId);
+    if (!existing) {
+      throw new Error('Chat not found or access denied');
+    }
 
-      this.validateTenantAccess(existing);
+    const result = await db
+      .update(chatTable)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(chatTable.id, id),
+        eq(chatTable.userId, userId)
+      ))
+      .returning();
 
-      const result = await db
-        .update(chatTable)
-        .set({
-          ...updates,
-          updatedAt: new Date()
-        })
-        .where(and(
-          eq(chatTable.id, id),
-          eq(chatTable.organizationId, this.organizationId)
-        ))
-        .returning();
+    const updated = result[0];
+    if (!updated) {
+      throw new Error('Failed to update chat');
+    }
 
-      const updated = result[0];
-      if (!updated) {
-        throw new Error('Failed to update chat');
-      }
-
-      this.auditLog('update', id, { updates: Object.keys(updates) });
-      return updated;
-    }, 'update');
+    return updated;
   }
 
   /**
-   * @description Deletar chat
+   * @description Deletar conversa (apenas se for do usuário)
    */
-  async delete(id: string, organizationId?: string): Promise<void> {
-    const targetOrgId = organizationId || this.organizationId;
+  async delete(id: string, userId: string): Promise<void> {
+    // Verificar se a conversa pertence ao usuário
+    const existing = await this.findById(id, userId);
+    if (!existing) {
+      throw new Error('Chat not found or access denied');
+    }
+
+    // Deletar a conversa
+    await db
+      .delete(chatTable)
+      .where(and(
+        eq(chatTable.id, id),
+        eq(chatTable.userId, userId)
+      ));
+  }
+
+  /**
+   * @description Contar conversas do usuário
+   */
+  async count(userId: string, filters: Record<string, any> = {}): Promise<number> {
+    let conditions = eq(chatTable.userId, userId);
     
-    return this.executeQuery(async () => {
-      // Verificar se existe antes de deletar
-      const existing = await this.findById(id, targetOrgId);
-      if (!existing) {
-        throw new Error('Chat not found');
-      }
+    if (filters.visibility) {
+      conditions = and(conditions, eq(chatTable.visibility, filters.visibility));
+    }
 
-      // Deletar o chat
-      await db
-        .delete(chatTable)
-        .where(and(
-          eq(chatTable.id, id),
-          eq(chatTable.organizationId, targetOrgId)
-        ));
+    const result = await db
+      .select({ count: count() })
+      .from(chatTable)
+      .where(conditions);
 
-      this.auditLog('delete', id, { title: existing.title });
-    }, 'delete');
+    return result[0]?.count || 0;
   }
 
   /**
-   * @description Incrementar usage do chat (tokens/mensagens)
-   */
-  async incrementUsage(id: string, tokens: number): Promise<void> {
-    return this.executeQuery(async () => {
-      await db
-        .update(chatTable)
-        .set({
-          tokenUsage: chatTable.tokenUsage + tokens,
-          messageCount: chatTable.messageCount + 1,
-          updatedAt: new Date()
-        })
-        .where(and(
-          eq(chatTable.id, id),
-          eq(chatTable.organizationId, this.organizationId)
-        ));
-
-      this.auditLog('increment_usage', id, { tokens });
-    }, 'incrementUsage');
-  }
-
-  /**
-   * @description Contar chats com filtros
-   */
-  async count(filters: Record<string, any> = {}): Promise<number> {
-    return this.executeQuery(async () => {
-      const conditions = createFilters(chatTable, filters, this.organizationId);
-      
-      const result = await db
-        .select({ count: count() })
-        .from(chatTable)
-        .where(conditions);
-
-      return result[0]?.count || 0;
-    }, 'count');
-  }
-
-  /**
-   * @description Buscar chats por visibility
+   * @description Buscar conversas por visibilidade
    */
   async findByVisibility(
-    visibility: 'private' | 'public' | 'shared',
+    userId: string,
+    visibility: 'private' | 'public',
     limit = 20
   ): Promise<ChatEntity[]> {
-    return this.findMany({ visibility }, limit);
+    const result = await db
+      .select()
+      .from(chatTable)
+      .where(and(
+        eq(chatTable.userId, userId),
+        eq(chatTable.visibility, visibility)
+      ))
+      .orderBy(desc(chatTable.updatedAt))
+      .limit(limit);
+
+    return result;
   }
 
   /**
-   * @description Buscar chats por companion
-   */
-  async findByCompanion(companionId: string, limit = 20): Promise<ChatEntity[]> {
-    return this.findMany({ companionId }, limit);
-  }
-
-  /**
-   * @description Estatísticas de uso por usuário
+   * @description Estatísticas do usuário
    */
   async getUserStats(userId: string): Promise<{
     totalChats: number;
     totalMessages: number;
-    totalTokens: number;
   }> {
-    return this.executeQuery(async () => {
-      const result = await db
-        .select({
-          totalChats: count(),
-          totalMessages: chatTable.messageCount,
-          totalTokens: chatTable.tokenUsage
-        })
-        .from(chatTable)
-        .where(and(
-          eq(chatTable.userId, userId),
-          eq(chatTable.organizationId, this.organizationId)
-        ));
+    const [chatCount, messageCount] = await Promise.all([
+      this.count(userId),
+      db
+        .select({ count: count() })
+        .from(messageTable)
+        .leftJoin(chatTable, eq(messageTable.chatId, chatTable.id))
+        .where(eq(chatTable.userId, userId))
+        .then(result => result[0]?.count || 0)
+    ]);
 
-      return {
-        totalChats: result.length,
-        totalMessages: result.reduce((sum, r) => sum + r.totalMessages, 0),
-        totalTokens: result.reduce((sum, r) => sum + r.totalTokens, 0)
-      };
-    }, 'getUserStats');
+    return {
+      totalChats: chatCount,
+      totalMessages: messageCount,
+    };
   }
 } 
