@@ -39,7 +39,7 @@ O **BYOC (Bring Your Own Cloud) Deployment** permite que organizações enterpri
 - **Network Isolation**: Isolamento completo de rede
 - **Encryption**: Criptografia em repouso e trânsito
 - **Access Control**: RBAC integrado com identity providers
-- **Audit Logging**: Logs completos de auditoria
+- **Audit Logging**: Sistema de auditoria configurável
 
 ### **📋 Compliance Support**
 - **SOC 2**: Configurações para compliance SOC 2
@@ -47,6 +47,86 @@ O **BYOC (Bring Your Own Cloud) Deployment** permite que organizações enterpri
 - **GDPR**: Configurações para GDPR compliance
 - **ISO 27001**: Padrões de segurança ISO
 - **Custom Policies**: Políticas customizadas por organização
+
+### **🔍 Audit Configuration (BYOC)**
+**Configuração Flexível de Sistema de Auditoria**
+
+O cliente pode escolher como deseja armazenar e gerenciar seus logs de auditoria:
+
+#### **📊 Opção 1: Auditoria Tradicional (Padrão)**
+- **Storage**: Banco de dados PostgreSQL/MySQL
+- **Benefícios**: Simplicidade, performance, custo zero
+- **Ideal para**: Compliance básico, auditoria interna
+- **Features**: Logs estruturados, busca avançada, relatórios
+
+#### **🔗 Opção 2: Auditoria Blockchain (Premium)**
+- **Storage**: Blockchain imutável configurável
+- **Benefícios**: Imutabilidade, prova criptográfica, compliance avançado
+- **Ideal para**: Regulamentações rigorosas, disputas legais
+- **Features**: Trilha à prova de manipulação, certificação automática
+
+**Blockchains Suportadas:**
+- **Hyperledger Besu** (Padrão Humana - Open Source)
+- **Hyperledger Fabric** (Enterprise permissioned)
+- **Ethereum Private** (Redes privadas)
+- **Polygon** (Custos reduzidos)
+- **Outras blockchains** (Sob demanda)
+
+#### **⚙️ Configuração BYOC Audit**
+```yaml
+# config/audit.yml
+auditProvider:
+  type: "database" # ou "blockchain"
+  
+  # Configuração para auditoria tradicional
+  database:
+    type: "postgresql"
+    endpoint: "your-audit-db.com"
+    retention: "7-years"
+    
+  # Configuração para auditoria blockchain
+  blockchain:
+    type: "besu" # besu, fabric, ethereum, polygon
+    network: "private"
+    endpoint: "your-besu-node.com"
+    contractAddress: "0x..."
+    
+  # Eventos auditados
+  events:
+    - "document_access"
+    - "permission_changes"
+    - "ai_decisions"
+    - "data_exports"
+```
+
+#### **💼 Casos de Uso por Tipo**
+
+**Auditoria Tradicional:**
+- Conformidade geral (SOC 2, ISO 27001)
+- Auditoria interna corporativa
+- Relatórios de compliance básico
+- Troubleshooting operacional
+
+**Auditoria Blockchain:**
+- Regulamentações financeiras (SOX, MiFID)
+- Compliance healthcare (HIPAA, FDA)
+- Disputas legais e forenses
+- Certificação de documentos críticos
+
+#### **🎯 Benefícios por Modalidade**
+
+**Tradicional:**
+- ✅ Zero custos adicionais
+- ✅ Performance otimizada
+- ✅ Queries SQL familiares
+- ✅ Fácil integração
+
+**Blockchain:**
+- ✅ Imutabilidade garantida
+- ✅ Prova criptográfica
+- ✅ Compliance premium
+- ✅ Diferenciação competitiva
+- ✅ Elimina disputas sobre dados
 
 ## 🚀 Deployment Process
 
